@@ -1,0 +1,20 @@
+{
+  "name": "seviaflow-ui-assets",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build"
+  },
+  "devDependencies": {
+    "autoprefixer": "^10.4.20",
+    "chart.js": "^4.5.1",
+    "flowbite": "^2.5.2",
+    "postcss": "^8.4.47",
+    "tailwindcss": "^3.4.14",
+    "vite": "^5.4.10"
+  },
+  "engines": {
+    "node": ">=22.12 <23"
+  }
+}

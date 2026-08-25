@@ -1,0 +1,1596 @@
+<?php
+
+declare(strict_types=1);
+
+namespace SeviaFlow\Ui\Livewire;
+
+use Illuminate\Contracts\View\View;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
+use Illuminate\Database\Eloquent\Relations\MorphOne;
+use Illuminate\Database\Eloquent\Relations\MorphToMany;
+use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Pagination\Paginator;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Stringable;
+use InvalidArgumentException;
+use Livewire\Component;
+use Livewire\WithPagination;
+use SeviaFlow\Core\Exceptions\ResourceSlugNotRegisteredException;
+use SeviaFlow\Core\Forms\FormFields;
+use SeviaFlow\Core\Forms\FormValidationRules;
+use SeviaFlow\Core\Resources\Action;
+use SeviaFlow\Core\Resources\Columns\BadgeColumn;
+use SeviaFlow\Core\Resources\Columns\BelongsToColumn;
+use SeviaFlow\Core\Resources\Columns\BooleanColumn;
+use SeviaFlow\Core\Resources\Columns\Column;
+use SeviaFlow\Core\Resources\Columns\Support\BadgeRenderer;
+use SeviaFlow\Core\Resources\Fields\DateField;
+use SeviaFlow\Core\Resources\Fields\Field;
+use SeviaFlow\Core\Resources\Fields\SelectField;
+use SeviaFlow\Core\Resources\Fields\ToggleField;
+use SeviaFlow\Core\Resources\Form;
+use SeviaFlow\Core\Resources\Relations\BelongsToManyRelation;
+use SeviaFlow\Core\Resources\Relations\HasManyRelation;
+use SeviaFlow\Core\Resources\Relations\HasOneRelation;
+use SeviaFlow\Core\Resources\Relations\MorphManyRelation;
+use SeviaFlow\Core\Resources\Relations\MorphOneRelation;
+use SeviaFlow\Core\Resources\Relations\MorphToManyRelation;
+use SeviaFlow\Core\Resources\ResourceAuthorization;
+use SeviaFlow\Core\Resources\ResourceContext;
+use SeviaFlow\Core\Resources\ResourceRegistry;
+use SeviaFlow\Core\Resources\Section;
+use SeviaFlow\Core\Resources\Table;
+use SeviaFlow\Ui\Show\Actions\ShowActionResolver;
+use SeviaFlow\Ui\Show\Actions\ShowActionRunner;
+use SeviaFlow\Ui\Show\Relations\BelongsToManyRelationManager;
+use SeviaFlow\Ui\Show\Relations\HasManyRelationManager;
+use SeviaFlow\Ui\Show\Relations\HasOneRelationManager;
+use SeviaFlow\Ui\Show\Relations\MorphManyRelationManager;
+use SeviaFlow\Ui\Show\Relations\MorphOneRelationManager;
+use SeviaFlow\Ui\Show\Relations\MorphToManyRelationManager;
+use SeviaFlow\Ui\Show\Relations\PivotFormHandler;
+use SeviaFlow\Ui\Show\Relations\RelationBoundaryGuard;
+use SeviaFlow\Ui\Show\Relations\RelationManagerResolver;
+use SeviaFlow\Ui\Show\Relations\RelationModalFormHandler;
+use SeviaFlow\Ui\Show\Relations\RelationQueryPaginator;
+use SeviaFlow\Ui\Show\Workflow\WorkflowPanelState;
+use SeviaFlow\Ui\Show\Workflow\WorkflowTransitionRunner;
+
+final class ResourceShow extends Component
+{
+    use WithPagination;
+
+    public string $resourceSlug;
+
+    /**
+     * @var class-string
+     */
+    public string $resource;
+
+    /**
+     * @var class-string<Model>
+     */
+    public string $modelClass;
+
+    /**
+     * @var Model|null
+     */
+    public $record = null;
+
+    public ?string $statusMessage = null;
+
+    public ?string $errorMessage = null;
+
+    public ?string $pendingActionName = null;
+
+    public ?string $pendingWorkflowTransitionName = null;
+
+    public ?string $workflowTransitionComment = null;
+
+    /**
+     * @var array<string, string>
+     */
+    public array $attachSelection = [];
+
+    public ?string $pendingDetachRelation = null;
+
+    public int|string|null $pendingDetachRecordId = null;
+
+    public ?string $pendingHasManyDeleteRelation = null;
+
+    public int|string|null $pendingHasManyDeleteRecordId = null;
+
+    public ?string $pendingHasOneDeleteRelation = null;
+
+    public ?string $pivotModalRelationship = null;
+
+    public ?string $pivotModalMode = null;
+
+    public int|string|null $pivotModalRelatedRecordId = null;
+
+    /**
+     * @var array<string, mixed>
+     */
+    public array $pivotModalValues = [];
+
+    public ?string $relationModalRelationship = null;
+
+    public ?string $relationModalMode = null;
+
+    public int|string|null $relationModalRecordId = null;
+
+    /**
+     * @var array<string, mixed>
+     */
+    public array $relationModalValues = [];
+
+    public function mount(string $resource, int|string $record): void
+    {
+        try {
+            $resourceClass = app(ResourceRegistry::class)->resolve($resource);
+        } catch (ResourceSlugNotRegisteredException) {
+            abort(404);
+        }
+
+        $this->resourceSlug = $resource;
+        $this->resource = $resourceClass;
+        $this->modelClass = $resourceClass::model();
+        $this->record = $this->query()->find($record);
+
+        if (! $this->record instanceof Model) {
+            abort(404);
+        }
+
+        if (! $this->authorization()->canView(null, $this->record)) {
+            abort(403);
+        }
+    }
+
+    public function render(): View
+    {
+        return view('seviaflow-ui::livewire.resource-show', [
+            'fields' => $this->visibleFields(),
+            'sections' => $this->visibleSections(),
+            'title' => $this->resourceLabel(),
+            'actions' => $this->authorizedActions(),
+            'canEdit' => $this->canEdit(),
+            'backUrl' => route(config('seviaflow-ui.route_name_prefix', 'seviaflow.').'resources.index', [
+                'resource' => $this->resourceSlug,
+            ]),
+            'editUrl' => route(config('seviaflow-ui.route_name_prefix', 'seviaflow.').'resources.edit', [
+                'resource' => $this->resourceSlug,
+                'record' => $this->record?->getKey(),
+            ]),
+            'formatValue' => fn (Field $field): string => $this->formatFieldValue($field),
+            'relationManagers' => $this->relationManagers(),
+            'formatColumnValue' => fn (Model $record, Column $column): string => $this->formatColumnValue($record, $column),
+            'formatPivotColumnValue' => fn (Model $record, Column $column): string => $this->formatPivotColumnValue($record, $column),
+            'relationModalState' => $this->relationModalState(),
+            'pivotModalState' => $this->pivotModalState(),
+            'workflowPanel' => $this->workflowPanelState(),
+            'workflowStateColorClasses' => fn (?string $color): string => $this->workflowStateColorClasses($color),
+        ])->layout('seviaflow-ui::components.app.layout');
+    }
+
+    public function executeWorkflowTransition(string $transitionName, bool $confirmed = false): void
+    {
+        $this->clearMessages();
+
+        if (! $this->record instanceof Model) {
+            $this->errorMessage = 'The selected record could not be found.';
+
+            return;
+        }
+
+        if (! $this->authorization()->canUpdate(null, $this->record)) {
+            abort(403);
+        }
+
+        $result = $this->workflowTransitionRunner()->run(
+            resourceClass: $this->resource,
+            record: $this->record,
+            transitionName: $transitionName,
+            confirmed: $confirmed,
+            comment: $this->workflowTransitionComment,
+            user: auth()->user()
+        );
+
+        if ($result['refreshRecord'] && $this->record instanceof Model) {
+            $this->record->refresh();
+        }
+
+        if ($result['clearComment']) {
+            $this->workflowTransitionComment = null;
+        }
+
+        $this->pendingWorkflowTransitionName = $result['pendingTransitionName'];
+        $this->statusMessage = $result['statusMessage'];
+        $this->errorMessage = $result['errorMessage'];
+    }
+
+    public function executeAction(string $actionName, bool $confirmed = false): void
+    {
+        $this->clearMessages();
+
+        $result = $this->showActionRunner()->run(
+            resourceClass: $this->resource,
+            record: $this->record,
+            actionName: $actionName,
+            confirmed: $confirmed,
+            user: auth()->user()
+        );
+
+        if ($result['errorMessage'] === 'forbidden') {
+            abort(403);
+        }
+
+        if ($result['refreshRecord'] && $this->record instanceof Model) {
+            $this->record->refresh();
+        }
+
+        $this->pendingActionName = $result['pendingActionName'];
+        $this->statusMessage = $result['statusMessage'];
+        $this->errorMessage = $result['errorMessage'];
+    }
+
+    public function attachBelongsToMany(string $relationshipName): void
+    {
+        $this->clearMessages();
+
+        if (! $this->record instanceof Model) {
+            $this->errorMessage = 'The selected record could not be found.';
+
+            return;
+        }
+
+        if (! $this->authorization()->canUpdate(null, $this->record)) {
+            abort(403);
+        }
+
+        $relation = $this->findBelongsToManyRelation($relationshipName);
+        if (! $relation instanceof BelongsToManyRelation && ! $relation instanceof MorphToManyRelation) {
+            $this->errorMessage = 'The selected relation is not available.';
+
+            return;
+        }
+
+        if (! $relation->canAttach()) {
+            $this->errorMessage = 'Attaching related records is not allowed for this relation.';
+
+            return;
+        }
+
+        if ($relation->getPivotFields() !== []) {
+            $this->openBelongsToManyAttachModal($relationshipName);
+
+            return;
+        }
+
+        $selectedId = (string) ($this->attachSelection[$relationshipName] ?? '');
+        if ($selectedId === '') {
+            $this->errorMessage = 'Select a record to attach.';
+
+            return;
+        }
+
+        $relatedResource = $relation->getResourceClass();
+        $relatedAuthorization = ResourceAuthorization::for($relatedResource);
+        $relatedRecord = $relation instanceof MorphToManyRelation
+            ? $this->morphToManyRelationManager()->resolveRelatedRecord($this->record, $relation, $selectedId)
+            : $this->belongsToManyRelationManager()->resolveRelatedRecord($this->record, $relation, $selectedId);
+
+        if (! $relatedRecord instanceof Model) {
+            $this->errorMessage = 'The selected record is not available for attachment.';
+
+            return;
+        }
+
+        if (! $relatedAuthorization->canUpdate(null, $relatedRecord)) {
+            abort(403);
+        }
+
+        $isAttached = $relation instanceof MorphToManyRelation
+            ? $this->morphToManyRelationManager()->isAttached($this->record, $relation, $selectedId)
+            : $this->belongsToManyRelationManager()->isAttached($this->record, $relation, $selectedId);
+
+        if ($isAttached) {
+            $this->errorMessage = 'The selected record is already attached.';
+
+            return;
+        }
+
+        $availableIds = array_map(
+            static fn (mixed $value): string => (string) $value,
+            array_keys($this->belongsToManyAttachOptions($relation))
+        );
+        if (! in_array((string) $selectedId, $availableIds, true)) {
+            $this->errorMessage = 'The selected record is not available for attachment.';
+
+            return;
+        }
+
+        if ($relation instanceof MorphToManyRelation) {
+            $this->morphToManyRelationManager()->attach($this->record, $relation, $selectedId);
+        } else {
+            $this->belongsToManyRelationManager()->attach($this->record, $relation, $selectedId);
+        }
+        $this->attachSelection[$relationshipName] = '';
+        $this->statusMessage = 'Related record attached successfully.';
+    }
+
+    public function openBelongsToManyAttachModal(string $relationshipName): void
+    {
+        $relation = $this->findBelongsToManyRelation($relationshipName);
+        if ((! $relation instanceof BelongsToManyRelation && ! $relation instanceof MorphToManyRelation) || ! $relation->canAttach()) {
+            return;
+        }
+
+        if (! $this->authorization()->canUpdate(null, $this->record)) {
+            abort(403);
+        }
+
+        $this->pivotModalRelationship = $relationshipName;
+        $this->pivotModalMode = 'attach';
+        $this->pivotModalRelatedRecordId = null;
+        $this->pivotModalValues = $this->relationModalFormHandler()->initializeValuesFromFields($relation->getPivotFields(), null);
+        $this->resetErrorBag();
+    }
+
+    public function openBelongsToManyEditPivotModal(string $relationshipName, int|string $relatedRecordId): void
+    {
+        $relation = $this->findBelongsToManyRelation($relationshipName);
+        if (! $relation instanceof BelongsToManyRelation && ! $relation instanceof MorphToManyRelation) {
+            return;
+        }
+
+        if ($relation->getPivotFields() === []) {
+            return;
+        }
+
+        if (! $this->authorization()->canUpdate(null, $this->record)) {
+            abort(403);
+        }
+
+        $relatedRecord = $this->resolveBelongsToManyAttachedRecord($relation, $relatedRecordId);
+        if (! $relatedRecord instanceof Model) {
+            $this->errorMessage = 'The selected related record is not attached.';
+
+            return;
+        }
+
+        if (! ResourceAuthorization::for($relation->getResourceClass())->canUpdate(null, $relatedRecord)) {
+            abort(403);
+        }
+
+        $this->pivotModalRelationship = $relationshipName;
+        $this->pivotModalMode = 'edit';
+        $this->pivotModalRelatedRecordId = (string) $relatedRecordId;
+        $this->pivotModalValues = $this->pivotFormHandler()->initializeFromPivotRecord($relatedRecord, $relation->getPivotFields());
+        $this->resetErrorBag();
+    }
+
+    public function cancelPivotModal(): void
+    {
+        $this->pivotModalRelationship = null;
+        $this->pivotModalMode = null;
+        $this->pivotModalRelatedRecordId = null;
+        $this->pivotModalValues = [];
+        $this->resetErrorBag();
+    }
+
+    public function savePivotModal(): void
+    {
+        $state = $this->pivotModalState();
+        $relation = $state['relation'];
+        $pivotFields = $state['pivotFields'];
+        $relationship = $state['relationship'];
+
+        if (! $relation instanceof BelongsToManyRelation && ! $relation instanceof MorphToManyRelation) {
+            return;
+        }
+
+        if ($relationship === null) {
+            return;
+        }
+
+        if (! $this->record instanceof Model) {
+            $this->errorMessage = 'The selected record could not be found.';
+
+            return;
+        }
+
+        if (! $this->authorization()->canUpdate(null, $this->record)) {
+            abort(403);
+        }
+
+        $validated = $this->validate(
+            $this->formValidationRules()->build($pivotFields, ResourceContext::Create, null, 'pivotModalValues', $this->pivotModalValues),
+            messages: [],
+            attributes: $this->formValidationRules()->attributes($pivotFields, ResourceContext::Create, 'pivotModalValues')
+        );
+        $values = is_array($validated['pivotModalValues'] ?? null) ? $validated['pivotModalValues'] : [];
+        $safePivotValues = $this->pivotFormHandler()->valuesForPersistence($pivotFields, $values, ResourceContext::Create);
+
+        if ($this->pivotModalMode === 'attach') {
+            if (! $relation->canAttach()) {
+                $this->errorMessage = 'Attaching related records is not allowed for this relation.';
+
+                return;
+            }
+
+            $selectedId = (string) ($this->attachSelection[$relation->getRelationshipName()] ?? '');
+            if ($selectedId === '') {
+                $this->errorMessage = 'Select a record to attach.';
+
+                return;
+            }
+
+            $relatedRecord = $this->resolveBelongsToManyAttachableRecord($relation, $selectedId);
+            if (! $relatedRecord instanceof Model) {
+                $this->errorMessage = 'The selected record is not available for attachment.';
+
+                return;
+            }
+
+            if (! ResourceAuthorization::for($relation->getResourceClass())->canUpdate(null, $relatedRecord)) {
+                abort(403);
+            }
+
+            $relationship->attach($selectedId, $safePivotValues);
+            $this->attachSelection[$relation->getRelationshipName()] = '';
+            $this->statusMessage = 'Related record attached successfully.';
+            $this->cancelPivotModal();
+
+            return;
+        }
+
+        $relatedRecord = $this->resolveBelongsToManyAttachedRecord($relation, (string) $this->pivotModalRelatedRecordId);
+        if (! $relatedRecord instanceof Model) {
+            $this->errorMessage = 'The selected related record is not attached.';
+
+            return;
+        }
+
+        if (! ResourceAuthorization::for($relation->getResourceClass())->canUpdate(null, $relatedRecord)) {
+            abort(403);
+        }
+
+        $relationship->updateExistingPivot($relatedRecord->getKey(), $safePivotValues);
+        $this->statusMessage = 'Pivot values updated successfully.';
+        $this->cancelPivotModal();
+    }
+
+    public function detachBelongsToMany(string $relationshipName, int|string $relatedRecordId, bool $confirmed = false): void
+    {
+        $this->clearMessages();
+
+        if (! $this->record instanceof Model) {
+            $this->errorMessage = 'The selected record could not be found.';
+
+            return;
+        }
+
+        if (! $this->authorization()->canUpdate(null, $this->record)) {
+            abort(403);
+        }
+
+        $relation = $this->findBelongsToManyRelation($relationshipName);
+        if (! $relation instanceof BelongsToManyRelation && ! $relation instanceof MorphToManyRelation) {
+            $this->errorMessage = 'The selected relation is not available.';
+
+            return;
+        }
+
+        if (! $relation->canDetach()) {
+            $this->errorMessage = 'Detaching related records is not allowed for this relation.';
+
+            return;
+        }
+
+        if (! $confirmed) {
+            $this->pendingDetachRelation = $relationshipName;
+            $this->pendingDetachRecordId = (string) $relatedRecordId;
+            $this->errorMessage = 'Please confirm detaching this related record before continuing.';
+
+            return;
+        }
+
+        $relatedResource = $relation->getResourceClass();
+        $relatedAuthorization = ResourceAuthorization::for($relatedResource);
+        $relatedRecord = $relation instanceof MorphToManyRelation
+            ? $this->morphToManyRelationManager()->resolveRelatedRecord($this->record, $relation, $relatedRecordId)
+            : $this->belongsToManyRelationManager()->resolveRelatedRecord($this->record, $relation, $relatedRecordId);
+
+        if (! $relatedRecord instanceof Model) {
+            $this->errorMessage = 'The selected related record could not be found.';
+
+            return;
+        }
+
+        if (! $relatedAuthorization->canUpdate(null, $relatedRecord)) {
+            abort(403);
+        }
+
+        $isAttached = $relation instanceof MorphToManyRelation
+            ? $this->morphToManyRelationManager()->isAttached($this->record, $relation, (string) $relatedRecord->getKey())
+            : $this->belongsToManyRelationManager()->isAttached($this->record, $relation, (string) $relatedRecord->getKey());
+
+        if (! $isAttached) {
+            $this->errorMessage = 'The selected related record is not attached.';
+
+            return;
+        }
+
+        if ($relation instanceof MorphToManyRelation) {
+            $this->morphToManyRelationManager()->detach($this->record, $relation, (string) $relatedRecord->getKey());
+        } else {
+            $this->belongsToManyRelationManager()->detach($this->record, $relation, (string) $relatedRecord->getKey());
+        }
+        $this->pendingDetachRelation = null;
+        $this->pendingDetachRecordId = null;
+        $this->statusMessage = 'Related record detached successfully.';
+    }
+
+    public function openHasManyCreateModal(string $relationshipName): void
+    {
+        $relation = $this->findHasManyRelation($relationshipName);
+        if ((! $relation instanceof HasManyRelation && ! $relation instanceof MorphManyRelation) || ! $relation->canCreate()) {
+            return;
+        }
+
+        if (! ResourceAuthorization::for($relation->getResourceClass())->canCreate()) {
+            abort(403);
+        }
+
+        $fields = $this->relationModalFields($relation, ResourceContext::Create);
+        $this->relationModalRelationship = $relationshipName;
+        $this->relationModalMode = 'create';
+        $this->relationModalRecordId = null;
+        $this->relationModalValues = $this->relationModalFormHandler()->initializeValuesFromFields($fields, null);
+        $this->resetErrorBag();
+    }
+
+    public function openHasOneCreateModal(string $relationshipName): void
+    {
+        $relation = $this->findHasOneRelation($relationshipName);
+        if ((! $relation instanceof HasOneRelation && ! $relation instanceof MorphOneRelation) || ! $relation->canCreate()) {
+            return;
+        }
+
+        if (! ResourceAuthorization::for($relation->getResourceClass())->canCreate()) {
+            abort(403);
+        }
+
+        if ($this->resolveHasOneRecord($relation) instanceof Model) {
+            $this->errorMessage = 'A related record already exists for this relation.';
+
+            return;
+        }
+
+        $fields = $this->relationModalFields($relation, ResourceContext::Create);
+        $this->relationModalRelationship = $relationshipName;
+        $this->relationModalMode = 'create';
+        $this->relationModalRecordId = null;
+        $this->relationModalValues = $this->relationModalFormHandler()->initializeValuesFromFields($fields, null);
+        $this->resetErrorBag();
+    }
+
+    public function openHasManyEditModal(string $relationshipName, int|string $recordId): void
+    {
+        $relation = $this->findHasManyRelation($relationshipName);
+        if ((! $relation instanceof HasManyRelation && ! $relation instanceof MorphManyRelation) || ! $relation->canEdit()) {
+            return;
+        }
+
+        $record = $this->resolveHasManyRecord($relation, $recordId);
+        if (! $record instanceof Model) {
+            $this->errorMessage = 'The selected related record is not available.';
+
+            return;
+        }
+
+        if (! ResourceAuthorization::for($relation->getResourceClass())->canUpdate(null, $record)) {
+            abort(403);
+        }
+
+        $fields = $this->relationModalFields($relation, ResourceContext::Edit);
+        $this->relationModalRelationship = $relationshipName;
+        $this->relationModalMode = 'edit';
+        $this->relationModalRecordId = (string) $recordId;
+        $this->relationModalValues = $this->relationModalFormHandler()->initializeValuesFromFields($fields, $record);
+        $this->resetErrorBag();
+    }
+
+    public function openHasOneEditModal(string $relationshipName, int|string $recordId): void
+    {
+        $relation = $this->findHasOneRelation($relationshipName);
+        if ((! $relation instanceof HasOneRelation && ! $relation instanceof MorphOneRelation) || ! $relation->canEdit()) {
+            return;
+        }
+
+        $record = $this->resolveHasOneRecordById($relation, $recordId);
+        if (! $record instanceof Model) {
+            $this->errorMessage = 'The selected related record is not available.';
+
+            return;
+        }
+
+        if (! ResourceAuthorization::for($relation->getResourceClass())->canUpdate(null, $record)) {
+            abort(403);
+        }
+
+        $fields = $this->relationModalFields($relation, ResourceContext::Edit);
+        $this->relationModalRelationship = $relationshipName;
+        $this->relationModalMode = 'edit';
+        $this->relationModalRecordId = (string) $recordId;
+        $this->relationModalValues = $this->relationModalFormHandler()->initializeValuesFromFields($fields, $record);
+        $this->resetErrorBag();
+    }
+
+    public function cancelRelationModal(): void
+    {
+        $this->relationModalRelationship = null;
+        $this->relationModalMode = null;
+        $this->relationModalRecordId = null;
+        $this->relationModalValues = [];
+        $this->resetErrorBag();
+    }
+
+    public function saveRelationModal(): void
+    {
+        $state = $this->relationModalState();
+        $relation = $state['relation'];
+        $resourceClass = $state['resourceClass'];
+        $fields = $state['fields'];
+        $modelClass = $state['modelClass'];
+
+        if ((! $relation instanceof HasManyRelation && ! $relation instanceof HasOneRelation && ! $relation instanceof MorphManyRelation && ! $relation instanceof MorphOneRelation) || ! is_string($resourceClass) || ! is_string($modelClass)) {
+            return;
+        }
+
+        if (! $this->record instanceof Model) {
+            $this->errorMessage = 'The selected record could not be found.';
+
+            return;
+        }
+
+        if (! $this->authorization()->canUpdate(null, $this->record)) {
+            abort(403);
+        }
+
+        $context = $this->relationModalMode === 'edit' ? ResourceContext::Edit : ResourceContext::Create;
+        $rules = $this->formValidationRules()->build($fields, $context, $modelClass, 'relationModalValues', $this->relationModalValues);
+        $values = $this->relationModalValues;
+
+        if ($rules !== []) {
+            $validated = $this->validate(
+                $rules,
+                messages: [],
+                attributes: $this->formValidationRules()->attributes($fields, $context, 'relationModalValues')
+            );
+            $values = is_array($validated['relationModalValues'] ?? null) ? $validated['relationModalValues'] : [];
+        }
+
+        if ($this->relationModalMode === 'edit') {
+            if (! $relation->canEdit()) {
+                $this->errorMessage = 'Editing related records is not allowed for this relation.';
+
+                return;
+            }
+
+            $record = $relation instanceof HasManyRelation || $relation instanceof MorphManyRelation
+                ? $this->resolveHasManyRecord($relation, (string) $this->relationModalRecordId)
+                : $this->resolveHasOneRecordById($relation, (string) $this->relationModalRecordId);
+            if (! $record instanceof Model) {
+                $this->errorMessage = 'The selected related record is not available.';
+
+                return;
+            }
+
+            if (! ResourceAuthorization::for($resourceClass)->canUpdate(null, $record)) {
+                abort(403);
+            }
+
+            $this->relationModalFormHandler()->fillModelWithPersistableValues($record, $fields, $values, ResourceContext::Edit);
+            $record->save();
+            $this->statusMessage = 'Related record updated successfully.';
+            $this->cancelRelationModal();
+
+            return;
+        }
+
+        if (! $relation->canCreate()) {
+            $this->errorMessage = 'Creating related records is not allowed for this relation.';
+
+            return;
+        }
+
+        if (! ResourceAuthorization::for($resourceClass)->canCreate()) {
+            abort(403);
+        }
+
+        if ($relation instanceof HasOneRelation || $relation instanceof MorphOneRelation) {
+            if ($this->resolveHasOneRecord($relation) instanceof Model) {
+                $this->errorMessage = 'A related record already exists for this relation.';
+
+                return;
+            }
+
+            $relationship = $this->hasOneRelationship($relation);
+        } else {
+            $relationship = $this->hasManyRelationship($relation);
+        }
+
+        $this->relationModalFormHandler()->createRelatedRecord($relationship, $modelClass, $fields, $values);
+        $this->statusMessage = 'Related record created successfully.';
+        $this->cancelRelationModal();
+    }
+
+    public function deleteHasManyRecord(string $relationshipName, int|string $recordId, bool $confirmed = false): void
+    {
+        $this->clearMessages();
+
+        $relation = $this->findHasManyRelation($relationshipName);
+        if ((! $relation instanceof HasManyRelation && ! $relation instanceof MorphManyRelation) || ! $relation->canDelete()) {
+            return;
+        }
+
+        $record = $this->resolveHasManyRecordWithTrashed($relation, $recordId);
+        if (! $record instanceof Model) {
+            $this->errorMessage = 'The selected related record is not available.';
+
+            return;
+        }
+
+        if (! ResourceAuthorization::for($relation->getResourceClass())->canDelete(null, $record)) {
+            abort(403);
+        }
+
+        if (! $confirmed) {
+            $this->pendingHasManyDeleteRelation = $relationshipName;
+            $this->pendingHasManyDeleteRecordId = (string) $recordId;
+            $this->errorMessage = 'You are about to move this related record to trash.';
+
+            return;
+        }
+
+        $record->delete();
+        $this->pendingHasManyDeleteRelation = null;
+        $this->pendingHasManyDeleteRecordId = null;
+        $this->statusMessage = $relation->supportsSoftDeletes()
+            ? 'Related record moved to trash successfully.'
+            : 'Related record deleted successfully.';
+    }
+
+    public function restoreHasManyRecord(string $relationshipName, int|string $recordId, bool $confirmed = false): void
+    {
+        $this->clearMessages();
+
+        $relation = $this->findHasManyRelation($relationshipName);
+        if ((! $relation instanceof HasManyRelation && ! $relation instanceof MorphManyRelation) || ! $relation->canRestore() || ! $relation->supportsSoftDeletes()) {
+            return;
+        }
+
+        $record = $this->resolveHasManyRecordWithTrashed($relation, $recordId);
+        if (! $record instanceof Model) {
+            $this->errorMessage = 'The selected related record is not available.';
+
+            return;
+        }
+
+        if (! method_exists($record, 'trashed') || ! $record->trashed()) {
+            $this->errorMessage = 'Only trashed related records can be restored.';
+
+            return;
+        }
+
+        if (! method_exists($record, 'restore')) {
+            $this->errorMessage = 'Restore is not available for this related record.';
+
+            return;
+        }
+
+        if (! ResourceAuthorization::for($relation->getResourceClass())->canRestore(null, $record)) {
+            abort(403);
+        }
+
+        if (! $confirmed) {
+            $this->pendingHasManyDeleteRelation = $relationshipName;
+            $this->pendingHasManyDeleteRecordId = (string) $recordId;
+            $this->errorMessage = 'Please confirm restoring this related record before continuing.';
+
+            return;
+        }
+
+        $record->restore();
+        $this->pendingHasManyDeleteRelation = null;
+        $this->pendingHasManyDeleteRecordId = null;
+        $this->statusMessage = 'Related record restored successfully.';
+    }
+
+    public function deleteHasOneRecord(string $relationshipName, int|string $recordId, bool $confirmed = false): void
+    {
+        $this->clearMessages();
+
+        $relation = $this->findHasOneRelation($relationshipName);
+        if ((! $relation instanceof HasOneRelation && ! $relation instanceof MorphOneRelation) || ! $relation->canDelete()) {
+            return;
+        }
+
+        $record = $this->resolveHasOneRecordById($relation, $recordId);
+        if (! $record instanceof Model) {
+            $this->errorMessage = 'The selected related record is not available.';
+
+            return;
+        }
+
+        if (! ResourceAuthorization::for($relation->getResourceClass())->canDelete(null, $record)) {
+            abort(403);
+        }
+
+        if (! $confirmed) {
+            $this->pendingHasOneDeleteRelation = $relationshipName;
+            $this->errorMessage = 'You are about to delete this related record.';
+
+            return;
+        }
+
+        $record->delete();
+        $this->pendingHasOneDeleteRelation = null;
+        $this->statusMessage = 'Related record deleted successfully.';
+    }
+
+    /**
+     * @return array<int, Field>
+     */
+    private function fields(): array
+    {
+        return $this->formDefinition()->getAllFields();
+    }
+
+    /**
+     * @return array<int, Section>
+     */
+    private function sections(): array
+    {
+        return $this->formDefinition()->getSections();
+    }
+
+    private function query(): Builder
+    {
+        $model = new $this->modelClass;
+
+        return $model->newQuery();
+    }
+
+    private function formDefinition(): Form
+    {
+        return $this->resource::show(new Form);
+    }
+
+    /**
+     * @return array<int, Field>
+     */
+    private function visibleFields(): array
+    {
+        return $this->formFields()->visible($this->fields(), ResourceContext::Show);
+    }
+
+    /**
+     * @return array<int, Section>
+     */
+    private function visibleSections(): array
+    {
+        return $this->formFields()->visibleSections($this->sections(), ResourceContext::Show);
+    }
+
+    private function formatFieldValue(Field $field): string
+    {
+        if (! $this->record instanceof Model) {
+            return '—';
+        }
+
+        $value = $this->record->getAttribute($field->name());
+
+        if ($value === null || $value === '') {
+            return '—';
+        }
+
+        if ($field instanceof ToggleField) {
+            return (bool) $value ? 'Yes' : 'No';
+        }
+
+        if ($field instanceof SelectField) {
+            $options = $field->getOptions();
+            $key = (string) $value;
+
+            return array_key_exists($key, $options) ? $options[$key] : $key;
+        }
+
+        if ($field instanceof DateField && method_exists($value, 'format')) {
+            return (string) $value->format('Y-m-d');
+        }
+
+        if (is_array($value)) {
+            $encoded = json_encode($value, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+
+            return $encoded === false ? '[complex value]' : $encoded;
+        }
+
+        if (is_object($value)) {
+            if ($value instanceof Stringable || method_exists($value, '__toString')) {
+                return (string) $value;
+            }
+
+            if ($value instanceof \JsonSerializable) {
+                $encoded = json_encode($value, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+
+                return $encoded === false ? '[complex value]' : $encoded;
+            }
+
+            return '[complex value]';
+        }
+
+        return (string) $value;
+    }
+
+    private function resourceLabel(): string
+    {
+        if (! $this->record instanceof Model) {
+            return 'Record details';
+        }
+
+        return sprintf(
+            '%s #%s',
+            class_basename($this->modelClass),
+            (string) $this->record->getKey()
+        );
+    }
+
+    private function formFields(): FormFields
+    {
+        return new FormFields;
+    }
+
+    /**
+     * @return array<int, Action>
+     */
+    private function authorizedActions(): array
+    {
+        return $this->showActionResolver()->authorizedActions(
+            resourceClass: $this->resource,
+            record: $this->record,
+            user: auth()->user()
+        );
+    }
+
+    private function clearMessages(): void
+    {
+        $this->statusMessage = null;
+        $this->errorMessage = null;
+    }
+
+    private function workflowPanelState(): array
+    {
+        return $this->workflowPanelStateResolver()->resolve(
+            resourceClass: $this->resource,
+            record: $this->record,
+            user: auth()->user()
+        );
+    }
+
+    private function workflowStateColorClasses(?string $color): string
+    {
+        return match ($color) {
+            'red' => 'bg-red-100 text-red-800',
+            'yellow' => 'bg-yellow-100 text-yellow-800',
+            'green' => 'bg-green-100 text-green-800',
+            'blue' => 'bg-blue-100 text-blue-800',
+            'indigo' => 'bg-indigo-100 text-indigo-800',
+            'purple' => 'bg-purple-100 text-purple-800',
+            'pink' => 'bg-pink-100 text-pink-800',
+            default => 'bg-gray-100 text-gray-800',
+        };
+    }
+
+    private function workflowPanelStateResolver(): WorkflowPanelState
+    {
+        return new WorkflowPanelState;
+    }
+
+    private function workflowTransitionRunner(): WorkflowTransitionRunner
+    {
+        return new WorkflowTransitionRunner;
+    }
+
+    private function showActionResolver(): ShowActionResolver
+    {
+        return new ShowActionResolver;
+    }
+
+    private function showActionRunner(): ShowActionRunner
+    {
+        return new ShowActionRunner($this->showActionResolver());
+    }
+
+    private function relationManagerResolver(): RelationManagerResolver
+    {
+        return new RelationManagerResolver;
+    }
+
+    private function hasManyRelationManager(): HasManyRelationManager
+    {
+        return new HasManyRelationManager;
+    }
+
+    private function hasOneRelationManager(): HasOneRelationManager
+    {
+        return new HasOneRelationManager;
+    }
+
+    private function morphOneRelationManager(): MorphOneRelationManager
+    {
+        return new MorphOneRelationManager;
+    }
+
+    private function belongsToManyRelationManager(): BelongsToManyRelationManager
+    {
+        return new BelongsToManyRelationManager;
+    }
+
+    private function morphToManyRelationManager(): MorphToManyRelationManager
+    {
+        return new MorphToManyRelationManager;
+    }
+
+    private function morphManyRelationManager(): MorphManyRelationManager
+    {
+        return new MorphManyRelationManager;
+    }
+
+    private function relationQueryPaginator(): RelationQueryPaginator
+    {
+        return new RelationQueryPaginator;
+    }
+
+    private function relationBoundaryGuard(): RelationBoundaryGuard
+    {
+        return new RelationBoundaryGuard(
+            $this->hasOneRelationManager(),
+            $this->hasManyRelationManager(),
+            $this->morphOneRelationManager(),
+            $this->morphManyRelationManager(),
+            $this->belongsToManyRelationManager(),
+            $this->morphToManyRelationManager()
+        );
+    }
+
+    private function pivotFormHandler(): PivotFormHandler
+    {
+        return new PivotFormHandler;
+    }
+
+    private function relationModalFormHandler(): RelationModalFormHandler
+    {
+        return new RelationModalFormHandler;
+    }
+
+    private function canEdit(): bool
+    {
+        if (! $this->record instanceof Model) {
+            return false;
+        }
+
+        return $this->authorization()->canUpdate(null, $this->record);
+    }
+
+    private function authorization(): ResourceAuthorization
+    {
+        return ResourceAuthorization::for($this->resource);
+    }
+
+    /**
+     * @return array<int, array{
+     *   type: string,
+     *   relationshipName: string,
+     *   label: string,
+     *   canCreate: bool,
+     *   canEdit: bool,
+     *   canDelete: bool,
+     *   canRestore: bool,
+     *   canAttach: bool,
+     *   canDetach: bool,
+     *   createLabel: string,
+     *   editLabel: string,
+     *   canEditRecord: (\Closure(Model): bool),
+     *   canDeleteRecord: (\Closure(Model): bool),
+     *   canRestoreRecord: (\Closure(Model): bool),
+     *   columns: array<int, Column>,
+     *   pivotColumns: array<int, Column>,
+     *   pivotFields: array<int, Field>,
+     *   canEditPivot: bool,
+     *   canEditPivotRecord: (\Closure(Model): bool),
+     *   records: Collection<int, Model>|LengthAwarePaginator|Paginator,
+     *   attachOptions: array<string, string>,
+     *   showUrl: (\Closure(Model): ?string),
+     *   editUrl: (\Closure(Model): ?string)
+     * }>
+     */
+    private function relationManagers(): array
+    {
+        if (! $this->record instanceof Model) {
+            return [];
+        }
+
+        $managers = [];
+
+        foreach ($this->relationManagerResolver()->relations($this->resource) as $relation) {
+            $relatedResource = $relation->getResourceClass();
+            $relatedAuthorization = ResourceAuthorization::for($relatedResource);
+
+            if (! $relatedAuthorization->canViewAny()) {
+                continue;
+            }
+
+            $columns = array_values(array_filter(
+                $relatedResource::table(new Table)->getColumns(),
+                static fn (Column $column): bool => $column->isVisible(ResourceContext::Index)
+            ));
+
+            $records = $this->paginateRelationRecords($relation);
+            $relatedResourceSlug = $this->resourceSlugForClass($relatedResource);
+
+            $managers[] = [
+                'type' => $relation instanceof BelongsToManyRelation || $relation instanceof MorphToManyRelation
+                    ? 'belongsToMany'
+                    : ($relation instanceof HasOneRelation || $relation instanceof MorphOneRelation ? 'hasOne' : 'hasMany'),
+                'relationshipName' => $relation->getRelationshipName(),
+                'label' => $relation->getLabel(),
+                'canCreate' => $relation instanceof HasManyRelation || $relation instanceof MorphManyRelation
+                    ? $relation->canCreate() && ResourceAuthorization::for($relatedResource)->canCreate()
+                    : ($relation instanceof HasOneRelation || $relation instanceof MorphOneRelation
+                        ? $relation->canCreate()
+                            && ResourceAuthorization::for($relatedResource)->canCreate()
+                            && ! ($this->resolveHasOneRecord($relation) instanceof Model)
+                        : false),
+                'canEdit' => $relation instanceof HasManyRelation || $relation instanceof HasOneRelation || $relation instanceof MorphManyRelation || $relation instanceof MorphOneRelation ? $relation->canEdit() : false,
+                'canDelete' => $relation instanceof HasManyRelation || $relation instanceof HasOneRelation || $relation instanceof MorphManyRelation || $relation instanceof MorphOneRelation ? $relation->canDelete() : false,
+                'canRestore' => $relation instanceof HasManyRelation || $relation instanceof MorphManyRelation ? $relation->canRestore() && $relation->supportsSoftDeletes() : false,
+                'canAttach' => $relation instanceof BelongsToManyRelation || $relation instanceof MorphToManyRelation ? $relation->canAttach() : false,
+                'canDetach' => $relation instanceof BelongsToManyRelation || $relation instanceof MorphToManyRelation ? $relation->canDetach() : false,
+                'createLabel' => $relation instanceof HasManyRelation || $relation instanceof HasOneRelation || $relation instanceof MorphManyRelation || $relation instanceof MorphOneRelation ? $relation->getCreateLabel() : 'Add',
+                'editLabel' => $relation instanceof HasManyRelation || $relation instanceof HasOneRelation || $relation instanceof MorphManyRelation || $relation instanceof MorphOneRelation ? $relation->getEditLabel() : 'Edit',
+                'canEditRecord' => fn (Model $relatedRecord): bool => $relation instanceof HasManyRelation || $relation instanceof HasOneRelation || $relation instanceof MorphManyRelation || $relation instanceof MorphOneRelation
+                    ? $relation->canEdit() && $relatedAuthorization->canUpdate(null, $relatedRecord)
+                    : false,
+                'canDeleteRecord' => fn (Model $relatedRecord): bool => $relation instanceof HasManyRelation || $relation instanceof HasOneRelation || $relation instanceof MorphManyRelation || $relation instanceof MorphOneRelation
+                    ? $relation->canDelete() && $relatedAuthorization->canDelete(null, $relatedRecord)
+                    : false,
+                'canRestoreRecord' => fn (Model $relatedRecord): bool => $relation instanceof HasManyRelation || $relation instanceof MorphManyRelation
+                    ? $relation->canRestore()
+                        && $relation->supportsSoftDeletes()
+                        && method_exists($relatedRecord, 'trashed')
+                        && $relatedRecord->trashed()
+                        && ResourceAuthorization::for($relatedResource)->canRestore(null, $relatedRecord)
+                    : false,
+                'columns' => $columns,
+                'pivotColumns' => $relation instanceof BelongsToManyRelation || $relation instanceof MorphToManyRelation ? $relation->getPivotColumns() : [],
+                'pivotFields' => $relation instanceof BelongsToManyRelation || $relation instanceof MorphToManyRelation ? $relation->getPivotFields() : [],
+                'canEditPivot' => $relation instanceof BelongsToManyRelation || $relation instanceof MorphToManyRelation ? $relation->getPivotFields() !== [] : false,
+                'canEditPivotRecord' => fn (Model $relatedRecord): bool => $relation instanceof BelongsToManyRelation || $relation instanceof MorphToManyRelation
+                    ? $relation->getPivotFields() !== []
+                        && ResourceAuthorization::for($relatedResource)->canUpdate(null, $relatedRecord)
+                    : false,
+                'records' => $records,
+                'attachOptions' => ($relation instanceof BelongsToManyRelation || $relation instanceof MorphToManyRelation) && $relation->canAttach()
+                    ? $this->belongsToManyAttachOptions($relation)
+                    : [],
+                'showUrl' => function (Model $relatedRecord) use ($relatedResourceSlug, $relatedAuthorization): ?string {
+                    if ($relatedResourceSlug === null || ! $relatedAuthorization->canView(null, $relatedRecord)) {
+                        return null;
+                    }
+
+                    return route(config('seviaflow-ui.route_name_prefix', 'seviaflow.').'resources.show', [
+                        'resource' => $relatedResourceSlug,
+                        'record' => $relatedRecord->getKey(),
+                    ]);
+                },
+                'editUrl' => function (Model $relatedRecord) use ($relatedResourceSlug, $relatedAuthorization): ?string {
+                    if ($relatedResourceSlug === null || ! $relatedAuthorization->canUpdate(null, $relatedRecord)) {
+                        return null;
+                    }
+
+                    return route(config('seviaflow-ui.route_name_prefix', 'seviaflow.').'resources.edit', [
+                        'resource' => $relatedResourceSlug,
+                        'record' => $relatedRecord->getKey(),
+                    ]);
+                },
+            ];
+        }
+
+        return $managers;
+    }
+
+    private function paginateRelationRecords(HasOneRelation|HasManyRelation|BelongsToManyRelation|MorphOneRelation|MorphManyRelation|MorphToManyRelation $relation): Collection|LengthAwarePaginator|Paginator
+    {
+        if (! $this->record instanceof Model) {
+            throw new InvalidArgumentException('Cannot resolve relation records without a parent record.');
+        }
+        $relatedResource = $relation->getResourceClass();
+
+        if ($relation instanceof HasOneRelation || $relation instanceof MorphOneRelation) {
+            $record = $this->resolveHasOneRecord($relation);
+
+            return $record instanceof Model ? Collection::make([$record]) : Collection::make();
+        }
+
+        if ($relation instanceof HasManyRelation) {
+            return $this->relationQueryPaginator()->paginateHasMany($this->record, $relation, $relatedResource);
+        }
+
+        if ($relation instanceof MorphManyRelation) {
+            return $this->relationQueryPaginator()->paginateMorphMany($this->record, $relation, $relatedResource);
+        }
+
+        if ($relation instanceof MorphToManyRelation) {
+            return $this->relationQueryPaginator()->paginateMorphToMany($this->record, $relation, $relatedResource);
+        }
+
+        return $this->relationQueryPaginator()->paginateBelongsToMany($this->record, $relation, $relatedResource);
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function belongsToManyAttachOptions(BelongsToManyRelation|MorphToManyRelation $relation): array
+    {
+        if (! $this->record instanceof Model) {
+            throw new InvalidArgumentException('Cannot resolve relation records without a parent record.');
+        }
+
+        if ($relation instanceof MorphToManyRelation) {
+            return $this->morphToManyRelationManager()->attachOptions($this->record, $relation, $relation->getResourceClass());
+        }
+
+        return $this->belongsToManyRelationManager()->attachOptions($this->record, $relation, $relation->getResourceClass());
+    }
+
+    private function hasManyRelationship(HasManyRelation|MorphManyRelation $relation): HasMany|MorphMany
+    {
+        if (! $this->record instanceof Model) {
+            throw new InvalidArgumentException('Cannot resolve relation records without a parent record.');
+        }
+
+        if ($relation instanceof MorphManyRelation) {
+            return $this->morphManyRelationManager()->relationship($this->record, $relation);
+        }
+
+        return $this->hasManyRelationManager()->relationship($this->record, $relation);
+    }
+
+    private function hasOneRelationship(HasOneRelation|MorphOneRelation $relation): HasOne|MorphOne
+    {
+        if (! $this->record instanceof Model) {
+            throw new InvalidArgumentException('Cannot resolve relation records without a parent record.');
+        }
+
+        if ($relation instanceof MorphOneRelation) {
+            return $this->morphOneRelationManager()->relationship($this->record, $relation);
+        }
+
+        return $this->hasOneRelationManager()->relationship($this->record, $relation);
+    }
+
+    private function belongsToManyRelationship(BelongsToManyRelation|MorphToManyRelation $relation): BelongsToMany|MorphToMany
+    {
+        if (! $this->record instanceof Model) {
+            throw new InvalidArgumentException('Cannot resolve relation records without a parent record.');
+        }
+
+        if ($relation instanceof MorphToManyRelation) {
+            return $this->morphToManyRelationManager()->relationship($this->record, $relation);
+        }
+
+        return $this->belongsToManyRelationManager()->relationship($this->record, $relation);
+    }
+
+    private function findBelongsToManyRelation(string $relationshipName): BelongsToManyRelation|MorphToManyRelation|null
+    {
+        $belongsToMany = $this->relationManagerResolver()->findBelongsToMany($this->resource, $relationshipName);
+        if ($belongsToMany !== null) {
+            return $belongsToMany;
+        }
+
+        return $this->relationManagerResolver()->findMorphToMany($this->resource, $relationshipName);
+    }
+
+    private function findHasOneRelation(string $relationshipName): HasOneRelation|MorphOneRelation|null
+    {
+        $hasOne = $this->relationManagerResolver()->findHasOne($this->resource, $relationshipName);
+        if ($hasOne !== null) {
+            return $hasOne;
+        }
+
+        return $this->relationManagerResolver()->findMorphOne($this->resource, $relationshipName);
+    }
+
+    private function resolveBelongsToManyAttachedRecord(BelongsToManyRelation|MorphToManyRelation $relation, int|string|null $relatedRecordId): ?Model
+    {
+        if (! $this->record instanceof Model) {
+            return null;
+        }
+
+        if ($relation instanceof MorphToManyRelation) {
+            return $this->relationBoundaryGuard()->resolveAttachedMorphToManyRecord($this->record, $relation, $relatedRecordId);
+        }
+
+        return $this->relationBoundaryGuard()->resolveAttachedBelongsToManyRecord($this->record, $relation, $relatedRecordId);
+    }
+
+    private function resolveBelongsToManyAttachableRecord(BelongsToManyRelation|MorphToManyRelation $relation, int|string $relatedRecordId): ?Model
+    {
+        if (! $this->record instanceof Model) {
+            return null;
+        }
+
+        if ($relation instanceof MorphToManyRelation) {
+            return $this->morphToManyRelationManager()->resolveAttachableRecord(
+                $this->record,
+                $relation,
+                $relatedRecordId,
+                $relation->getResourceClass()
+            );
+        }
+
+        return $this->belongsToManyRelationManager()->resolveAttachableRecord(
+            $this->record,
+            $relation,
+            $relatedRecordId,
+            $relation->getResourceClass()
+        );
+    }
+
+    private function findHasManyRelation(string $relationshipName): HasManyRelation|MorphManyRelation|null
+    {
+        $hasMany = $this->relationManagerResolver()->findHasMany($this->resource, $relationshipName);
+        if ($hasMany !== null) {
+            return $hasMany;
+        }
+
+        return $this->relationManagerResolver()->findMorphMany($this->resource, $relationshipName);
+    }
+
+    private function resolveHasOneRecord(HasOneRelation|MorphOneRelation $relation): ?Model
+    {
+        if (! $this->record instanceof Model) {
+            return null;
+        }
+
+        if ($relation instanceof MorphOneRelation) {
+            return $this->relationBoundaryGuard()->resolveMorphOneRecord($this->record, $relation);
+        }
+
+        return $this->relationBoundaryGuard()->resolveHasOneRecord($this->record, $relation);
+    }
+
+    private function resolveHasOneRecordById(HasOneRelation|MorphOneRelation $relation, int|string|null $recordId): ?Model
+    {
+        if (! $this->record instanceof Model) {
+            return null;
+        }
+
+        if ($relation instanceof MorphOneRelation) {
+            return $this->relationBoundaryGuard()->resolveMorphOneRecordById($this->record, $relation, $recordId);
+        }
+
+        return $this->relationBoundaryGuard()->resolveHasOneRecordById($this->record, $relation, $recordId);
+    }
+
+    private function resolveHasManyRecord(HasManyRelation|MorphManyRelation $relation, int|string|null $recordId): ?Model
+    {
+        if (! $this->record instanceof Model) {
+            return null;
+        }
+
+        if ($relation instanceof MorphManyRelation) {
+            return $this->relationBoundaryGuard()->resolveMorphManyRecord($this->record, $relation, $recordId);
+        }
+
+        return $this->relationBoundaryGuard()->resolveHasManyRecord($this->record, $relation, $recordId);
+    }
+
+    private function resolveHasManyRecordWithTrashed(HasManyRelation|MorphManyRelation $relation, int|string|null $recordId): ?Model
+    {
+        if (! $this->record instanceof Model) {
+            return null;
+        }
+
+        if ($relation instanceof MorphManyRelation) {
+            return $this->relationBoundaryGuard()->resolveMorphManyRecordWithTrashed($this->record, $relation, $recordId);
+        }
+
+        return $this->relationBoundaryGuard()->resolveHasManyRecordWithTrashed($this->record, $relation, $recordId);
+    }
+
+    /**
+     * @return array<int, Field>
+     */
+    private function relationModalFields(HasOneRelation|HasManyRelation|MorphOneRelation|MorphManyRelation $relation, ResourceContext $context): array
+    {
+        return $this->relationModalFormHandler()->relationModalFields($relation, $context);
+    }
+
+    /**
+     * @return array{
+     *   relation: HasOneRelation|HasManyRelation|MorphOneRelation|MorphManyRelation|null,
+     *   resourceClass: class-string<\SeviaFlow\Core\Resources\Resource>|null,
+     *   modelClass: class-string<Model>|null,
+     *   fields: array<int, Field>,
+     *   belongsToOptions: array<string, array<string, string>>,
+     *   title: string|null,
+     *   visible: bool
+     * }
+     */
+    private function relationModalState(): array
+    {
+        $relation = $this->relationModalRelation($this->relationModalRelationship ?? '');
+
+        if (($relation === null) || $this->relationModalMode === null) {
+            return [
+                'relation' => null,
+                'resourceClass' => null,
+                'modelClass' => null,
+                'fields' => [],
+                'belongsToOptions' => [],
+                'title' => null,
+                'visible' => false,
+            ];
+        }
+
+        $resourceClass = $relation->getResourceClass();
+        /** @var class-string<Model> $modelClass */
+        $modelClass = $resourceClass::model();
+        $context = $this->relationModalMode === 'edit' ? ResourceContext::Edit : ResourceContext::Create;
+        $fields = $this->relationModalFields($relation, $context);
+        $belongsToOptions = $this->relationModalFormHandler()->belongsToOptions($fields, $modelClass, $this->relationModalValues);
+        $title = $this->relationModalMode === 'edit'
+            ? $relation->getEditLabel().' '.$relation->getLabel()
+            : $relation->getCreateLabel();
+
+        return [
+            'relation' => $relation,
+            'resourceClass' => $resourceClass,
+            'modelClass' => $modelClass,
+            'fields' => $fields,
+            'belongsToOptions' => $belongsToOptions,
+            'title' => $title,
+            'visible' => true,
+        ];
+    }
+
+    private function relationModalRelation(string $relationshipName): HasOneRelation|HasManyRelation|MorphOneRelation|MorphManyRelation|null
+    {
+        $hasOne = $this->findHasOneRelation($relationshipName);
+        if ($hasOne instanceof HasOneRelation || $hasOne instanceof MorphOneRelation) {
+            return $hasOne;
+        }
+
+        $hasMany = $this->findHasManyRelation($relationshipName);
+        if ($hasMany instanceof HasManyRelation || $hasMany instanceof MorphManyRelation) {
+            return $hasMany;
+        }
+
+        return null;
+    }
+
+    /**
+     * @return array{
+     *   relation: BelongsToManyRelation|MorphToManyRelation|null,
+     *   relationship: BelongsToMany|MorphToMany|null,
+     *   pivotFields: array<int, Field>,
+     *   visible: bool
+     * }
+     */
+    private function pivotModalState(): array
+    {
+        $relation = $this->findBelongsToManyRelation($this->pivotModalRelationship ?? '');
+
+        if ((! $relation instanceof BelongsToManyRelation && ! $relation instanceof MorphToManyRelation) || $relation->getPivotFields() === [] || $this->pivotModalMode === null) {
+            return [
+                'relation' => null,
+                'relationship' => null,
+                'pivotFields' => [],
+                'visible' => false,
+            ];
+        }
+
+        return [
+            'relation' => $relation,
+            'relationship' => $this->belongsToManyRelationship($relation),
+            'pivotFields' => $relation->getPivotFields(),
+            'visible' => true,
+        ];
+    }
+
+    private function formValidationRules(): FormValidationRules
+    {
+        return new FormValidationRules($this->formFields());
+    }
+
+    private function formatColumnValue(Model $record, Column $column): string
+    {
+        if ($column instanceof BelongsToColumn) {
+            $related = $record->getRelationValue($column->getRelationshipName());
+
+            if (! $related instanceof Model) {
+                return '—';
+            }
+
+            $value = $related->getAttribute($column->getTitleAttribute());
+
+            return ($value === null || $value === '') ? '—' : e((string) $value);
+        }
+
+        $value = $record->getAttribute($column->name());
+
+        if ($value === null || $value === '') {
+            return '—';
+        }
+
+        if ($column instanceof BadgeColumn) {
+            return BadgeRenderer::render($column, $value);
+        }
+
+        if ($column instanceof BooleanColumn) {
+            return (bool) $value ? 'Yes' : 'No';
+        }
+
+        return e((string) $value);
+    }
+
+    private function formatPivotColumnValue(Model $record, Column $column): string
+    {
+        $pivot = $record->getRelationValue('pivot');
+
+        if (! $pivot instanceof Model) {
+            return '—';
+        }
+
+        $value = $pivot->getAttribute($column->name());
+
+        if ($value === null || $value === '') {
+            return '—';
+        }
+
+        if ($column instanceof BadgeColumn) {
+            return BadgeRenderer::render($column, $value);
+        }
+
+        if ($column instanceof BooleanColumn) {
+            return (bool) $value ? 'Yes' : 'No';
+        }
+
+        return e((string) $value);
+    }
+
+    /**
+     * @param  class-string  $resourceClass
+     */
+    private function resourceSlugForClass(string $resourceClass): ?string
+    {
+        $resources = (array) config('seviaflow.resources', []);
+
+        foreach ($resources as $slug => $class) {
+            if (is_string($class) && $class === $resourceClass) {
+                return $slug;
+            }
+        }
+
+        return null;
+    }
+}

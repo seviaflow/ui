@@ -1,0 +1,22 @@
+<div class="sf-card-body">
+    <div class="flex items-start justify-between gap-3">
+        <div>
+            <h3 class="text-base font-semibold text-slate-900">{{ $widget['label'] }}</h3>
+            @if(is_string($widget['description']) && trim($widget['description']) !== '')
+                <p class="mt-1 text-sm text-slate-500">{{ $widget['description'] }}</p>
+            @endif
+        </div>
+    </div>
+
+    <div class="mt-4">
+        <canvas
+            class="sf-dashboard-chart-canvas"
+            data-sf-chart="1"
+            data-chart-type="{{ $chartType }}"
+            data-chart-data='@json($chartData)'
+            aria-label="{{ $widget['label'] }}"
+            role="img"
+        ></canvas>
+    </div>
+</div>
+
