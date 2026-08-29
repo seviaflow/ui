@@ -1,9 +1,8 @@
 <div class="space-y-4">
-    <div class="sf-card">
-        <div class="sf-card-body">
-            <h1 class="text-lg font-semibold text-slate-900">Admin users</h1>
-            <p class="mt-1 text-sm text-slate-500">Assign one or more admin roles to each user.</p>
-        </div>
+    <div class="sf-panel">
+        <p class="sf-card-kicker">Settings</p>
+        <h1 class="sf-card-title">Admin users</h1>
+        <p class="sf-card-description mt-1">Assign one or more admin roles to each user.</p>
     </div>
 
     <div class="sf-table-wrapper">
@@ -20,7 +19,7 @@
                 @forelse($users as $user)
                     <tr>
                         <td class="sf-table-cell">{{ $user->getKey() }}</td>
-                        <td class="sf-table-cell font-medium text-slate-900">{{ $user->name ?? 'User #'.$user->getKey() }}</td>
+                        <td class="sf-table-cell"><span class="sf-item-title">{{ $user->name ?? 'User #'.$user->getKey() }}</span></td>
                         <td class="sf-table-cell">{{ $assignedRoleCount($user) }}</td>
                         <td class="sf-table-cell">
                             <a href="{{ $rolesUrl($user) }}" class="sf-button sf-button-secondary !px-3 !py-1.5">Manage roles</a>

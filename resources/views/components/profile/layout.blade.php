@@ -5,11 +5,11 @@
         @php
             $routeNamePrefix = config('seviaflow-ui.route_name_prefix', 'seviaflow.');
         @endphp
-        @if (Route::has($routeNamePrefix.'home'))
+        @if (\Illuminate\Support\Facades\Route::has($routeNamePrefix.'home'))
             <a href="{{ route($routeNamePrefix.'home') }}" class="sf-link !text-sm">Admin</a>
-            <span class="text-slate-400">/</span>
+            <span class="sf-muted">/</span>
         @endif
-        <span class="font-medium text-slate-900">Profile</span>
+        <span class="sf-item-title">Profile</span>
     </x-slot:breadcrumbs>
 
     {{ $slot }}

@@ -27,7 +27,7 @@
         <button class="sf-button sf-button-primary" type="submit">Send reset link</button>
     </form>
 
-    <p class="mt-5 text-center text-sm text-slate-600">
+    <p class="sf-muted mt-5 text-center">
         <a class="sf-link" href="{{ route(config('seviaflow-ui.route_name_prefix', 'seviaflow.').'login') }}">Back to sign in</a>
     </p>
 </x-seviaflow-ui::auth.layout>

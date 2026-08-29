@@ -10,19 +10,19 @@
     $controlClasses = [
         'sf-input',
         'sf-input-error' => $hasError,
-        'bg-slate-50 text-slate-600' => $isReadonly,
+        'sf-control-readonly' => $isReadonly,
     ];
 
     $selectClasses = [
         'sf-select',
         'sf-input-error' => $hasError,
-        'bg-slate-50 text-slate-600' => $isReadonly,
+        'sf-control-readonly' => $isReadonly,
     ];
 
     $textareaClasses = [
         'sf-textarea',
         'sf-input-error' => $hasError,
-        'bg-slate-50 text-slate-600' => $isReadonly,
+        'sf-control-readonly' => $isReadonly,
     ];
 
     $inputType = match (true) {
@@ -68,7 +68,7 @@
                 @readonly($isReadonly)
                 class="sf-checkbox"
             >
-            <span class="sf-label !mb-0 !font-medium text-slate-700">
+            <span class="sf-label !mb-0">
                 {{ $field->getLabel() }}
                 @if($isRequired)
                     <span class="text-red-600" aria-hidden="true">*</span>
@@ -133,7 +133,7 @@
             @endforeach
         </select>
     @elseif($field instanceof \SeviaFlow\Core\Resources\Fields\FileField)
-        <div class="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-3">
+        <div class="sf-file-drop">
             <input
                 id="{{ $fieldId }}"
                 type="file"
@@ -146,7 +146,7 @@
         </div>
     @elseif($field instanceof \SeviaFlow\Core\Resources\Fields\MoneyField)
         <div class="relative">
-            <span class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-sm text-slate-500">
+            <span class="sf-input-prefix">
                 {{ $field->getCurrency() }}
             </span>
             <input

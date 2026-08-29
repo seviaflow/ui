@@ -1,4 +1,13 @@
-<div class="space-y-4">
+@php
+    $hasRelations = count($relationManagers) > 0;
+    $hasSideContext = $workflowPanel['visible'] || $hasRelations;
+    $relationAnchors = [];
+    foreach ($relationManagers as $manager) {
+        $relationAnchors[$manager['relationshipName']] = 'sf-relation-'.\Illuminate\Support\Str::slug((string) $manager['relationshipName']);
+    }
+@endphp
+
+<div class="grid gap-4">
     @if($statusMessage)
         @include('seviaflow-ui::livewire.partials.feedback-alert', ['type' => 'success', 'message' => $statusMessage])
     @endif
@@ -6,14 +15,21 @@
         @include('seviaflow-ui::livewire.partials.feedback-alert', ['type' => 'danger', 'message' => $errorMessage])
     @endif
 
-    <div class="sf-card">
+    <section class="sf-card">
         <div class="sf-card-body">
-            <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div class="sf-record-header">
                 <div>
-                    <h1 class="text-lg font-semibold text-slate-900">Record details</h1>
-                    <p class="mt-1 text-sm text-slate-500">{{ $title }}</p>
+                    <p class="sf-record-kicker">Record details</p>
+                    <h1 class="sf-record-title">{{ $title }}</h1>
+                    @if($workflowPanel['visible'])
+                        <div class="sf-page-meta">
+                            <span class="sf-badge {{ $workflowStateColorClasses($workflowPanel['currentStateColor']) }}">
+                                {{ $workflowPanel['currentStateLabel'] ?? 'Unknown' }}
+                            </span>
+                        </div>
+                    @endif
                 </div>
-                <div class="flex flex-wrap items-center gap-2">
+                <div class="sf-resource-actions">
                     @foreach($actions as $action)
                         @if($pendingActionName === $action->name())
                             @component('seviaflow-ui::livewire.partials.action-confirmation', [
@@ -60,154 +76,196 @@
                 </div>
             </div>
         </div>
-    </div>
+    </section>
 
-    <div class="sf-card">
-        <div class="sf-card-body">
+    <div class="sf-record-layout {{ $hasSideContext ? '' : 'sf-record-layout-no-side' }}">
+        <div class="sf-record-main">
             @if(count($sections) > 0)
-                <div class="space-y-4">
-                    @foreach($sections as $section)
-                        <section class="sf-card">
-                            <div class="sf-card-header">
-                                <h2 class="text-sm font-semibold text-slate-900">{{ $section->label() }}</h2>
-                                @if($section->getDescription())
-                                    <p class="mt-1 text-xs text-slate-500">{{ $section->getDescription() }}</p>
-                                @endif
+                @foreach($sections as $section)
+                    <section class="sf-card">
+                        <div class="sf-card-header">
+                            <h2 class="sf-section-title">{{ $section->label() }}</h2>
+                            @if($section->getDescription())
+                                <p class="sf-section-description">{{ $section->getDescription() }}</p>
+                            @endif
+                        </div>
+                        <div class="sf-card-body">
+                            <dl class="sf-description-list">
+                                @foreach($section->getFields() as $field)
+                                    <div class="sf-description-row">
+                                        <dt class="sf-description-label">{{ $field->getLabel() }}</dt>
+                                        <dd class="sf-description-value">{{ $formatValue($field) }}</dd>
+                                    </div>
+                                @endforeach
+                            </dl>
+                        </div>
+                    </section>
+                @endforeach
+            @else
+                <section class="sf-card">
+                    <div class="sf-card-header">
+                        <h2 class="sf-section-title">Fields</h2>
+                    </div>
+                    <div class="sf-card-body">
+                        <dl class="sf-description-list">
+                            @foreach($fields as $field)
+                                <div class="sf-description-row">
+                                    <dt class="sf-description-label">{{ $field->getLabel() }}</dt>
+                                    <dd class="sf-description-value">{{ $formatValue($field) }}</dd>
+                                </div>
+                            @endforeach
+                        </dl>
+                    </div>
+                </section>
+            @endif
+        </div>
+
+        @if($hasSideContext)
+            <aside class="sf-record-side" aria-label="Record context">
+                @if($hasRelations)
+                    <section class="sf-card">
+                        <div class="sf-card-header">
+                            <h2 class="sf-card-title">Connections</h2>
+                            <p class="sf-card-description">Related data available for this record.</p>
+                        </div>
+                        <div class="sf-card-body">
+                            <div class="sf-connection-list">
+                                @foreach($relationManagers as $manager)
+                                    @php
+                                        $records = $manager['records'];
+                                        $safeCount = method_exists($records, 'total')
+                                            ? $records->total()
+                                            : (is_countable($records) ? count($records) : null);
+                                    @endphp
+                                    <a href="#{{ $relationAnchors[$manager['relationshipName']] }}" class="sf-connection-item">
+                                        <span>
+                                            <span class="block sf-item-title">{{ $manager['label'] }}</span>
+                                            <span class="block sf-item-meta">{{ \Illuminate\Support\Str::headline($manager['type']) }}</span>
+                                        </span>
+                                        @if($safeCount !== null)
+                                            <span class="sf-summary-pill">{{ $safeCount }}</span>
+                                        @endif
+                                    </a>
+                                @endforeach
                             </div>
-                            <div class="sf-card-body">
-                                <dl class="space-y-3">
-                                    @foreach($section->getFields() as $field)
-                                        <div class="grid gap-1 sm:grid-cols-3 sm:gap-3">
-                                            <dt class="text-sm font-medium text-slate-600">{{ $field->getLabel() }}</dt>
-                                            <dd class="text-sm text-slate-900 sm:col-span-2">{{ $formatValue($field) }}</dd>
+                        </div>
+                    </section>
+                @endif
+
+                @if($workflowPanel['visible'])
+                    <section class="sf-workflow-panel">
+                        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                            <div>
+                                <h2 class="sf-card-title">Workflow</h2>
+                                <p class="sf-card-description">Current process state and available transitions.</p>
+                            </div>
+                            <span class="sf-badge {{ $workflowStateColorClasses($workflowPanel['currentStateColor']) }}">
+                                {{ $workflowPanel['currentStateLabel'] ?? 'Unknown' }}
+                            </span>
+                        </div>
+
+                        @if(count($workflowPanel['availableTransitions']) > 0)
+                            <div class="sf-flow-list mt-4">
+                                @foreach($workflowPanel['availableTransitions'] as $transition)
+                                    <div class="sf-flow-item">
+                                        <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                                            <div>
+                                                <p class="sf-item-title">{{ $transition->getLabel() }}</p>
+                                                <p class="sf-item-meta">To: {{ ucfirst(str_replace('_', ' ', $transition->getToState())) }}</p>
+                                            </div>
+                                            <div class="sf-resource-actions">
+                                                @if($pendingWorkflowTransitionName === $transition->name() && $transition->requiresConfirmation())
+                                                    @component('seviaflow-ui::livewire.partials.action-confirmation', [
+                                                        'variant' => $transition->isDanger() ? 'danger' : 'safe',
+                                                        'title' => $transition->isDanger() ? 'Confirm dangerous transition' : 'Confirm transition',
+                                                        'message' => 'This workflow transition will update the current state.',
+                                                        'consequences' => $transition->isDanger() ? ['The record may enter a final or restricted state.'] : [],
+                                                    ])
+                                                        <button
+                                                            type="button"
+                                                            wire:click="executeWorkflowTransition('{{ $transition->name() }}', true)"
+                                                            class="sf-button {{ $transition->isDanger() ? 'sf-button-danger' : 'sf-button-primary' }} !px-3 !py-1.5"
+                                                        >
+                                                            Confirm
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            wire:click="$set('pendingWorkflowTransitionName', null)"
+                                                            class="sf-button sf-button-secondary !px-3 !py-1.5"
+                                                        >
+                                                            Cancel
+                                                        </button>
+                                                    @endcomponent
+                                                @else
+                                                    <button
+                                                        type="button"
+                                                        wire:click="executeWorkflowTransition('{{ $transition->name() }}')"
+                                                        @class([
+                                                            'sf-button !px-3 !py-1.5',
+                                                            'sf-button-danger' => $transition->isDanger(),
+                                                            'sf-button-secondary' => ! $transition->isDanger(),
+                                                        ])
+                                                    >
+                                                        {{ $transition->getLabel() }}
+                                                    </button>
+                                                @endif
+                                            </div>
                                         </div>
-                                    @endforeach
-                                </dl>
+                                        @if($transition->requiresComment())
+                                            <div class="mt-3">
+                                                <label for="workflow-comment-{{ $transition->name() }}" class="sf-label">Comment</label>
+                                                <textarea
+                                                    id="workflow-comment-{{ $transition->name() }}"
+                                                    wire:model.defer="workflowTransitionComment"
+                                                    rows="2"
+                                                    class="sf-textarea"
+                                                    placeholder="Add reason for this transition"
+                                                ></textarea>
+                                            </div>
+                                        @endif
+                                    </div>
+                                @endforeach
                             </div>
-                        </section>
-                    @endforeach
-                </div>
-            @else
-                <dl class="space-y-3">
-                    @foreach($fields as $field)
-                        <div class="grid gap-1 sm:grid-cols-3 sm:gap-3">
-                            <dt class="text-sm font-medium text-slate-600">{{ $field->getLabel() }}</dt>
-                            <dd class="text-sm text-slate-900 sm:col-span-2">{{ $formatValue($field) }}</dd>
+                        @else
+                            <p class="sf-muted mt-4">No transitions are currently available.</p>
+                        @endif
+
+                        <div class="mt-5">
+                            <h3 class="sf-card-title">Activity timeline</h3>
+                            <div class="sf-timeline mt-3">
+                                @forelse($workflowPanel['activities'] as $activity)
+                                    <div class="sf-timeline-item">
+                                        <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                                            <p class="sf-item-title">
+                                                {{ ucfirst(str_replace('_', ' ', $activity->transition)) }}
+                                                <span class="sf-item-meta font-normal">({{ $activity->from_state ?? '—' }} → {{ $activity->to_state }})</span>
+                                            </p>
+                                            <p class="sf-item-meta">{{ $activity->created_at?->format('Y-m-d H:i') }}</p>
+                                        </div>
+                                        <p class="sf-item-meta mt-1">By: {{ $workflowPanel['userLabel']($activity) }}</p>
+                                        @if($activity->comment)
+                                            <p class="sf-item-body mt-1">Comment: {{ $activity->comment }}</p>
+                                        @endif
+                                    </div>
+                                @empty
+                                    <p class="sf-muted">No workflow activity yet.</p>
+                                @endforelse
+                            </div>
                         </div>
-                    @endforeach
-                </dl>
-            @endif
-        </div>
+                    </section>
+                @endif
+            </aside>
+        @endif
     </div>
-
-    @if($workflowPanel['visible'])
-        <div class="sf-workflow-panel">
-            <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                    <h2 class="text-sm font-semibold text-slate-900">Workflow</h2>
-                    <p class="mt-1 text-xs text-slate-500">Current process state and available transitions.</p>
-                </div>
-                <span class="sf-badge {{ $workflowStateColorClasses($workflowPanel['currentStateColor']) }}">
-                    {{ $workflowPanel['currentStateLabel'] ?? 'Unknown' }}
-                </span>
-            </div>
-
-            @if(count($workflowPanel['availableTransitions']) > 0)
-                <div class="space-y-3">
-                    @foreach($workflowPanel['availableTransitions'] as $transition)
-                        <div class="rounded-xl border border-slate-200 bg-white p-3">
-                            <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                                <div>
-                                    <p class="text-sm font-medium text-slate-900">{{ $transition->getLabel() }}</p>
-                                    <p class="text-xs text-slate-500">To: {{ ucfirst(str_replace('_', ' ', $transition->getToState())) }}</p>
-                                </div>
-                                <div class="flex items-center gap-2">
-                                    @if($pendingWorkflowTransitionName === $transition->name() && $transition->requiresConfirmation())
-                                        @component('seviaflow-ui::livewire.partials.action-confirmation', [
-                                            'variant' => $transition->isDanger() ? 'danger' : 'safe',
-                                            'title' => $transition->isDanger() ? 'Confirm dangerous transition' : 'Confirm transition',
-                                            'message' => 'This workflow transition will update the current state.',
-                                            'consequences' => $transition->isDanger() ? ['The record may enter a final or restricted state.'] : [],
-                                        ])
-                                            <button
-                                                type="button"
-                                                wire:click="executeWorkflowTransition('{{ $transition->name() }}', true)"
-                                                class="sf-button {{ $transition->isDanger() ? 'sf-button-danger' : 'sf-button-primary' }} !px-3 !py-1.5"
-                                            >
-                                                Confirm
-                                            </button>
-                                            <button
-                                                type="button"
-                                                wire:click="$set('pendingWorkflowTransitionName', null)"
-                                                class="sf-button sf-button-secondary !px-3 !py-1.5"
-                                            >
-                                                Cancel
-                                            </button>
-                                        @endcomponent
-                                    @else
-                                        <button
-                                            type="button"
-                                            wire:click="executeWorkflowTransition('{{ $transition->name() }}')"
-                                            @class([
-                                                'sf-button !px-3 !py-1.5',
-                                                'sf-button-danger' => $transition->isDanger(),
-                                                'sf-button-secondary' => ! $transition->isDanger(),
-                                            ])
-                                        >
-                                            {{ $transition->getLabel() }}
-                                        </button>
-                                    @endif
-                                </div>
-                            </div>
-                            @if($transition->requiresComment())
-                                <div class="mt-3">
-                                    <label for="workflow-comment-{{ $transition->name() }}" class="sf-label">Comment</label>
-                                    <textarea
-                                        id="workflow-comment-{{ $transition->name() }}"
-                                        wire:model.defer="workflowTransitionComment"
-                                        rows="2"
-                                        class="sf-textarea"
-                                        placeholder="Add reason for this transition"
-                                    ></textarea>
-                                </div>
-                            @endif
-                        </div>
-                    @endforeach
-                </div>
-            @else
-                <p class="text-sm text-slate-500">No transitions are currently available.</p>
-            @endif
-
-            <div class="space-y-2">
-                <h3 class="text-sm font-semibold text-slate-900">Activity timeline</h3>
-                <div class="sf-timeline">
-                    @forelse($workflowPanel['activities'] as $activity)
-                        <div class="sf-timeline-item">
-                            <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-                                <p class="text-sm font-medium text-slate-900">
-                                    {{ ucfirst(str_replace('_', ' ', $activity->transition)) }}
-                                    <span class="font-normal text-slate-500">({{ $activity->from_state ?? '—' }} → {{ $activity->to_state }})</span>
-                                </p>
-                                <p class="text-xs text-slate-500">{{ $activity->created_at?->format('Y-m-d H:i') }}</p>
-                            </div>
-                            <p class="mt-1 text-xs text-slate-500">By: {{ $workflowPanel['userLabel']($activity) }}</p>
-                            @if($activity->comment)
-                                <p class="mt-1 text-xs text-slate-700">Comment: {{ $activity->comment }}</p>
-                            @endif
-                        </div>
-                    @empty
-                        <p class="text-sm text-slate-500">No workflow activity yet.</p>
-                    @endforelse
-                </div>
-            </div>
-        </div>
-    @endif
 
     @foreach($relationManagers as $manager)
-        <div class="sf-card">
+        <section id="{{ $relationAnchors[$manager['relationshipName']] }}" class="sf-card">
             <div class="sf-card-header">
                 <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                    <h2 class="text-sm font-semibold text-slate-900">{{ $manager['label'] }}</h2>
+                    <div>
+                        <h2 class="sf-card-title">{{ $manager['label'] }}</h2>
+                        <p class="sf-card-description">{{ \Illuminate\Support\Str::headline($manager['type']) }} relation</p>
+                    </div>
                     @if($manager['type'] === 'hasMany' && $manager['canCreate'])
                         <button
                             type="button"
@@ -227,7 +285,7 @@
                         </button>
                     @endif
                     @if($manager['type'] === 'belongsToMany' && $manager['canAttach'])
-                        <div class="flex items-center gap-2">
+                        <div class="sf-resource-actions">
                             <label for="attach-{{ $manager['relationshipName'] }}" class="sr-only">Attach related record</label>
                             <select
                                 id="attach-{{ $manager['relationshipName'] }}"
@@ -285,7 +343,7 @@
                                         <td class="sf-table-cell">{!! $formatPivotColumnValue($relationRecord, $pivotColumn) !!}</td>
                                     @endforeach
                                     <td class="sf-table-cell">
-                                        <div class="flex flex-wrap items-center gap-2">
+                                        <div class="sf-row-actions">
                                             @if($manager['showUrl']($relationRecord))
                                                 <a href="{{ $manager['showUrl']($relationRecord) }}" class="sf-button sf-button-secondary !px-3 !py-1.5">View</a>
                                             @endif
@@ -421,21 +479,21 @@
                 </div>
 
                 @if(method_exists($manager['records'], 'links'))
-                    <div class="mt-3 sf-pagination">
+                    <div class="sf-pagination mt-3">
                         {{ $manager['records']->links() }}
                     </div>
                 @endif
             </div>
-        </div>
+        </section>
     @endforeach
 
     @if($relationModalState['visible'] ?? false)
-        <div class="sf-card">
+        <section class="sf-card">
             <div class="sf-card-header">
-                <h2 class="text-sm font-semibold text-slate-900">{{ $relationModalState['title'] }}</h2>
+                <h2 class="sf-card-title">{{ $relationModalState['title'] }}</h2>
             </div>
             <div class="sf-card-body">
-                <div class="space-y-3">
+                <div class="sf-form-grid">
                     @foreach($relationModalState['fields'] as $field)
                         @include('seviaflow-ui::livewire.partials.form-field', [
                             'field' => $field,
@@ -447,21 +505,21 @@
                         ])
                     @endforeach
                 </div>
-                <div class="mt-4 flex flex-wrap items-center gap-2">
+                <div class="sf-resource-actions mt-4">
                     <button type="button" wire:click="saveRelationModal" class="sf-button sf-button-primary">Save</button>
                     <button type="button" wire:click="cancelRelationModal" class="sf-button sf-button-secondary">Cancel</button>
                 </div>
             </div>
-        </div>
+        </section>
     @endif
 
     @if($pivotModalState['visible'] ?? false)
-        <div class="sf-card">
+        <section class="sf-card">
             <div class="sf-card-header">
-                <h2 class="text-sm font-semibold text-slate-900">{{ $pivotModalMode === 'edit' ? 'Edit pivot values' : 'Attach with details' }}</h2>
+                <h2 class="sf-card-title">{{ $pivotModalMode === 'edit' ? 'Edit pivot values' : 'Attach with details' }}</h2>
             </div>
             <div class="sf-card-body">
-                <div class="space-y-3">
+                <div class="sf-form-grid">
                     @foreach($pivotModalState['pivotFields'] as $field)
                         @include('seviaflow-ui::livewire.partials.form-field', [
                             'field' => $field,
@@ -473,11 +531,11 @@
                         ])
                     @endforeach
                 </div>
-                <div class="mt-4 flex flex-wrap items-center gap-2">
+                <div class="sf-resource-actions mt-4">
                     <button type="button" wire:click="savePivotModal" class="sf-button sf-button-primary">Save</button>
                     <button type="button" wire:click="cancelPivotModal" class="sf-button sf-button-secondary">Cancel</button>
                 </div>
             </div>
-        </div>
+        </section>
     @endif
 </div>

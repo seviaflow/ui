@@ -10,6 +10,9 @@ it('package javascript initializes dashboard charts', function (): void {
         ->and($js)->toContain('new Chart')
         ->and($js)->toContain('data-sf-dashboard-layout-editor')
         ->and($js)->toContain('initDashboardLayoutEditor')
+        ->and($js)->toContain('data-sf-command-palette')
+        ->and($js)->toContain('data-sf-drawer-target')
+        ->and($js)->toContain('data-sf-density')
         ->and($js)->toContain('livewire:navigated');
 });
 

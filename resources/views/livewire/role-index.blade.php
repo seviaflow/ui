@@ -6,19 +6,18 @@
         @include('seviaflow-ui::livewire.partials.feedback-alert', ['type' => 'danger', 'message' => $errorMessage])
     @endif
 
-    <div class="sf-card">
-        <div class="sf-card-body">
+    <div class="sf-panel">
             <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                    <h1 class="text-lg font-semibold text-slate-900">Roles</h1>
-                    <p class="mt-1 text-sm text-slate-500">Manage admin roles and resource permissions.</p>
+                    <p class="sf-card-kicker">Settings</p>
+                    <h1 class="sf-card-title">Roles</h1>
+                    <p class="sf-card-description mt-1">Manage admin roles and resource permissions.</p>
                 </div>
                 <div class="flex items-center gap-2">
                     <a href="{{ $adminUsersUrl }}" class="sf-button sf-button-secondary">Admin users</a>
                     <a href="{{ $createUrl }}" class="sf-button sf-button-primary">Create role</a>
                 </div>
             </div>
-        </div>
     </div>
 
     <div class="sf-table-wrapper">
@@ -34,7 +33,7 @@
             <tbody>
                 @forelse($roles as $role)
                     <tr>
-                        <td class="sf-table-cell font-medium text-slate-900">{{ $role->name }}</td>
+                        <td class="sf-table-cell"><span class="sf-item-title">{{ $role->name }}</span></td>
                         <td class="sf-table-cell">{{ $role->slug }}</td>
                         <td class="sf-table-cell">{{ $role->assignments_count }}</td>
                         <td class="sf-table-cell">

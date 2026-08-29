@@ -1,9 +1,9 @@
 <div class="sf-card-body">
     <div class="flex items-start justify-between gap-3">
         <div>
-            <h3 class="text-base font-semibold text-slate-900">{{ $widget['label'] }}</h3>
+            <h3 class="sf-card-title">{{ $widget['label'] }}</h3>
             @if(is_string($widget['description']) && trim($widget['description']) !== '')
-                <p class="mt-1 text-sm text-slate-500">{{ $widget['description'] }}</p>
+                <p class="sf-card-description mt-1">{{ $widget['description'] }}</p>
             @endif
         </div>
     </div>
@@ -19,4 +19,3 @@
         ></canvas>
     </div>
 </div>
-

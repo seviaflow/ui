@@ -1,9 +1,9 @@
 <div class="sf-card-body">
     <div class="flex items-start justify-between gap-3">
         <div>
-            <h3 class="text-base font-semibold text-slate-900">{{ $widget['label'] }}</h3>
+            <h3 class="sf-card-title">{{ $widget['label'] }}</h3>
             @if(is_string($widget['description']) && trim($widget['description']) !== '')
-                <p class="mt-1 text-sm text-slate-500">{{ $widget['description'] }}</p>
+                <p class="sf-card-description mt-1">{{ $widget['description'] }}</p>
             @endif
         </div>
     </div>
@@ -11,20 +11,20 @@
     @if($rows === [])
         <div class="sf-dashboard-empty mt-4">{{ $emptyMessage }}</div>
     @else
-        <div class="mt-4 overflow-x-auto">
-            <table class="min-w-full text-sm">
+        <div class="sf-table-wrapper mt-4">
+            <table class="sf-table !min-w-full">
                 <thead>
-                    <tr class="border-b border-slate-200 text-left text-slate-500">
+                    <tr>
                         @foreach($columns as $columnLabel)
-                            <th class="px-2 py-2 font-medium">{{ $columnLabel }}</th>
+                            <th class="sf-table-header">{{ $columnLabel }}</th>
                         @endforeach
                     </tr>
                 </thead>
                 <tbody>
                     @foreach($rows as $row)
-                        <tr class="border-b border-slate-100 last:border-0">
+                        <tr>
                             @foreach($row['cells'] as $index => $cell)
-                                <td class="px-2 py-2 text-slate-700">
+                                <td class="sf-table-cell">
                                     @if($index === 0 && is_string($row['showUrl']) && $row['showUrl'] !== '')
                                         <a href="{{ $row['showUrl'] }}" class="sf-link">{!! $cell !!}</a>
                                     @else
@@ -39,4 +39,3 @@
         </div>
     @endif
 </div>
-

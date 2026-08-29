@@ -10,12 +10,16 @@ it('renders login page', function (): void {
         ->assertOk()
         ->assertSee('SeviaFlow')
         ->assertSee('Sign in to your account')
+        ->assertSee('sf-auth-card', false)
+        ->assertSee('/vendor/seviaflow/ui/brand/seviaflow-logo.png', false)
+        ->assertSee('/vendor/seviaflow/ui/brand/seviaflow-mark.png', false)
         ->assertSee('Email address')
         ->assertSee('Password')
         ->assertSee('Forgot password?')
         ->assertSee('action="'.route('seviaflow.login.store').'"', false)
         ->assertSee('vendor/seviaflow/ui/seviaflow.css', false)
         ->assertSee('vendor/seviaflow/ui/seviaflow.js', false)
+        ->assertDontSee('sf-auth-logo', false)
         ->assertDontSee('@vite', false);
 });
 

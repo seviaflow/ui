@@ -85,6 +85,25 @@ it('renders filter labels and active filter count', function (): void {
         ->assertSee('2 filters active');
 });
 
+it('renders filters in the contextual drawer without duplicating livewire state', function (): void {
+    Livewire::test(ResourceIndex::class, ['resource' => 'filter-users'])
+        ->assertSee('data-sf-drawer-target="sf-resource-filters"', false)
+        ->assertSee('id="sf-resource-filters"', false)
+        ->assertSee('aria-labelledby="sf-resource-filters-title"', false)
+        ->assertSee('wire:model.live="filterValues.is_active"', false)
+        ->assertSee('wire:model.live="filterValues.status"', false)
+        ->assertSee('Values apply as they change')
+        ->assertSee('wire:click="resetFilters"', false);
+});
+
+it('does not render fake index prototype controls', function (): void {
+    Livewire::test(ResourceIndex::class, ['resource' => 'filter-users'])
+        ->assertDontSee('Columns')
+        ->assertDontSee('Notifications')
+        ->assertDontSee('system-health', false)
+        ->assertDontSee('data-sf-column-manager', false);
+});
+
 it('reset filters clears filter state and preserves search value', function (): void {
     Livewire::test(ResourceIndex::class, ['resource' => 'filter-users'])
         ->set('search', 'keep-search')

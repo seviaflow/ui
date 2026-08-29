@@ -27,6 +27,22 @@ function configureLayoutNavigationResources(array $resources): void
     app()->forgetInstance(NavigationMetadataCache::class);
 }
 
+/**
+ * @return array<int, array<string,mixed>>
+ */
+function extractLayoutCommandItems(string $html): array
+{
+    preg_match('/<script type="application\/json" data-sf-command-items>(.*?)<\/script>/s', $html, $matches);
+
+    if (! isset($matches[1])) {
+        return [];
+    }
+
+    $decoded = json_decode(html_entity_decode($matches[1]), true);
+
+    return is_array($decoded) ? $decoded : [];
+}
+
 beforeEach(function (): void {
     Schema::create('test_users', function (Blueprint $table): void {
         $table->id();
@@ -112,6 +128,20 @@ it('renders dashboard and resource links in sidebar', function (): void {
         ->assertSee('/admin/resources/test-users', false);
 });
 
+it('renders expanded sidebar brand with official asset paths', function (): void {
+    configureLayoutNavigationResources([]);
+
+    $user = LayoutNavUser::query()->create(['name' => 'Brand User']);
+    pest_test_case()->actingAs($user, 'web');
+
+    pest_test_case()->get('/admin')
+        ->assertOk()
+        ->assertSee('class="sf-brand"', false)
+        ->assertSee('/vendor/seviaflow/ui/brand/seviaflow-logo.png', false)
+        ->assertSee('/vendor/seviaflow/ui/brand/seviaflow-mark.png', false)
+        ->assertDontSee('sf-auth-logo', false);
+});
+
 it('renders a resource navigation icon in the sidebar', function (): void {
     configureLayoutNavigationResources([
         'icon-users' => IconLayoutResource::class,
@@ -178,7 +208,7 @@ it('renders built in navigation icons', function (): void {
         ->assertSee('data-seviaflow-icon="arrow-right-on-rectangle"', false);
 });
 
-it('renders system navigation group headings', function (): void {
+it('renders product navigation area headings', function (): void {
     configureLayoutNavigationResources([
         'test-users' => TestUserResource::class,
     ]);
@@ -188,9 +218,48 @@ it('renders system navigation group headings', function (): void {
 
     pest_test_case()->get('/admin/resources/test-users')
         ->assertOk()
-        ->assertSee('Main')
-        ->assertSee('Resources')
+        ->assertSee('Workspace')
+        ->assertSee('Data')
         ->assertSee('Settings');
+});
+
+it('renders custom resource navigation groups from metadata', function (): void {
+    configureLayoutNavigationResources([
+        'sales-layout-users' => SalesLayoutResource::class,
+        'operations-layout-users' => OperationsLayoutResource::class,
+    ]);
+
+    $user = LayoutNavUser::query()->create(['name' => 'Grouped Resource User']);
+    pest_test_case()->actingAs($user, 'web');
+
+    pest_test_case()->get('/admin/resources/sales-layout-users')
+        ->assertOk()
+        ->assertSee('Data')
+        ->assertSee('Sales')
+        ->assertSee('Operations')
+        ->assertSee('/admin/resources/sales-layout-users', false)
+        ->assertSee('/admin/resources/operations-layout-users', false);
+});
+
+it('keeps long resource navigation lists in the sidebar', function (): void {
+    $resources = [];
+    foreach (range(1, 25) as $index) {
+        $resources[sprintf('layout-resource-%02d', $index)] = TestUserResource::class;
+    }
+
+    configureLayoutNavigationResources($resources);
+
+    $user = LayoutNavUser::query()->create(['name' => 'Long Nav User']);
+    pest_test_case()->actingAs($user, 'web');
+
+    $response = pest_test_case()->get('/admin/resources/layout-resource-01');
+
+    $response->assertOk()
+        ->assertSee('25 resources');
+
+    foreach (array_keys($resources) as $slug) {
+        $response->assertSee('/admin/resources/'.$slug, false);
+    }
 });
 
 it('marks active resource link in sidebar', function (): void {
@@ -278,6 +347,31 @@ it('does not show forbidden resources in sidebar', function (): void {
         ->assertDontSee('data-seviaflow-icon="archive-box"', false);
 });
 
+it('builds command palette from authorized get navigation only', function (): void {
+    configureLayoutNavigationResources([
+        'icon-users' => IconLayoutResource::class,
+        'hidden-nav' => HiddenNavResource::class,
+    ]);
+
+    Gate::policy(HiddenNavRecord::class, HiddenNavPolicy::class);
+
+    $user = LayoutNavUser::query()->create(['name' => 'Command Palette User']);
+    pest_test_case()->actingAs($user, 'web');
+
+    $response = pest_test_case()->get('/admin/resources/icon-users');
+    $items = extractLayoutCommandItems((string) $response->getContent());
+    $labels = array_map(static fn (array $item): string => (string) ($item['label'] ?? ''), $items);
+
+    $response->assertOk()
+        ->assertSee('data-sf-command-items', false)
+        ->assertSee('data-sf-command-open', false);
+
+    expect($labels)->toContain('Icon users')
+        ->and($labels)->toContain('Profile')
+        ->and($labels)->not->toContain('Hidden nav records')
+        ->and($labels)->not->toContain('Sign out');
+});
+
 it('allows direct access to authorized resources hidden from navigation', function (): void {
     configureLayoutNavigationResources([
         'hidden-visible-users' => HiddenVisibleNavResource::class,
@@ -358,6 +452,44 @@ final class InvalidIconLayoutResource extends Resource
     public static function pluralLabel(): string
     {
         return 'Invalid icon users';
+    }
+
+    public static function table(Table $table): Table
+    {
+        return TestUserResource::table($table);
+    }
+}
+
+final class SalesLayoutResource extends Resource
+{
+    protected static string $model = TestUser::class;
+
+    protected static ?string $navigationGroup = 'Sales';
+
+    protected static ?string $navigationIcon = 'users';
+
+    public static function pluralLabel(): string
+    {
+        return 'Sales accounts';
+    }
+
+    public static function table(Table $table): Table
+    {
+        return TestUserResource::table($table);
+    }
+}
+
+final class OperationsLayoutResource extends Resource
+{
+    protected static string $model = TestUser::class;
+
+    protected static ?string $navigationGroup = 'Operations';
+
+    protected static ?string $navigationIcon = 'briefcase';
+
+    public static function pluralLabel(): string
+    {
+        return 'Operations accounts';
     }
 
     public static function table(Table $table): Table

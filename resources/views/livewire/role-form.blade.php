@@ -6,8 +6,8 @@
     <form wire:submit="save" class="space-y-4">
         <div class="sf-card">
             <div class="sf-card-header">
-                <h2 class="text-sm font-semibold text-slate-900">Role details</h2>
-                <p class="mt-1 text-xs text-slate-500">Define role identity and access boundaries for operators.</p>
+                <h2 class="sf-card-title">Role details</h2>
+                <p class="sf-card-description mt-1">Define role identity and access boundaries for operators.</p>
             </div>
             <div class="sf-card-body">
                 <div class="grid gap-4 sm:grid-cols-2">
@@ -44,9 +44,9 @@
 
         <section class="sf-card">
             <div class="sf-card-header">
-                <h2 class="text-sm font-semibold text-slate-900">Resource permissions</h2>
-                <p class="mt-1 text-xs text-slate-500">Select what operators with this role are allowed to do.</p>
-                <p class="mt-2 text-xs text-amber-700">Role permissions are combined with Laravel policies. Both must allow an operation.</p>
+                <h2 class="sf-card-title">Resource permissions</h2>
+                <p class="sf-card-description mt-1">Select what operators with this role are allowed to do.</p>
+                <p class="sf-help mt-2 text-amber-700">Role permissions are combined with Laravel policies. Both must allow an operation.</p>
             </div>
 
             <div class="sf-card-body space-y-3">
@@ -64,13 +64,13 @@
                             @foreach($permissionMatrix as $entry)
                                 <tr>
                                     <td class="sf-table-cell">
-                                        <p class="font-medium text-slate-900">{{ $entry['label'] }}</p>
-                                        <p class="text-xs text-slate-500">{{ $entry['slug'] }}</p>
+                                        <p class="sf-item-title">{{ $entry['label'] }}</p>
+                                        <p class="sf-item-meta">{{ $entry['slug'] }}</p>
                                     </td>
                                     @foreach($abilityLabels as $ability => $label)
                                         <td class="sf-table-cell">
                                             @if(($ability === 'restore' || $ability === 'forceDelete') && ! $supportsRestore($entry['slug']))
-                                                <span class="text-slate-400">—</span>
+                                                <span class="sf-muted">—</span>
                                             @else
                                                 <label class="sr-only" for="permission-{{ $entry['slug'] }}-{{ $ability }}">{{ $entry['label'] }} {{ $label }}</label>
                                                 <input
@@ -90,17 +90,15 @@
             </div>
         </section>
 
-        <div class="sf-card">
-            <div class="sf-card-body">
-                <div class="flex flex-wrap items-center gap-2">
-                    <button type="submit" class="sf-button sf-button-primary">
-                        {{ $isEditMode ? 'Save changes' : 'Create role' }}
-                    </button>
+        <div class="sf-form-actions">
+            <div class="sf-resource-actions">
+                <button type="submit" class="sf-button sf-button-primary">
+                    {{ $isEditMode ? 'Save changes' : 'Create role' }}
+                </button>
 
-                    <a href="{{ $cancelUrl }}" class="sf-button sf-button-secondary">
-                        Cancel
-                    </a>
-                </div>
+                <a href="{{ $cancelUrl }}" class="sf-button sf-button-secondary">
+                    Cancel
+                </a>
             </div>
         </div>
     </form>
