@@ -1,0 +1,661 @@
+{
+  "version": 1,
+  "visual_source": "Heroicons Outline 24px",
+  "categories": [
+    "general",
+    "people",
+    "business",
+    "commerce",
+    "files",
+    "communication",
+    "data",
+    "navigation",
+    "status",
+    "security",
+    "development"
+  ],
+  "icons": [
+    {
+      "name": "academic-cap",
+      "category": "general",
+      "keywords": [
+        "education",
+        "learning",
+        "training"
+      ]
+    },
+    {
+      "name": "adjustments-horizontal",
+      "category": "general",
+      "keywords": [
+        "settings",
+        "filters",
+        "preferences"
+      ]
+    },
+    {
+      "name": "archive-box",
+      "category": "files",
+      "keywords": [
+        "archive",
+        "storage",
+        "records"
+      ]
+    },
+    {
+      "name": "arrow-path",
+      "category": "navigation",
+      "keywords": [
+        "refresh",
+        "sync",
+        "reload"
+      ]
+    },
+    {
+      "name": "arrow-right-on-rectangle",
+      "category": "navigation",
+      "keywords": [
+        "logout",
+        "sign out",
+        "exit"
+      ]
+    },
+    {
+      "name": "banknotes",
+      "category": "commerce",
+      "keywords": [
+        "money",
+        "cash",
+        "finance",
+        "payment"
+      ]
+    },
+    {
+      "name": "bars-3",
+      "category": "navigation",
+      "keywords": [
+        "menu",
+        "navigation"
+      ]
+    },
+    {
+      "name": "bell",
+      "category": "communication",
+      "keywords": [
+        "notification",
+        "alert"
+      ]
+    },
+    {
+      "name": "bolt",
+      "category": "general",
+      "keywords": [
+        "fast",
+        "energy",
+        "automation"
+      ]
+    },
+    {
+      "name": "bookmark",
+      "category": "general",
+      "keywords": [
+        "saved",
+        "favorite",
+        "mark"
+      ]
+    },
+    {
+      "name": "briefcase",
+      "category": "business",
+      "keywords": [
+        "work",
+        "job",
+        "business"
+      ]
+    },
+    {
+      "name": "building-office",
+      "category": "business",
+      "keywords": [
+        "company",
+        "office",
+        "organization"
+      ]
+    },
+    {
+      "name": "building-storefront",
+      "category": "business",
+      "keywords": [
+        "store",
+        "shop",
+        "retail"
+      ]
+    },
+    {
+      "name": "calculator",
+      "category": "business",
+      "keywords": [
+        "calculation",
+        "accounting",
+        "finance"
+      ]
+    },
+    {
+      "name": "calendar",
+      "category": "general",
+      "keywords": [
+        "date",
+        "schedule",
+        "event"
+      ]
+    },
+    {
+      "name": "chart-bar",
+      "category": "data",
+      "keywords": [
+        "analytics",
+        "report",
+        "statistics"
+      ]
+    },
+    {
+      "name": "chart-pie",
+      "category": "data",
+      "keywords": [
+        "analytics",
+        "report",
+        "distribution"
+      ]
+    },
+    {
+      "name": "chat-bubble-left-right",
+      "category": "communication",
+      "keywords": [
+        "chat",
+        "message",
+        "conversation"
+      ]
+    },
+    {
+      "name": "check-circle",
+      "category": "status",
+      "keywords": [
+        "success",
+        "approved",
+        "done"
+      ]
+    },
+    {
+      "name": "circle-stack",
+      "category": "data",
+      "keywords": [
+        "database",
+        "data",
+        "storage"
+      ]
+    },
+    {
+      "name": "clipboard-document",
+      "category": "files",
+      "keywords": [
+        "clipboard",
+        "document",
+        "task"
+      ]
+    },
+    {
+      "name": "clipboard-document-check",
+      "category": "files",
+      "keywords": [
+        "approved",
+        "checklist",
+        "task"
+      ]
+    },
+    {
+      "name": "clipboard-document-list",
+      "category": "files",
+      "keywords": [
+        "list",
+        "orders",
+        "tasks",
+        "clipboard"
+      ]
+    },
+    {
+      "name": "cloud",
+      "category": "data",
+      "keywords": [
+        "cloud",
+        "hosting",
+        "storage"
+      ]
+    },
+    {
+      "name": "code-bracket",
+      "category": "development",
+      "keywords": [
+        "code",
+        "api",
+        "developer"
+      ]
+    },
+    {
+      "name": "cog-6-tooth",
+      "category": "general",
+      "keywords": [
+        "settings",
+        "configuration",
+        "system"
+      ]
+    },
+    {
+      "name": "command-line",
+      "category": "development",
+      "keywords": [
+        "terminal",
+        "cli",
+        "console"
+      ]
+    },
+    {
+      "name": "credit-card",
+      "category": "commerce",
+      "keywords": [
+        "payment",
+        "card",
+        "billing"
+      ]
+    },
+    {
+      "name": "cube",
+      "category": "data",
+      "keywords": [
+        "product",
+        "package",
+        "object"
+      ]
+    },
+    {
+      "name": "document",
+      "category": "files",
+      "keywords": [
+        "file",
+        "document"
+      ]
+    },
+    {
+      "name": "document-arrow-down",
+      "category": "files",
+      "keywords": [
+        "download",
+        "export",
+        "document"
+      ]
+    },
+    {
+      "name": "document-text",
+      "category": "files",
+      "keywords": [
+        "document",
+        "text",
+        "contract"
+      ]
+    },
+    {
+      "name": "envelope",
+      "category": "communication",
+      "keywords": [
+        "email",
+        "mail",
+        "message"
+      ]
+    },
+    {
+      "name": "exclamation-circle",
+      "category": "status",
+      "keywords": [
+        "warning",
+        "problem",
+        "attention"
+      ]
+    },
+    {
+      "name": "exclamation-triangle",
+      "category": "status",
+      "keywords": [
+        "warning",
+        "danger",
+        "alert"
+      ]
+    },
+    {
+      "name": "eye",
+      "category": "general",
+      "keywords": [
+        "view",
+        "preview",
+        "visible"
+      ]
+    },
+    {
+      "name": "eye-slash",
+      "category": "general",
+      "keywords": [
+        "hidden",
+        "visibility"
+      ]
+    },
+    {
+      "name": "folder",
+      "category": "files",
+      "keywords": [
+        "folder",
+        "project",
+        "directory"
+      ]
+    },
+    {
+      "name": "folder-open",
+      "category": "files",
+      "keywords": [
+        "folder",
+        "project",
+        "open"
+      ]
+    },
+    {
+      "name": "funnel",
+      "category": "data",
+      "keywords": [
+        "filter",
+        "funnel",
+        "segment"
+      ]
+    },
+    {
+      "name": "globe-alt",
+      "category": "general",
+      "keywords": [
+        "world",
+        "website",
+        "global",
+        "internet"
+      ]
+    },
+    {
+      "name": "heart",
+      "category": "general",
+      "keywords": [
+        "favorite",
+        "health",
+        "like"
+      ]
+    },
+    {
+      "name": "home",
+      "category": "navigation",
+      "keywords": [
+        "home",
+        "dashboard"
+      ]
+    },
+    {
+      "name": "information-circle",
+      "category": "status",
+      "keywords": [
+        "info",
+        "information",
+        "help"
+      ]
+    },
+    {
+      "name": "key",
+      "category": "security",
+      "keywords": [
+        "key",
+        "access",
+        "api key"
+      ]
+    },
+    {
+      "name": "link",
+      "category": "general",
+      "keywords": [
+        "link",
+        "url",
+        "relationship"
+      ]
+    },
+    {
+      "name": "lock-closed",
+      "category": "security",
+      "keywords": [
+        "lock",
+        "security",
+        "private"
+      ]
+    },
+    {
+      "name": "magnifying-glass",
+      "category": "navigation",
+      "keywords": [
+        "search",
+        "find"
+      ]
+    },
+    {
+      "name": "map-pin",
+      "category": "business",
+      "keywords": [
+        "location",
+        "address",
+        "place"
+      ]
+    },
+    {
+      "name": "paper-airplane",
+      "category": "communication",
+      "keywords": [
+        "send",
+        "message",
+        "submit"
+      ]
+    },
+    {
+      "name": "pencil-square",
+      "category": "general",
+      "keywords": [
+        "edit",
+        "write",
+        "update"
+      ]
+    },
+    {
+      "name": "phone",
+      "category": "communication",
+      "keywords": [
+        "phone",
+        "call",
+        "contact"
+      ]
+    },
+    {
+      "name": "plus-circle",
+      "category": "general",
+      "keywords": [
+        "add",
+        "create",
+        "new"
+      ]
+    },
+    {
+      "name": "presentation-chart-line",
+      "category": "data",
+      "keywords": [
+        "analytics",
+        "presentation",
+        "report"
+      ]
+    },
+    {
+      "name": "receipt-percent",
+      "category": "commerce",
+      "keywords": [
+        "discount",
+        "receipt",
+        "tax",
+        "promotion"
+      ]
+    },
+    {
+      "name": "server",
+      "category": "development",
+      "keywords": [
+        "server",
+        "infrastructure",
+        "backend"
+      ]
+    },
+    {
+      "name": "shield-check",
+      "category": "security",
+      "keywords": [
+        "security",
+        "permission",
+        "role",
+        "verified"
+      ]
+    },
+    {
+      "name": "shopping-bag",
+      "category": "commerce",
+      "keywords": [
+        "shopping",
+        "order",
+        "retail"
+      ]
+    },
+    {
+      "name": "shopping-cart",
+      "category": "commerce",
+      "keywords": [
+        "cart",
+        "order",
+        "shopping",
+        "commerce"
+      ]
+    },
+    {
+      "name": "sparkles",
+      "category": "general",
+      "keywords": [
+        "ai",
+        "magic",
+        "new",
+        "feature"
+      ]
+    },
+    {
+      "name": "squares-2x2",
+      "category": "navigation",
+      "keywords": [
+        "dashboard",
+        "grid",
+        "apps"
+      ]
+    },
+    {
+      "name": "star",
+      "category": "general",
+      "keywords": [
+        "favorite",
+        "rating",
+        "important"
+      ]
+    },
+    {
+      "name": "tag",
+      "category": "commerce",
+      "keywords": [
+        "tag",
+        "label",
+        "price",
+        "category"
+      ]
+    },
+    {
+      "name": "trash",
+      "category": "general",
+      "keywords": [
+        "delete",
+        "remove",
+        "trash"
+      ]
+    },
+    {
+      "name": "truck",
+      "category": "business",
+      "keywords": [
+        "delivery",
+        "logistics",
+        "transport"
+      ]
+    },
+    {
+      "name": "user",
+      "category": "people",
+      "keywords": [
+        "person",
+        "customer",
+        "employee"
+      ]
+    },
+    {
+      "name": "user-circle",
+      "category": "people",
+      "keywords": [
+        "profile",
+        "account",
+        "person"
+      ]
+    },
+    {
+      "name": "user-group",
+      "category": "people",
+      "keywords": [
+        "group",
+        "team",
+        "people"
+      ]
+    },
+    {
+      "name": "users",
+      "category": "people",
+      "keywords": [
+        "people",
+        "team",
+        "customers",
+        "employees"
+      ]
+    },
+    {
+      "name": "wrench",
+      "category": "general",
+      "keywords": [
+        "tools",
+        "maintenance",
+        "service"
+      ]
+    },
+    {
+      "name": "x-circle",
+      "category": "status",
+      "keywords": [
+        "error",
+        "cancelled",
+        "failed"
+      ]
+    }
+  ]
+}

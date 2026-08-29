@@ -6,11 +6,26 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Auth\User as AuthenticatableUser;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Schema;
 use SeviaFlow\Core\Resources\Resource;
+use SeviaFlow\Core\Resources\ResourceRegistry;
 use SeviaFlow\Core\Resources\Table;
+use SeviaFlow\Ui\Navigation\NavigationMetadataCache;
+use SeviaFlow\Ui\Navigation\NavigationMetadataResolver;
 
 require __DIR__.'/Support/ResourceIndexSetup.php';
+
+/**
+ * @param  array<string, class-string<resource>>  $resources
+ */
+function configureLayoutNavigationResources(array $resources): void
+{
+    config()->set('seviaflow.resources', $resources);
+    app()->forgetInstance(ResourceRegistry::class);
+    app()->forgetInstance(NavigationMetadataResolver::class);
+    app()->forgetInstance(NavigationMetadataCache::class);
+}
 
 beforeEach(function (): void {
     Schema::create('test_users', function (Blueprint $table): void {
@@ -84,7 +99,7 @@ beforeEach(function (): void {
 });
 
 it('renders dashboard and resource links in sidebar', function (): void {
-    config()->set('seviaflow.resources', [
+    configureLayoutNavigationResources([
         'test-users' => TestUserResource::class,
     ]);
 
@@ -97,8 +112,74 @@ it('renders dashboard and resource links in sidebar', function (): void {
         ->assertSee('/admin/resources/test-users', false);
 });
 
+it('renders a resource navigation icon in the sidebar', function (): void {
+    configureLayoutNavigationResources([
+        'icon-users' => IconLayoutResource::class,
+    ]);
+
+    $user = LayoutNavUser::query()->create(['name' => 'Icon Nav User', 'email' => 'icon-nav@example.com']);
+    pest_test_case()->actingAs($user, 'web');
+
+    pest_test_case()->get('/admin/resources/icon-users')
+        ->assertOk()
+        ->assertSee('/admin/resources/icon-users', false)
+        ->assertSee('Icon users')
+        ->assertSee('data-seviaflow-icon="users"', false);
+});
+
+it('renders resource navigation normally without an icon', function (): void {
+    configureLayoutNavigationResources([
+        'no-icon-users' => NoIconLayoutResource::class,
+    ]);
+
+    $user = LayoutNavUser::query()->create(['name' => 'No Icon Nav User']);
+    pest_test_case()->actingAs($user, 'web');
+
+    pest_test_case()->get('/admin/resources/no-icon-users')
+        ->assertOk()
+        ->assertSee('/admin/resources/no-icon-users', false)
+        ->assertSee('No icon users')
+        ->assertDontSee('data-seviaflow-icon="no-icon-users"', false);
+});
+
+it('ignores unknown resource navigation icons without crashing', function (): void {
+    configureLayoutNavigationResources([
+        'invalid-icon-users' => InvalidIconLayoutResource::class,
+    ]);
+
+    $user = LayoutNavUser::query()->create(['name' => 'Invalid Icon Nav User']);
+    pest_test_case()->actingAs($user, 'web');
+
+    pest_test_case()->get('/admin/resources/invalid-icon-users')
+        ->assertOk()
+        ->assertSee('/admin/resources/invalid-icon-users', false)
+        ->assertSee('Invalid icon users')
+        ->assertDontSee('definitely-not-an-icon')
+        ->assertDontSee('data-seviaflow-icon="definitely-not-an-icon"', false);
+});
+
+it('renders built in navigation icons', function (): void {
+    configureLayoutNavigationResources([]);
+    if (! Route::has('seviaflow.api.docs')) {
+        Route::get('/admin/api-docs', static fn (): string => 'API documentation')->name('seviaflow.api.docs');
+    }
+
+    $user = LayoutNavUser::query()->create(['name' => 'Built In Icon User']);
+    pest_test_case()->actingAs($user, 'web');
+
+    pest_test_case()->get('/admin')
+        ->assertOk()
+        ->assertSee('data-seviaflow-icon="squares-2x2"', false)
+        ->assertSee('data-seviaflow-icon="shield-check"', false)
+        ->assertSee('data-seviaflow-icon="users"', false)
+        ->assertSee('data-seviaflow-icon="code-bracket"', false)
+        ->assertSee('data-seviaflow-icon="user-circle"', false)
+        ->assertSee('data-seviaflow-icon="lock-closed"', false)
+        ->assertSee('data-seviaflow-icon="arrow-right-on-rectangle"', false);
+});
+
 it('renders system navigation group headings', function (): void {
-    config()->set('seviaflow.resources', [
+    configureLayoutNavigationResources([
         'test-users' => TestUserResource::class,
     ]);
 
@@ -113,16 +194,20 @@ it('renders system navigation group headings', function (): void {
 });
 
 it('marks active resource link in sidebar', function (): void {
-    config()->set('seviaflow.resources', [
-        'test-users' => TestUserResource::class,
+    configureLayoutNavigationResources([
+        'icon-users' => IconLayoutResource::class,
     ]);
 
     $user = LayoutNavUser::query()->create(['name' => 'Active Nav User']);
     pest_test_case()->actingAs($user, 'web');
 
-    pest_test_case()->get('/admin/resources/test-users')
-        ->assertOk()
-        ->assertSee('sf-sidebar-link-active', false);
+    $response = pest_test_case()->get('/admin/resources/icon-users');
+
+    $response->assertOk()
+        ->assertSee('sf-sidebar-link-active', false)
+        ->assertSee('data-seviaflow-icon="users"', false);
+
+    expect((string) $response->getContent())->toMatch('/sf-sidebar-link[^"]*sf-sidebar-link-active[\s\S]*data-seviaflow-icon="users"[\s\S]*Icon users/');
 });
 
 it('renders profile link and topbar identity for authenticated user', function (): void {
@@ -175,7 +260,7 @@ it('shows settings links when authorized', function (): void {
 });
 
 it('does not show forbidden resources in sidebar', function (): void {
-    config()->set('seviaflow.resources', [
+    configureLayoutNavigationResources([
         'test-users' => TestUserResource::class,
         'hidden-nav' => HiddenNavResource::class,
     ]);
@@ -189,11 +274,12 @@ it('does not show forbidden resources in sidebar', function (): void {
         ->assertOk()
         ->assertSee('/admin/resources/test-users', false)
         ->assertDontSee('/admin/resources/hidden-nav', false)
-        ->assertDontSee('Hidden nav records');
+        ->assertDontSee('Hidden nav records')
+        ->assertDontSee('data-seviaflow-icon="archive-box"', false);
 });
 
 it('allows direct access to authorized resources hidden from navigation', function (): void {
-    config()->set('seviaflow.resources', [
+    configureLayoutNavigationResources([
         'hidden-visible-users' => HiddenVisibleNavResource::class,
     ]);
 
@@ -223,9 +309,60 @@ final class HiddenNavResource extends Resource
 {
     protected static string $model = HiddenNavRecord::class;
 
+    protected static ?string $navigationIcon = 'archive-box';
+
     public static function pluralLabel(): string
     {
         return 'Hidden nav records';
+    }
+}
+
+final class IconLayoutResource extends Resource
+{
+    protected static string $model = TestUser::class;
+
+    protected static ?string $navigationIcon = 'users';
+
+    public static function pluralLabel(): string
+    {
+        return 'Icon users';
+    }
+
+    public static function table(Table $table): Table
+    {
+        return TestUserResource::table($table);
+    }
+}
+
+final class NoIconLayoutResource extends Resource
+{
+    protected static string $model = TestUser::class;
+
+    public static function pluralLabel(): string
+    {
+        return 'No icon users';
+    }
+
+    public static function table(Table $table): Table
+    {
+        return TestUserResource::table($table);
+    }
+}
+
+final class InvalidIconLayoutResource extends Resource
+{
+    protected static string $model = TestUser::class;
+
+    protected static ?string $navigationIcon = 'definitely-not-an-icon';
+
+    public static function pluralLabel(): string
+    {
+        return 'Invalid icon users';
+    }
+
+    public static function table(Table $table): Table
+    {
+        return TestUserResource::table($table);
     }
 }
 

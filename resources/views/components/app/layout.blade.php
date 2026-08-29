@@ -33,7 +33,16 @@
     $securityItem = collect($accountNav)->first(fn ($item): bool => $item->key === 'account.security');
     $logoutItem = collect($accountNav)->first(fn ($item): bool => $item->key === 'account.logout');
     $profileUrl = $profileItem?->url;
-    $profileActive = (bool) ($profileItem?->active ?? false);
+    $navigationSections = [
+        ['label' => 'Main', 'items' => $mainNav, 'headingClass' => 'pt-2'],
+        ['label' => 'Resources', 'items' => $resourcesNav, 'headingClass' => 'pt-4'],
+        ['label' => 'Settings', 'items' => $settingsNav, 'headingClass' => 'pt-4'],
+        ['label' => 'Developer', 'items' => $developerNav, 'headingClass' => 'pt-4'],
+    ];
+    $hasSidebarNavigation = count($mainNav) > 0
+        || count($resourcesNav) > 0
+        || count($settingsNav) > 0
+        || count($developerNav) > 0;
 
     $dashboardRouteName = \Illuminate\Support\Facades\Route::has($routeNamePrefix.'dashboard')
         ? $routeNamePrefix.'dashboard'
@@ -85,77 +94,23 @@
             </div>
 
             <nav class="sf-sidebar-nav" aria-label="Primary navigation">
-                @if(count($mainNav) > 0)
-                    <p class="px-3 pt-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Main</p>
-                    @foreach($mainNav as $item)
-                        <a href="{{ $item->url }}"
-                           @class([
-                               'sf-sidebar-link',
-                               'sf-sidebar-link-active' => $item->active,
-                           ])
-                        >
-                            {{ $item->label }}
-                        </a>
-                    @endforeach
-                @endif
+                @foreach($navigationSections as $section)
+                    @if(count($section['items']) > 0)
+                        <p class="px-3 {{ $section['headingClass'] }} text-xs font-semibold uppercase tracking-wide text-slate-500">{{ $section['label'] }}</p>
+                        @foreach($section['items'] as $item)
+                            <x-seviaflow-ui::sidebar-link :item="$item" />
+                        @endforeach
+                    @endif
+                @endforeach
 
-                @if(count($resourcesNav) > 0)
-                    <p class="px-3 pt-4 text-xs font-semibold uppercase tracking-wide text-slate-500">Resources</p>
-                    @foreach($resourcesNav as $item)
-                        <a href="{{ $item->url }}"
-                           @class([
-                               'sf-sidebar-link',
-                               'sf-sidebar-link-active' => $item->active,
-                           ])
-                        >
-                            {{ $item->label }}
-                        </a>
-                    @endforeach
-                @endif
-
-                @if(count($settingsNav) > 0)
-                    <p class="px-3 pt-4 text-xs font-semibold uppercase tracking-wide text-slate-500">Settings</p>
-                    @foreach($settingsNav as $item)
-                        <a href="{{ $item->url }}"
-                           @class([
-                               'sf-sidebar-link',
-                               'sf-sidebar-link-active' => $item->active,
-                           ])
-                        >
-                            {{ $item->label }}
-                        </a>
-                    @endforeach
-                @endif
-
-                @if(count($developerNav) > 0)
-                    <p class="px-3 pt-4 text-xs font-semibold uppercase tracking-wide text-slate-500">Developer</p>
-                    @foreach($developerNav as $item)
-                        <a href="{{ $item->url }}"
-                           @class([
-                               'sf-sidebar-link',
-                               'sf-sidebar-link-active' => $item->active,
-                           ])
-                        >
-                            {{ $item->label }}
-                        </a>
-                    @endforeach
-                @endif
-
-                @if(count($mainNav) === 0 && count($resourcesNav) === 0 && count($settingsNav) === 0 && count($developerNav) === 0)
+                @if(! $hasSidebarNavigation)
                     <p class="px-3 pt-2 text-xs text-slate-400">No navigation items available.</p>
                 @endif
             </nav>
 
             @if($profileUrl !== null)
                 <div class="border-t border-slate-800 p-3">
-                    <a href="{{ $profileUrl }}"
-                       @class([
-                           'sf-sidebar-link',
-                           'sf-sidebar-link-active' => $profileActive,
-                       ])
-                    >
-                        Profile
-                    </a>
+                    <x-seviaflow-ui::sidebar-link :item="$profileItem" />
                 </div>
             @endif
         </aside>
@@ -177,14 +132,16 @@
                     <div class="flex items-center gap-2">
                         @if($securityItem)
                             <a href="{{ $securityItem->url }}" class="sf-button sf-button-secondary !py-2">
-                                Account settings
+                                <x-seviaflow-ui::icon :name="$securityItem->icon" class="sf-topbar-action-icon" />
+                                <span>Account settings</span>
                             </a>
                         @endif
                         @if($logoutItem)
                             <form method="POST" action="{{ $logoutItem->url }}">
                                 @csrf
                                 <button type="submit" class="sf-button sf-button-ghost !py-2">
-                                    {{ $logoutItem->label }}
+                                    <x-seviaflow-ui::icon :name="$logoutItem->icon" class="sf-topbar-action-icon" />
+                                    <span>{{ $logoutItem->label }}</span>
                                 </button>
                             </form>
                         @endif

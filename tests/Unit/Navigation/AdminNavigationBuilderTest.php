@@ -7,6 +7,7 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Auth\User as AuthenticatableUser;
 use Illuminate\Routing\RouteCollection;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Schema;
 use SeviaFlow\Core\Resources\Resource;
 use SeviaFlow\Ui\Dashboard\Dashboard as DashboardDefinition;
@@ -82,6 +83,24 @@ it('includes dashboard navigation item', function (): void {
     $keys = array_map(static fn (NavigationItem $item): string => $item->key, navItems($groups));
 
     expect($keys)->toContain('dashboard:default');
+});
+
+it('assigns canonical icons to built in navigation items', function (): void {
+    if (! Route::has('seviaflow.api.docs')) {
+        Route::get('/admin/api-docs', static fn (): string => 'API documentation')->name('seviaflow.api.docs');
+    }
+
+    $user = NavTestUser::query()->create(['name' => 'Built In Icon User']);
+    $groups = app(AdminNavigationBuilder::class)->build($user, 'seviaflow.dashboard');
+    $itemsByKey = collect(navItems($groups))->keyBy(fn (NavigationItem $item): string => $item->key);
+
+    expect($itemsByKey->get('dashboard:default')?->icon)->toBe('squares-2x2')
+        ->and($itemsByKey->get('settings.roles')?->icon)->toBe('shield-check')
+        ->and($itemsByKey->get('settings.admin-users')?->icon)->toBe('users')
+        ->and($itemsByKey->get('developer.api-docs')?->icon)->toBe('code-bracket')
+        ->and($itemsByKey->get('account.profile')?->icon)->toBe('user-circle')
+        ->and($itemsByKey->get('account.security')?->icon)->toBe('lock-closed')
+        ->and($itemsByKey->get('account.logout')?->icon)->toBe('arrow-right-on-rectangle');
 });
 
 it('shows only visible dashboards in navigation', function (): void {
@@ -279,8 +298,10 @@ it('supports no resources without errors', function (): void {
 });
 
 it('shows api docs navigation link when enabled and authorized', function (): void {
-    config()->set('seviaflow.api_docs.enabled', true);
-    config()->set('seviaflow.api_docs.show_in_navigation', true);
+    config()->set('seviaflow-ui.api_docs_navigation.show_in_navigation', true);
+    if (! Route::has('seviaflow.api.docs')) {
+        Route::get('/admin/api-docs', static fn (): string => 'API documentation')->name('seviaflow.api.docs');
+    }
 
     $user = NavTestUser::query()->create(['name' => 'API Docs Nav User']);
     $groups = app(AdminNavigationBuilder::class)->build($user, 'seviaflow.dashboard');
@@ -295,7 +316,10 @@ it('shows api docs navigation link when enabled and authorized', function (): vo
 });
 
 it('hides api docs navigation link when docs navigation is disabled', function (): void {
-    config()->set('seviaflow.api_docs.show_in_navigation', false);
+    config()->set('seviaflow-ui.api_docs_navigation.show_in_navigation', false);
+    if (! Route::has('seviaflow.api.docs')) {
+        Route::get('/admin/api-docs', static fn (): string => 'API documentation')->name('seviaflow.api.docs');
+    }
 
     $user = NavTestUser::query()->create(['name' => 'No Docs Nav User']);
     $groups = app(AdminNavigationBuilder::class)->build($user, 'seviaflow.dashboard');
@@ -306,7 +330,10 @@ it('hides api docs navigation link when docs navigation is disabled', function (
 
 it('hides api docs navigation link for unauthorized user when permissions are enabled', function (): void {
     config()->set('seviaflow.permissions.enabled', true);
-    config()->set('seviaflow.api_docs.show_in_navigation', true);
+    config()->set('seviaflow-ui.api_docs_navigation.show_in_navigation', true);
+    if (! Route::has('seviaflow.api.docs')) {
+        Route::get('/admin/api-docs', static fn (): string => 'API documentation')->name('seviaflow.api.docs');
+    }
 
     $user = NavTestUser::query()->create(['name' => 'Unauthorized Docs User']);
     $groups = app(AdminNavigationBuilder::class)->build($user, 'seviaflow.dashboard');
@@ -323,6 +350,7 @@ it('builds api docs navigation link with custom route prefix', function (): void
     app()->register(SeviaFlowUiServiceProvider::class, true);
     app('router')->getRoutes()->refreshNameLookups();
     app('router')->getRoutes()->refreshActionLookups();
+    Route::get('/backoffice/api-docs', static fn (): string => 'API documentation')->name('seviaflow.api.docs');
 
     $user = NavTestUser::query()->create(['name' => 'Prefixed Docs Nav User']);
     $groups = app(AdminNavigationBuilder::class)->build($user, 'backoffice-admin.dashboard');
