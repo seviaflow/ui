@@ -24,7 +24,7 @@ beforeEach(function (): void {
 
 it('is disabled by default and does not cache resolver results', function (): void {
     config()->set('seviaflow.performance.cache.enabled', false);
-    config()->set('seviaflow.performance.cache.dashboard', false);
+    config()->set('seviaflow-ui.cache.dashboard', false);
 
     $cache = app(DashboardSummaryCache::class);
     $user = DashboardCacheUser::query()->create(['name' => 'A', 'email' => 'a@example.com']);
@@ -46,7 +46,7 @@ it('is disabled by default and does not cache resolver results', function (): vo
 
 it('uses user-scoped cache keys to avoid cross-user leakage', function (): void {
     config()->set('seviaflow.performance.cache.enabled', true);
-    config()->set('seviaflow.performance.cache.dashboard', true);
+    config()->set('seviaflow-ui.cache.dashboard', true);
 
     $cache = app(DashboardSummaryCache::class);
     $userA = DashboardCacheUser::query()->create(['name' => 'A', 'email' => 'cache-a@example.com']);
@@ -79,18 +79,18 @@ it('uses user-scoped cache keys to avoid cross-user leakage', function (): void 
 
 it('clear removes tracked dashboard keys', function (): void {
     config()->set('seviaflow.performance.cache.enabled', true);
-    config()->set('seviaflow.performance.cache.dashboard', true);
+    config()->set('seviaflow-ui.cache.dashboard', true);
 
     $cache = app(DashboardSummaryCache::class);
     $user = DashboardCacheUser::query()->create(['name' => 'A', 'email' => 'clear@example.com']);
 
     $cache->rememberForUser('resource_overview', $user, ['a' => 1], fn (): array => ['ok' => true]);
 
-    expect(cache()->store('array')->get('seviaflow-ui.dashboard.index'))->toBeArray();
+    expect(cache()->store('array')->get('seviaflow.dashboard.index'))->toBeArray();
 
     $cache->clear();
 
-    expect(cache()->store('array')->get('seviaflow-ui.dashboard.index'))->toBeNull();
+    expect(cache()->store('array')->get('seviaflow.dashboard.index'))->toBeNull();
 });
 
 final class DashboardCacheUser extends AuthenticatableUser

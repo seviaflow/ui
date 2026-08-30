@@ -480,7 +480,7 @@
 
                 @if(method_exists($manager['records'], 'links'))
                     <div class="sf-pagination mt-3">
-                        {{ $manager['records']->links() }}
+                        {{ $manager['records']->onEachSide(1)->links('seviaflow-ui::components.paginator') }}
                     </div>
                 @endif
             </div>

@@ -1146,6 +1146,12 @@ final class ResourceShow extends Component
 
             $records = $this->paginateRelationRecords($relation);
             $relatedResourceSlug = $this->resourceSlugForClass($relatedResource);
+            $allowsRelatedResourceEdit = (
+                $relation instanceof HasManyRelation
+                || $relation instanceof HasOneRelation
+                || $relation instanceof MorphManyRelation
+                || $relation instanceof MorphOneRelation
+            ) ? $relation->canEdit() : false;
 
             $managers[] = [
                 'type' => $relation instanceof BelongsToManyRelation || $relation instanceof MorphToManyRelation
@@ -1202,8 +1208,8 @@ final class ResourceShow extends Component
                         'record' => $relatedRecord->getKey(),
                     ]);
                 },
-                'editUrl' => function (Model $relatedRecord) use ($relatedResourceSlug, $relatedAuthorization): ?string {
-                    if ($relatedResourceSlug === null || ! $relatedAuthorization->canUpdate(null, $relatedRecord)) {
+                'editUrl' => function (Model $relatedRecord) use ($allowsRelatedResourceEdit, $relatedResourceSlug, $relatedAuthorization): ?string {
+                    if (! $allowsRelatedResourceEdit || $relatedResourceSlug === null || ! $relatedAuthorization->canUpdate(null, $relatedRecord)) {
                         return null;
                     }
 

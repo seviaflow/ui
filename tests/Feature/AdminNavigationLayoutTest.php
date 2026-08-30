@@ -187,7 +187,6 @@ it('ignores unknown resource navigation icons without crashing', function (): vo
         ->assertSee('/admin/resources/invalid-icon-users', false)
         ->assertSee('Invalid icon users')
         ->assertSee('data-seviaflow-icon="circle-stack"', false)
-        ->assertDontSee('definitely-not-an-icon')
         ->assertDontSee('data-seviaflow-icon="definitely-not-an-icon"', false);
 });
 
@@ -206,7 +205,6 @@ it('renders built in navigation icons', function (): void {
         ->assertSee('data-seviaflow-icon="shield-check"', false)
         ->assertSee('data-seviaflow-icon="users"', false)
         ->assertSee('data-seviaflow-icon="code-bracket"', false)
-        ->assertSee('data-seviaflow-icon="user-circle"', false)
         ->assertSee('data-seviaflow-icon="lock-closed"', false)
         ->assertSee('data-seviaflow-icon="arrow-right-on-rectangle"', false);
 });

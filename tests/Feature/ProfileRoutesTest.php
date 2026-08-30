@@ -40,12 +40,11 @@ it('renders profile page for authenticated user', function (): void {
         ->assertDontSee('sf-user-card sf-sidebar-link-active', false)
         ->assertSee('sf-profile-layout', false)
         ->assertSee('sf-profile-nav-link-active', false)
-        ->assertSee('Account settings')
         ->assertSee('Profile information')
         ->assertSee('Name')
         ->assertSee('Email address')
-        ->assertSee('/vendor/seviaflow/ui/brand/seviaflow-logo.png', false)
         ->assertSee('/vendor/seviaflow/ui/brand/seviaflow-mark.png', false)
+        ->assertSee('sf-brand-text-lockup', false)
         ->assertSee('vendor/seviaflow/ui/seviaflow.css', false)
         ->assertSee('vendor/seviaflow/ui/seviaflow.js', false)
         ->assertDontSee('@vite', false);

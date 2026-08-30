@@ -513,7 +513,7 @@
             </table>
 
             <div class="sf-pagination">
-                {{ $records->links() }}
+                {{ $records->onEachSide(1)->links('seviaflow-ui::components.paginator') }}
             </div>
         </div>
     </div>

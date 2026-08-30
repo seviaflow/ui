@@ -1315,15 +1315,113 @@ body {
   }
 
   .sf-pagination {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.75rem;
     border-top: 1px solid var(--sf-color-border);
     color: var(--sf-color-text-muted);
     font-size: 0.75rem;
     padding: 0.75rem 0.875rem;
+  }
+
+  .sf-pagination-nav {
+    display: grid;
+    gap: 0.75rem;
+    width: 100%;
+  }
+
+  .sf-pagination-summary {
+    color: var(--sf-color-text-muted);
+    font-weight: 750;
+  }
+
+  .sf-pagination-mobile {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.65rem;
+    width: 100%;
+  }
+
+  .sf-pagination-mobile-status {
+    color: var(--sf-color-text);
+    font-weight: 850;
+    white-space: nowrap;
+  }
+
+  .sf-pagination-desktop {
+    display: none;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.35rem;
+  }
+
+  .sf-pagination-button,
+  .sf-pagination-page,
+  .sf-pagination-ellipsis {
+    align-items: center;
+    border-radius: 0.625rem;
+    display: inline-flex;
+    font-weight: 850;
+    justify-content: center;
+    min-height: 2rem;
+    min-width: 2rem;
+    padding: 0 0.65rem;
+  }
+
+  .sf-pagination-button,
+  .sf-pagination-page {
+    border: 1px solid var(--sf-color-border);
+    background: var(--sf-color-surface);
+    color: var(--sf-color-text-muted);
+    outline: none;
+    transition:
+      background-color 140ms ease,
+      border-color 140ms ease,
+      box-shadow 140ms ease,
+      color 140ms ease;
+  }
+
+  .sf-pagination-button:hover:not(:disabled),
+  .sf-pagination-page:hover:not(:disabled) {
+    border-color: var(--sf-color-primary);
+    color: var(--sf-color-primary);
+  }
+
+  .sf-pagination-button:focus-visible,
+  .sf-pagination-page:focus-visible {
+    box-shadow: var(--sf-focus-ring);
+  }
+
+  .sf-pagination-button:disabled,
+  .sf-pagination-page:disabled {
+    cursor: not-allowed;
+    opacity: 0.46;
+  }
+
+  .sf-pagination-page-current {
+    border: 1px solid var(--sf-color-primary);
+    background: var(--sf-color-primary);
+    color: #ffffff;
+    box-shadow: 0 8px 18px rgb(79 125 240 / 0.18);
+  }
+
+  .sf-pagination-ellipsis {
+    color: var(--sf-color-text-faint);
+    min-width: 1.5rem;
+    padding: 0 0.25rem;
+  }
+
+  @media (min-width: 640px) {
+    .sf-pagination-nav {
+      align-items: center;
+      grid-template-columns: minmax(0, 1fr) auto;
+    }
+
+    .sf-pagination-mobile {
+      display: none;
+    }
+
+    .sf-pagination-desktop {
+      display: flex;
+    }
   }
 
   .sf-confirm-panel {

@@ -56,7 +56,7 @@ it('resolves closure chart data', function (): void {
 it('reuses cached chart data when cacheFor is set', function (): void {
     flushArrayCache();
     config()->set('seviaflow.performance.cache.enabled', true);
-    config()->set('seviaflow.performance.cache.dashboard', true);
+    config()->set('seviaflow-ui.cache.dashboard', true);
     config()->set('seviaflow.performance.cache.store', 'array');
 
     $runs = 0;
@@ -81,7 +81,7 @@ it('reuses cached chart data when cacheFor is set', function (): void {
 it('uses user scoped cache keys for chart data', function (): void {
     flushArrayCache();
     config()->set('seviaflow.performance.cache.enabled', true);
-    config()->set('seviaflow.performance.cache.dashboard', true);
+    config()->set('seviaflow-ui.cache.dashboard', true);
     config()->set('seviaflow.performance.cache.store', 'array');
 
     $runs = 0;

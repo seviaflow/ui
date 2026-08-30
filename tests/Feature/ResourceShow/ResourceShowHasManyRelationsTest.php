@@ -96,7 +96,7 @@ it('hasMany edit button hidden by default', function (): void {
         'name' => 'No Edit Button User',
         'email' => 'no-edit-button@example.com',
     ]);
-    ShowOrder::query()->create([
+    $order = ShowOrder::query()->create([
         'show_user_id' => $user->getKey(),
         'number' => 'ORD-NO-EDIT',
         'status' => 'new',
@@ -104,7 +104,8 @@ it('hasMany edit button hidden by default', function (): void {
 
     pest_test_case()->get('/admin/resources/show-users-with-orders/'.$user->getKey())
         ->assertOk()
-        ->assertDontSee('Edit order');
+        ->assertDontSee('Edit order')
+        ->assertDontSee('/admin/resources/show-orders/'.$order->getKey().'/edit');
 });
 
 it('hasMany edit button appears when allowEdit is enabled', function (): void {
@@ -112,7 +113,7 @@ it('hasMany edit button appears when allowEdit is enabled', function (): void {
         'name' => 'Edit Button User',
         'email' => 'edit-button@example.com',
     ]);
-    ShowOrder::query()->create([
+    $order = ShowOrder::query()->create([
         'show_user_id' => $user->getKey(),
         'number' => 'ORD-EDIT-BUTTON',
         'status' => 'new',
@@ -120,7 +121,8 @@ it('hasMany edit button appears when allowEdit is enabled', function (): void {
 
     pest_test_case()->get('/admin/resources/show-users-with-orders-manage/'.$user->getKey())
         ->assertOk()
-        ->assertSee('Edit order');
+        ->assertSee('Edit order')
+        ->assertSee('/admin/resources/show-orders/'.$order->getKey().'/edit');
 });
 
 it('hasMany child can be edited', function (): void {

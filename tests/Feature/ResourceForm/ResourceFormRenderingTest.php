@@ -224,7 +224,7 @@ it('readonlyOnEdit field renders as readonly', function (): void {
     pest_test_case()->get('/admin/resources/context-form-users/'.$user->getKey().'/edit')
         ->assertOk()
         ->assertSee('readonly', false)
-        ->assertSee('bg-slate-50 text-slate-600', false);
+        ->assertSee('sf-control-readonly', false);
 });
 
 it('password input renders as password type', function (): void {

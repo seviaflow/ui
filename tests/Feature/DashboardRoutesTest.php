@@ -130,7 +130,7 @@ it('registers dashboard route name with default prefix', function (): void {
 });
 
 it('registers dashboard show route name with default prefix', function (): void {
-    expect(Route::has('seviaflow-ui.dashboards.show'))->toBeTrue();
+    expect(Route::has('seviaflow.dashboards.show'))->toBeTrue();
 });
 
 it('renders dashboard livewire component without runtime errors when no dashboards are visible', function (): void {
@@ -1492,7 +1492,7 @@ it('shows recent activity empty state when activity table is empty', function ()
 it('does not leak authorization-sensitive dashboard sections between users when cache is enabled', function (): void {
     config()->set('cache.default', 'array');
     config()->set('seviaflow.performance.cache.enabled', true);
-    config()->set('seviaflow.performance.cache.dashboard', true);
+    config()->set('seviaflow-ui.cache.dashboard', true);
     config()->set('seviaflow.resources', [
         'dashboard-visible' => DashboardVisibleResource::class,
         'dashboard-hidden' => DashboardHiddenResource::class,
@@ -1529,7 +1529,7 @@ it('does not leak authorization-sensitive dashboard sections between users when 
 it('does not cache recent activity globally when dashboard cache is enabled', function (): void {
     config()->set('cache.default', 'array');
     config()->set('seviaflow.performance.cache.enabled', true);
-    config()->set('seviaflow.performance.cache.dashboard', true);
+    config()->set('seviaflow-ui.cache.dashboard', true);
     config()->set('seviaflow.resources', [
         'dashboard-workflow' => DashboardWorkflowResource::class,
     ]);

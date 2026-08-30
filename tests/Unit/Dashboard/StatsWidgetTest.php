@@ -46,7 +46,7 @@ it('rejects invalid color safely', function (): void {
 it('reuses cached value when cacheFor is set', function (): void {
     flushArrayCache();
     config()->set('seviaflow.performance.cache.enabled', true);
-    config()->set('seviaflow.performance.cache.dashboard', true);
+    config()->set('seviaflow-ui.cache.dashboard', true);
     config()->set('seviaflow.performance.cache.store', 'array');
 
     $runs = 0;
@@ -69,7 +69,7 @@ it('reuses cached value when cacheFor is set', function (): void {
 it('uses user scoped cache keys to prevent leakage between users', function (): void {
     flushArrayCache();
     config()->set('seviaflow.performance.cache.enabled', true);
-    config()->set('seviaflow.performance.cache.dashboard', true);
+    config()->set('seviaflow-ui.cache.dashboard', true);
     config()->set('seviaflow.performance.cache.store', 'array');
 
     $runs = 0;

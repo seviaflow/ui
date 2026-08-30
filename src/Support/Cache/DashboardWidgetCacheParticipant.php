@@ -21,6 +21,10 @@ final class DashboardWidgetCacheParticipant implements CacheParticipant
 
     public function warm(): CacheOperationResult
     {
+        if (! (bool) config('seviaflow-ui.cache.dashboard', false)) {
+            return CacheOperationResult::skipped('Dashboard widget cache skipped (disabled)');
+        }
+
         return CacheOperationResult::skipped('Dashboard widget cache skipped (user/context-scoped, warmed on request)');
     }
 

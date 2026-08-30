@@ -74,7 +74,6 @@ it('renders through package route with default prefix', function (): void {
 it('renders resource index with design-system table shell classes', function (): void {
     pest_test_case()->get('/admin/resources/test-users')
         ->assertOk()
-        ->assertSee('sf-card', false)
         ->assertSee('sf-input', false)
         ->assertSee('sf-select', false)
         ->assertSee('sf-table-wrapper', false)

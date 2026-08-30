@@ -103,7 +103,7 @@ it('reuses cached table rows and scopes cache by user', function (): void {
         'table-widget' => TableWidgetResource::class,
     ]);
     config()->set('seviaflow.performance.cache.enabled', true);
-    config()->set('seviaflow.performance.cache.dashboard', true);
+    config()->set('seviaflow-ui.cache.dashboard', true);
     config()->set('seviaflow.performance.cache.store', 'array');
     flushArrayCache();
 

@@ -84,7 +84,7 @@ it('uses user scoped cache to avoid workflow queue leakage', function (): void {
         'workflow-widget' => WorkflowWidgetResource::class,
     ]);
     config()->set('seviaflow.performance.cache.enabled', true);
-    config()->set('seviaflow.performance.cache.dashboard', true);
+    config()->set('seviaflow-ui.cache.dashboard', true);
     config()->set('seviaflow.performance.cache.store', 'array');
     flushArrayCache();
     Gate::policy(WorkflowWidgetRecord::class, WorkflowWidgetPerUserPolicy::class);
