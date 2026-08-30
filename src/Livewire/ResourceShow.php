@@ -174,7 +174,9 @@ final class ResourceShow extends Component
             'pivotModalState' => $this->pivotModalState(),
             'workflowPanel' => $this->workflowPanelState(),
             'workflowStateColorClasses' => fn (?string $color): string => $this->workflowStateColorClasses($color),
-        ])->layout('seviaflow-ui::components.app.layout');
+        ])->layout('seviaflow-ui::components.app.layout', [
+            'contentWidth' => 'standard',
+        ]);
     }
 
     public function executeWorkflowTransition(string $transitionName, bool $confirmed = false): void

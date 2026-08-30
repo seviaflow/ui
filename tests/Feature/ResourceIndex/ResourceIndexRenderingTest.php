@@ -62,6 +62,8 @@ it('renders through package route with default prefix', function (): void {
         ->assertSee('SeviaFlow')
         ->assertSee('sf-sidebar', false)
         ->assertSee('sf-topbar', false)
+        ->assertSee('data-sf-content-width="wide"', false)
+        ->assertSee('sf-content-wide', false)
         ->assertSee('/admin/resources/test-users', false)
         ->assertSee('sf-sidebar-link-active', false)
         ->assertSee('vendor/seviaflow/ui/seviaflow.css', false)

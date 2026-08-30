@@ -29,7 +29,9 @@ final class RoleIndex extends Component
             'createUrl' => route(config('seviaflow-ui.route_name_prefix', 'seviaflow.').'settings.roles.create'),
             'editUrl' => fn (Role $role): string => route(config('seviaflow-ui.route_name_prefix', 'seviaflow.').'settings.roles.edit', ['role' => $role->getKey()]),
             'adminUsersUrl' => route(config('seviaflow-ui.route_name_prefix', 'seviaflow.').'settings.admin-users.index'),
-        ])->layout('seviaflow-ui::components.app.layout');
+        ])->layout('seviaflow-ui::components.app.layout', [
+            'contentWidth' => 'standard',
+        ]);
     }
 
     public function deleteRole(int|string $roleId): void

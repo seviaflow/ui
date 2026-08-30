@@ -93,6 +93,7 @@ final class Dashboard extends Component
             ])->layout('seviaflow-ui::components.app.layout', [
                 'pageTitle' => 'Dashboard',
                 'pageDescription' => 'No dashboards are currently visible for your account.',
+                'contentWidth' => 'wide',
                 'breadcrumbs' => [
                     ['label' => 'Admin', 'url' => route($routeNamePrefix.'dashboard')],
                     ['label' => 'Dashboard', 'url' => null],
@@ -191,6 +192,7 @@ final class Dashboard extends Component
         ])->layout('seviaflow-ui::components.app.layout', [
             'pageTitle' => $dashboardLabel,
             'pageDescription' => $dashboardDescription ?? 'Welcome to your operator workspace.',
+            'contentWidth' => 'wide',
             'breadcrumbs' => [
                 ['label' => 'Admin', 'url' => route($routeNamePrefix.'dashboard')],
                 ['label' => $dashboardLabel, 'url' => null],

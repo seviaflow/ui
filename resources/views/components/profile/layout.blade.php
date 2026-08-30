@@ -1,4 +1,4 @@
-<x-seviaflow-ui::app.layout :title="$title ?? 'Profile'">
+<x-seviaflow-ui::app.layout :title="$title ?? 'Profile'" contentWidth="narrow">
     <x-slot:pageTitle>{{ $title ?? 'Account settings' }}</x-slot:pageTitle>
     <x-slot:pageDescription>{{ $description ?? 'Manage your admin account security and profile details.' }}</x-slot:pageDescription>
     <x-slot:breadcrumbs>

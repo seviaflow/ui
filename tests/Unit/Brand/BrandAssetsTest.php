@@ -22,3 +22,18 @@ it('renders stable public brand urls through the shared component', function ():
         ->and($html)->not->toContain('sf-auth-logo')
         ->and($html)->not->toContain('>SF<');
 });
+
+it('renders official mark with an accessible text lockup on dark surfaces', function (): void {
+    $html = view('seviaflow-ui::components.brand', [
+        'href' => '/admin',
+        'surface' => 'dark',
+    ])->render();
+
+    expect($html)->toContain('sf-brand-on-dark')
+        ->and($html)->toContain('/vendor/seviaflow/ui/brand/seviaflow-mark.png')
+        ->and($html)->toContain('sf-brand-text-lockup')
+        ->and($html)->toContain('Sevia')
+        ->and($html)->toContain('Flow')
+        ->and($html)->not->toContain('seviaflow-logo-original-white.png')
+        ->and($html)->not->toContain('>SF<');
+});

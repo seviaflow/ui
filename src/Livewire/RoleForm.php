@@ -71,7 +71,9 @@ final class RoleForm extends Component
             'abilityLabels' => $this->abilityLabels(),
             'supportsRestore' => fn (string $resource): bool => $this->supportsSoftDeletes($resource),
             'cancelUrl' => route(config('seviaflow-ui.route_name_prefix', 'seviaflow.').'settings.roles.index'),
-        ])->layout('seviaflow-ui::components.app.layout');
+        ])->layout('seviaflow-ui::components.app.layout', [
+            'contentWidth' => 'standard',
+        ]);
     }
 
     public function updatedName(string $value): void

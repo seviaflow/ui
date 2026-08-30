@@ -35,7 +35,9 @@ final class AdminUserIndex extends Component
             'users' => $users,
             'rolesUrl' => fn (Model $user): string => route(config('seviaflow-ui.route_name_prefix', 'seviaflow.').'settings.admin-users.roles', ['user' => $user->getKey()]),
             'assignedRoleCount' => fn (Model $user): int => $this->assignedRoleCount($user),
-        ])->layout('seviaflow-ui::components.app.layout');
+        ])->layout('seviaflow-ui::components.app.layout', [
+            'contentWidth' => 'standard',
+        ]);
     }
 
     private function assignedRoleCount(Model $user): int

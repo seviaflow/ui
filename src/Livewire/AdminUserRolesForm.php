@@ -49,7 +49,9 @@ final class AdminUserRolesForm extends Component
         return view('seviaflow-ui::livewire.admin-user-roles-form', [
             'roles' => Role::query()->orderBy('name')->get(),
             'backUrl' => route(config('seviaflow-ui.route_name_prefix', 'seviaflow.').'settings.admin-users.index'),
-        ])->layout('seviaflow-ui::components.app.layout');
+        ])->layout('seviaflow-ui::components.app.layout', [
+            'contentWidth' => 'standard',
+        ]);
     }
 
     public function save(): void

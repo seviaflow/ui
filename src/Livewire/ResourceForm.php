@@ -115,7 +115,9 @@ final class ResourceForm extends Component
             'cancelUrl' => route(config('seviaflow-ui.route_name_prefix', 'seviaflow.').'resources.index', [
                 'resource' => $this->resourceSlug,
             ]),
-        ])->layout('seviaflow-ui::components.app.layout');
+        ])->layout('seviaflow-ui::components.app.layout', [
+            'contentWidth' => 'standard',
+        ]);
     }
 
     public function save(): void

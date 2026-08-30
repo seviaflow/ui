@@ -136,9 +136,10 @@ it('renders expanded sidebar brand with official asset paths', function (): void
 
     pest_test_case()->get('/admin')
         ->assertOk()
-        ->assertSee('class="sf-brand"', false)
-        ->assertSee('/vendor/seviaflow/ui/brand/seviaflow-logo.png', false)
+        ->assertSee('sf-brand-on-dark', false)
         ->assertSee('/vendor/seviaflow/ui/brand/seviaflow-mark.png', false)
+        ->assertSee('sf-brand-text-lockup', false)
+        ->assertDontSee('seviaflow-logo-original-white.png', false)
         ->assertDontSee('sf-auth-logo', false);
 });
 
@@ -169,6 +170,7 @@ it('renders resource navigation normally without an icon', function (): void {
         ->assertOk()
         ->assertSee('/admin/resources/no-icon-users', false)
         ->assertSee('No icon users')
+        ->assertSee('data-seviaflow-icon="circle-stack"', false)
         ->assertDontSee('data-seviaflow-icon="no-icon-users"', false);
 });
 
@@ -184,6 +186,7 @@ it('ignores unknown resource navigation icons without crashing', function (): vo
         ->assertOk()
         ->assertSee('/admin/resources/invalid-icon-users', false)
         ->assertSee('Invalid icon users')
+        ->assertSee('data-seviaflow-icon="circle-stack"', false)
         ->assertDontSee('definitely-not-an-icon')
         ->assertDontSee('data-seviaflow-icon="definitely-not-an-icon"', false);
 });

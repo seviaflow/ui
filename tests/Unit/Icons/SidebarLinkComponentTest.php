@@ -21,7 +21,7 @@ it('renders sidebar links with known icons', function (): void {
         ->and($html)->toContain('Customers');
 });
 
-it('renders sidebar links without icons when icon is null or unknown', function (?string $icon): void {
+it('renders sidebar fallback icons when configured icon is null or unknown', function (?string $icon): void {
     $html = view('seviaflow-ui::components.sidebar-link', [
         'item' => new NavigationItem(
             key: 'resource:customers',
@@ -33,7 +33,7 @@ it('renders sidebar links without icons when icon is null or unknown', function 
 
     expect($html)->toContain('href="/admin/resources/customers"')
         ->and($html)->toContain('Customers')
-        ->and($html)->not->toContain('data-seviaflow-icon=')
+        ->and($html)->toContain('data-seviaflow-icon="circle-stack"')
         ->and($html)->not->toContain('definitely-not-an-icon');
 })->with([
     'null' => null,

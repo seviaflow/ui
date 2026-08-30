@@ -183,7 +183,9 @@ final class ResourceIndex extends Component
             'exportFormats' => $this->exportFormats(),
             'canImport' => $this->canImport(),
             'importAllowedFields' => $this->importFields(),
-        ])->layout('seviaflow-ui::components.app.layout');
+        ])->layout('seviaflow-ui::components.app.layout', [
+            'contentWidth' => 'wide',
+        ]);
     }
 
     public function updatingSearch(): void

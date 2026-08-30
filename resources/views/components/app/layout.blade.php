@@ -93,6 +93,10 @@
     $pageDescription = trim(isset($pageDescription) ? (string) $pageDescription : $defaultDescription);
     $breadcrumbItems = isset($breadcrumbs) && is_array($breadcrumbs) ? $breadcrumbs : $defaultBreadcrumbs;
     $hasCustomBreadcrumbsSlot = isset($breadcrumbs) && ! is_array($breadcrumbs);
+    $requestedContentWidth = isset($contentWidth) ? (string) $contentWidth : 'wide';
+    $contentWidthMode = in_array($requestedContentWidth, ['wide', 'standard', 'narrow'], true)
+        ? $requestedContentWidth
+        : 'wide';
     $authUser = auth()->user();
     $authUserName = is_object($authUser) && isset($authUser->name) ? (string) $authUser->name : null;
     $authUserEmail = is_object($authUser) && isset($authUser->email) ? (string) $authUser->email : null;
@@ -136,7 +140,7 @@
     <div class="sf-shell-grid">
         <aside class="sf-sidebar" id="sf-sidebar" aria-label="Primary navigation" data-sf-sidebar>
             <div class="sf-sidebar-brand">
-                <x-seviaflow-ui::brand :href="$brandHref" />
+                <x-seviaflow-ui::brand :href="$brandHref" surface="dark" />
                 <button
                     type="button"
                     class="sf-sidebar-toggle"
@@ -211,7 +215,7 @@
                 @if($profileItem)
                     <a
                         href="{{ $profileItem->url }}"
-                        @class(['sf-user-card', 'sf-sidebar-link-active' => $profileItem->active])
+                        @class(['sf-user-card', 'sf-user-card-active' => $profileItem->active])
                         @if($profileItem->active) aria-current="page" @endif
                         data-sf-nav-link
                     >
@@ -231,7 +235,7 @@
                     @if($securityItem)
                         <a
                             href="{{ $securityItem->url }}"
-                            @class(['sf-account-action', 'sf-sidebar-link-active' => $securityItem->active])
+                            @class(['sf-account-action', 'sf-account-action-active' => $securityItem->active])
                             @if($securityItem->active) aria-current="page" @endif
                             title="{{ $securityItem->label }}"
                             data-sf-nav-link
@@ -253,7 +257,7 @@
             </footer>
         </aside>
 
-        <div class="sf-main">
+        <div class="sf-main sf-main-{{ $contentWidthMode }}" data-sf-content-width="{{ $contentWidthMode }}">
             <header class="sf-topbar">
                 <div class="sf-topbar-inner">
                     <button
@@ -268,8 +272,13 @@
                     </button>
 
                     <div class="sf-topbar-context">
-                        <span>SeviaFlow workspace</span>
-                        <strong>{{ $pageTitle }}</strong>
+                        <span class="sf-topbar-context-icon" aria-hidden="true">
+                            <x-seviaflow-ui::icon name="clipboard-document-check" class="sf-topbar-context-icon-svg" />
+                        </span>
+                        <span class="sf-topbar-context-copy">
+                            <span>SeviaFlow workspace</span>
+                            <strong>{{ $pageTitle }}</strong>
+                        </span>
                     </div>
 
                     <button
@@ -287,7 +296,7 @@
                 </div>
             </header>
 
-            <div class="sf-content">
+            <div class="sf-content sf-content-{{ $contentWidthMode }}">
                 <x-seviaflow-ui::page-heading
                     :eyebrow="$pageEyebrow"
                     :title="$pageTitle"
