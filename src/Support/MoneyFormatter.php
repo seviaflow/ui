@@ -19,6 +19,11 @@ final class MoneyFormatter
         return $this->format($field->getCurrency(), 2, $value);
     }
 
+    public function formatAmount(string $currency, int $decimals, mixed $value): string
+    {
+        return $this->format($currency, $decimals, $value);
+    }
+
     private function format(string $currency, int $decimals, mixed $value): string
     {
         if ($value === null || $value === '') {
