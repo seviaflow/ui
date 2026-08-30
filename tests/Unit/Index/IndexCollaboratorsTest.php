@@ -9,6 +9,7 @@ use SeviaFlow\Core\Resources\BulkAction;
 use SeviaFlow\Core\Resources\Columns\BadgeColumn;
 use SeviaFlow\Core\Resources\Columns\BelongsToColumn;
 use SeviaFlow\Core\Resources\Columns\BooleanColumn;
+use SeviaFlow\Core\Resources\Columns\MoneyColumn;
 use SeviaFlow\Core\Resources\Columns\TextColumn;
 use SeviaFlow\Ui\Index\BulkActionRunner;
 use SeviaFlow\Ui\Index\BulkSelectionState;
@@ -85,6 +86,7 @@ it('table value formatter handles relation badge boolean and null values', funct
     $record = new IndexCollaboratorModel([
         'name' => 'Alice',
         'is_active' => 1,
+        'revenue' => '1234.5',
         'status' => 'draft',
     ]);
     $record->setRelation('company', $company);
@@ -93,6 +95,7 @@ it('table value formatter handles relation badge boolean and null values', funct
 
     $relation = BelongsToColumn::make('company_name')->relationship('company', 'name');
     $boolean = BooleanColumn::make('is_active');
+    $money = MoneyColumn::make('revenue')->currency('EUR');
     $text = TextColumn::make('name');
     $badge = BadgeColumn::make('status')->labels([
         'draft' => 'Draft',
@@ -102,6 +105,7 @@ it('table value formatter handles relation badge boolean and null values', funct
 
     expect($formatter->format($record, $relation))->toBe('Acme')
         ->and($formatter->format($record, $boolean))->toBe('Yes')
+        ->and($formatter->format($record, $money))->toBe('EUR 1,234.50')
         ->and($formatter->format($record, $text))->toBe('Alice')
         ->and($formatter->format($record, $badge))->toContain('Draft');
 

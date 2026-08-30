@@ -28,9 +28,11 @@ use SeviaFlow\Core\Resources\Columns\BadgeColumn;
 use SeviaFlow\Core\Resources\Columns\BelongsToColumn;
 use SeviaFlow\Core\Resources\Columns\BooleanColumn;
 use SeviaFlow\Core\Resources\Columns\Column;
+use SeviaFlow\Core\Resources\Columns\MoneyColumn;
 use SeviaFlow\Core\Resources\Columns\Support\BadgeRenderer;
 use SeviaFlow\Core\Resources\Fields\DateField;
 use SeviaFlow\Core\Resources\Fields\Field;
+use SeviaFlow\Core\Resources\Fields\MoneyField;
 use SeviaFlow\Core\Resources\Fields\SelectField;
 use SeviaFlow\Core\Resources\Fields\ToggleField;
 use SeviaFlow\Core\Resources\Form;
@@ -60,6 +62,7 @@ use SeviaFlow\Ui\Show\Relations\RelationModalFormHandler;
 use SeviaFlow\Ui\Show\Relations\RelationQueryPaginator;
 use SeviaFlow\Ui\Show\Workflow\WorkflowPanelState;
 use SeviaFlow\Ui\Show\Workflow\WorkflowTransitionRunner;
+use SeviaFlow\Ui\Support\MoneyFormatter;
 
 final class ResourceShow extends Component
 {
@@ -907,6 +910,10 @@ final class ResourceShow extends Component
             return (bool) $value ? 'Yes' : 'No';
         }
 
+        if ($field instanceof MoneyField) {
+            return (new MoneyFormatter)->formatField($field, $value);
+        }
+
         if ($field instanceof SelectField) {
             $options = $field->getOptions();
             $key = (string) $value;
@@ -1558,6 +1565,10 @@ final class ResourceShow extends Component
             return (bool) $value ? 'Yes' : 'No';
         }
 
+        if ($column instanceof MoneyColumn) {
+            return (new MoneyFormatter)->formatColumn($column, $value);
+        }
+
         return e((string) $value);
     }
 
@@ -1581,6 +1592,10 @@ final class ResourceShow extends Component
 
         if ($column instanceof BooleanColumn) {
             return (bool) $value ? 'Yes' : 'No';
+        }
+
+        if ($column instanceof MoneyColumn) {
+            return (new MoneyFormatter)->formatColumn($column, $value);
         }
 
         return e((string) $value);

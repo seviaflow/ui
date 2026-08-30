@@ -9,7 +9,9 @@ use SeviaFlow\Core\Resources\Columns\BadgeColumn;
 use SeviaFlow\Core\Resources\Columns\BelongsToColumn;
 use SeviaFlow\Core\Resources\Columns\BooleanColumn;
 use SeviaFlow\Core\Resources\Columns\Column;
+use SeviaFlow\Core\Resources\Columns\MoneyColumn;
 use SeviaFlow\Core\Resources\Columns\Support\BadgeRenderer;
+use SeviaFlow\Ui\Support\MoneyFormatter;
 
 final class TableValueFormatter
 {
@@ -39,6 +41,10 @@ final class TableValueFormatter
 
         if ($column instanceof BooleanColumn) {
             return (bool) $value ? 'Yes' : 'No';
+        }
+
+        if ($column instanceof MoneyColumn) {
+            return (new MoneyFormatter)->formatColumn($column, $value);
         }
 
         return e((string) $value);
