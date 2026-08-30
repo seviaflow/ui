@@ -26,11 +26,13 @@ final class AdminNavigationBuilder
     public function build(
         ?Authenticatable $actor = null,
         ?string $currentRouteName = null,
-        ?string $currentResourceSlug = null
+        ?string $currentResourceSlug = null,
+        ?string $currentDashboardSlug = null,
     ): array {
         $actor ??= Auth::user();
         $currentRouteName ??= (string) optional(request()->route())->getName();
         $currentResourceSlug ??= is_string(request()->route('resource')) ? request()->route('resource') : null;
+        $currentDashboardSlug ??= is_string(request()->route('dashboard')) ? request()->route('dashboard') : null;
 
         $groups = [];
         $metadata = $this->navigationMetadataCache->resolve();
@@ -52,7 +54,7 @@ final class AdminNavigationBuilder
                     key: (string) $itemMeta['key'],
                     label: (string) $itemMeta['label'],
                     url: route($routeName, is_array($itemMeta['route_params'] ?? null) ? $itemMeta['route_params'] : []),
-                    active: $this->isActive($itemMeta, $currentRouteName, $currentResourceSlug),
+                    active: $this->isActive($itemMeta, $currentRouteName, $currentResourceSlug, $currentDashboardSlug),
                     icon: isset($itemMeta['icon']) && is_string($itemMeta['icon']) ? $itemMeta['icon'] : null,
                     group: isset($itemMeta['group']) && is_string($itemMeta['group']) ? $itemMeta['group'] : null,
                     order: isset($itemMeta['order']) && is_int($itemMeta['order']) ? $itemMeta['order'] : null,
@@ -110,13 +112,17 @@ final class AdminNavigationBuilder
             return $actor instanceof Authenticatable;
         }
 
+        if ($type === 'extension') {
+            return $this->canAccessExtensionItem($itemMeta, $actor);
+        }
+
         return true;
     }
 
     /**
      * @param  array<string,mixed>  $itemMeta
      */
-    private function isActive(array $itemMeta, string $currentRouteName, ?string $currentResourceSlug): bool
+    private function isActive(array $itemMeta, string $currentRouteName, ?string $currentResourceSlug, ?string $currentDashboardSlug): bool
     {
         $pattern = (string) ($itemMeta['active_pattern'] ?? 'none');
 
@@ -128,6 +134,28 @@ final class AdminNavigationBuilder
             $prefix = (string) ($itemMeta['active_route_prefix'] ?? '');
 
             return $prefix !== '' && str_starts_with($currentRouteName, $prefix);
+        }
+
+        if ($pattern === 'dashboard') {
+            $slug = isset($itemMeta['dashboard_slug']) && is_string($itemMeta['dashboard_slug'])
+                ? $itemMeta['dashboard_slug']
+                : null;
+
+            if ($slug === null) {
+                return false;
+            }
+
+            $routeName = (string) ($itemMeta['active_route_name'] ?? '');
+            if ($currentRouteName === $routeName) {
+                return $slug === 'default' || $currentDashboardSlug === $slug;
+            }
+
+            $prefix = (string) ($itemMeta['active_route_prefix'] ?? '');
+
+            return $prefix !== ''
+                && str_starts_with($currentRouteName, $prefix)
+                && $currentDashboardSlug !== null
+                && $slug === $currentDashboardSlug;
         }
 
         if ($pattern === 'resource') {
@@ -194,5 +222,37 @@ final class AdminNavigationBuilder
             (string) config('seviaflow-ui.api_docs_navigation.permission.resource', '__settings.api-docs'),
             (string) config('seviaflow-ui.api_docs_navigation.permission.ability', 'apiDocs.view')
         );
+    }
+
+    /**
+     * @param  array<string,mixed>  $itemMeta
+     */
+    private function canAccessExtensionItem(array $itemMeta, ?Authenticatable $actor): bool
+    {
+        if ((bool) ($itemMeta['requires_auth'] ?? true) && ! $actor instanceof Authenticatable) {
+            return false;
+        }
+
+        if (! (bool) config('seviaflow.permissions.enabled', false)) {
+            return true;
+        }
+
+        $permission = $itemMeta['permission'] ?? null;
+        if (! is_array($permission)) {
+            return true;
+        }
+
+        $resource = $permission['resource'] ?? null;
+        $ability = $permission['ability'] ?? null;
+
+        if (! is_string($resource) || ! is_string($ability)) {
+            return false;
+        }
+
+        if (! $actor instanceof Model) {
+            return false;
+        }
+
+        return $this->permissionChecker->allows($actor, $resource, $ability);
     }
 }

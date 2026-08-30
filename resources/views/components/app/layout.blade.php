@@ -16,10 +16,13 @@
     $currentRouteName = (string) optional(request()->route())->getName();
     $currentResourceSlug = request()->route('resource');
     $currentResourceSlug = is_string($currentResourceSlug) ? $currentResourceSlug : null;
+    $currentDashboardSlug = request()->route('dashboard');
+    $currentDashboardSlug = is_string($currentDashboardSlug) ? $currentDashboardSlug : null;
     $navigationGroups = app(AdminNavigationBuilder::class)->build(
         actor: auth()->user(),
         currentRouteName: $currentRouteName,
-        currentResourceSlug: $currentResourceSlug
+        currentResourceSlug: $currentResourceSlug,
+        currentDashboardSlug: $currentDashboardSlug
     );
     $navigationByKey = [];
     foreach ($navigationGroups as $group) {

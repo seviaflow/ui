@@ -11,9 +11,13 @@ use SeviaFlow\Ui\Dashboard\DashboardRegistry;
 
 final class NavigationMetadataResolver
 {
+    /**
+     * @param  iterable<int, NavigationContributor>  $contributors
+     */
     public function __construct(
         private readonly ResourceRegistry $resourceRegistry,
         private readonly DashboardRegistry $dashboardRegistry,
+        private readonly iterable $contributors = [],
     ) {}
 
     /**
@@ -83,8 +87,9 @@ final class NavigationMetadataResolver
                 'method' => 'GET',
                 'route_name' => $routeName,
                 'route_params' => $routeParams,
-                'active_pattern' => 'route_prefix',
-                'active_route_prefix' => $routeNamePrefix.'dashboard',
+                'active_pattern' => 'dashboard',
+                'active_route_name' => $routeName,
+                'active_route_prefix' => $routeNamePrefix.'dashboards.',
             ];
         }
 
@@ -93,17 +98,17 @@ final class NavigationMetadataResolver
                 [
                     'key' => 'main',
                     'label' => 'Main',
-                    'items' => $dashboardItems,
+                    'items' => $this->mergeContributorItems('main', $dashboardItems),
                 ],
                 [
                     'key' => 'resources',
                     'label' => 'Resources',
-                    'items' => $resourceItems,
+                    'items' => $this->mergeContributorItems('resources', $resourceItems),
                 ],
                 [
                     'key' => 'settings',
                     'label' => 'Settings',
-                    'items' => [
+                    'items' => $this->mergeContributorItems('settings', [
                         [
                             'type' => 'settings.roles',
                             'key' => 'settings.roles',
@@ -126,12 +131,12 @@ final class NavigationMetadataResolver
                             'active_pattern' => 'route_prefix',
                             'active_route_prefix' => $routeNamePrefix.'settings.admin-users.',
                         ],
-                    ],
+                    ]),
                 ],
                 [
                     'key' => 'developer',
                     'label' => 'Developer',
-                    'items' => [
+                    'items' => $this->mergeContributorItems('developer', [
                         [
                             'type' => 'developer.api-docs',
                             'key' => 'developer.api-docs',
@@ -143,12 +148,12 @@ final class NavigationMetadataResolver
                             'active_pattern' => 'exact',
                             'active_route_name' => (string) config('seviaflow-ui.api_docs_navigation.route_name', 'seviaflow.api.docs'),
                         ],
-                    ],
+                    ]),
                 ],
                 [
                     'key' => 'account',
                     'label' => 'Account',
-                    'items' => [
+                    'items' => $this->mergeContributorItems('account', [
                         [
                             'type' => 'account.profile',
                             'key' => 'account.profile',
@@ -181,10 +186,29 @@ final class NavigationMetadataResolver
                             'route_params' => [],
                             'active_pattern' => 'none',
                         ],
-                    ],
+                    ]),
                 ],
             ],
         ];
+    }
+
+    /**
+     * @param  array<int, array<string,mixed>>  $items
+     * @return array<int, array<string,mixed>>
+     */
+    private function mergeContributorItems(string $groupKey, array $items): array
+    {
+        foreach ($this->contributors as $contributor) {
+            foreach ($contributor->groups() as $group) {
+                if ($group['key'] !== $groupKey) {
+                    continue;
+                }
+
+                $items = array_merge($items, $group['items']);
+            }
+        }
+
+        return $items;
     }
 
     /**

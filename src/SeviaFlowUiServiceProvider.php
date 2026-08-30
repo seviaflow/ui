@@ -19,6 +19,7 @@ use SeviaFlow\Ui\Dashboard\Widgets\DashboardWidgetResolver;
 use SeviaFlow\Ui\Dashboard\Widgets\WidgetCache;
 use SeviaFlow\Ui\Http\Middleware\AdminAuthenticate;
 use SeviaFlow\Ui\Http\Middleware\AdminRedirectIfAuthenticated;
+use SeviaFlow\Ui\Navigation\NavigationContributor;
 use SeviaFlow\Ui\Navigation\NavigationMetadataCache;
 use SeviaFlow\Ui\Navigation\NavigationMetadataResolver;
 use SeviaFlow\Ui\Support\Cache\DashboardSummaryCacheParticipant;
@@ -102,6 +103,7 @@ final class SeviaFlowUiServiceProvider extends ServiceProvider
             return new NavigationMetadataResolver(
                 $app->make(ResourceRegistry::class),
                 $app->make(DashboardRegistry::class),
+                $app->tagged(NavigationContributor::class),
             );
         });
         $this->app->singleton(

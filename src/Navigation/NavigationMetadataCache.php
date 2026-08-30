@@ -8,7 +8,7 @@ use Illuminate\Contracts\Cache\Repository as CacheRepository;
 
 final class NavigationMetadataCache
 {
-    private const CACHE_KEY = 'seviaflow.navigation.base';
+    private const CACHE_KEY = 'seviaflow.navigation.base.v2';
 
     public function __construct(
         private readonly NavigationMetadataResolver $resolver

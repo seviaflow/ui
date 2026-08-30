@@ -12,9 +12,11 @@ use Illuminate\Support\Facades\Schema;
 use SeviaFlow\Core\Resources\Resource;
 use SeviaFlow\Ui\Dashboard\Dashboard as DashboardDefinition;
 use SeviaFlow\Ui\Navigation\AdminNavigationBuilder;
+use SeviaFlow\Ui\Navigation\NavigationContributor;
 use SeviaFlow\Ui\Navigation\NavigationGroup;
 use SeviaFlow\Ui\Navigation\NavigationItem;
 use SeviaFlow\Ui\Navigation\NavigationMetadataCache;
+use SeviaFlow\Ui\Navigation\NavigationMetadataResolver;
 use SeviaFlow\Ui\SeviaFlowUiServiceProvider;
 
 beforeEach(function (): void {
@@ -116,6 +118,23 @@ it('shows only visible dashboards in navigation', function (): void {
 
     expect($keys)->toContain('dashboard:visible-dashboard')
         ->and($keys)->not->toContain('dashboard:hidden-dashboard');
+});
+
+it('marks only the current dashboard item as active', function (): void {
+    config()->set('seviaflow-ui.dashboards', [
+        NavVisibleDashboard::class,
+        NavSecondaryDashboard::class,
+    ]);
+
+    $user = NavTestUser::query()->create(['name' => 'Active Dashboard User']);
+    $groups = app(AdminNavigationBuilder::class)->build($user, 'seviaflow.dashboards.show', null, 'secondary-dashboard');
+
+    $activeKeys = array_map(
+        static fn (NavigationItem $item): string => $item->key,
+        array_values(array_filter(navItems($groups), static fn (NavigationItem $item): bool => $item->active))
+    );
+
+    expect($activeKeys)->toBe(['dashboard:secondary-dashboard']);
 });
 
 it('returns system navigation groups', function (): void {
@@ -387,7 +406,7 @@ it('caches base navigation metadata when enabled', function (): void {
     $first = $cache->resolve();
     $second = $cache->resolve();
 
-    expect(cache()->store('array')->has('seviaflow.navigation.base'))->toBeTrue()
+    expect(cache()->store('array')->has('seviaflow.navigation.base.v2'))->toBeTrue()
         ->and($first)->toBe($second);
 });
 
@@ -400,7 +419,7 @@ it('builds navigation metadata directly when cache is disabled', function (): vo
     $cache->resolve();
     $cache->resolve();
 
-    expect(cache()->store('array')->has('seviaflow.navigation.base'))->toBeFalse();
+    expect(cache()->store('array')->has('seviaflow.navigation.base.v2'))->toBeFalse();
 });
 
 it('authorization still filters cached navigation per user', function (): void {
@@ -474,14 +493,54 @@ it('navigation cache clear invalidates base metadata cache', function (): void {
     $cache = app(NavigationMetadataCache::class);
 
     $cache->resolve();
-    expect(cache()->store('array')->has('seviaflow.navigation.base'))->toBeTrue();
+    expect(cache()->store('array')->has('seviaflow.navigation.base.v2'))->toBeTrue();
 
     $cache->clear();
-    expect(cache()->store('array')->has('seviaflow.navigation.base'))->toBeFalse();
+    expect(cache()->store('array')->has('seviaflow.navigation.base.v2'))->toBeFalse();
 
     $cache->resolve();
 
-    expect(cache()->store('array')->has('seviaflow.navigation.base'))->toBeTrue();
+    expect(cache()->store('array')->has('seviaflow.navigation.base.v2'))->toBeTrue();
+});
+
+it('includes extension navigation contributed by packages', function (): void {
+    Route::get('/admin/copilot', static fn (): string => 'Copilot')->name('seviaflow.copilot.index');
+    app()->instance(NavigationContributor::class, new NavExtensionContributor);
+    app()->tag([NavigationContributor::class], NavigationContributor::class);
+    app()->forgetInstance(NavigationMetadataCache::class);
+    app()->forgetInstance(NavigationMetadataResolver::class);
+
+    app()->register(SeviaFlowUiServiceProvider::class, true);
+    app('router')->getRoutes()->refreshNameLookups();
+
+    $user = NavTestUser::query()->create(['name' => 'Extension Nav User']);
+    $groups = app(AdminNavigationBuilder::class)->build($user, 'seviaflow.copilot.index');
+    $item = collect(navItems($groups))->first(fn (NavigationItem $item): bool => $item->key === 'copilot');
+
+    expect($item)->not->toBeNull()
+        ->and($item?->label)->toBe('Copilot')
+        ->and($item?->icon)->toBe('sparkles')
+        ->and($item?->active)->toBeTrue()
+        ->and($item?->url)->toContain('/admin/copilot');
+});
+
+it('can permission gate extension navigation items', function (): void {
+    config()->set('seviaflow.permissions.enabled', true);
+
+    Route::get('/admin/copilot', static fn (): string => 'Copilot')->name('seviaflow.copilot.index');
+    app()->instance(NavigationContributor::class, new NavPermissionedExtensionContributor);
+    app()->tag([NavigationContributor::class], NavigationContributor::class);
+    app()->forgetInstance(NavigationMetadataCache::class);
+    app()->forgetInstance(NavigationMetadataResolver::class);
+
+    app()->register(SeviaFlowUiServiceProvider::class, true);
+    app('router')->getRoutes()->refreshNameLookups();
+
+    $user = NavTestUser::query()->create(['name' => 'No Copilot Permission']);
+    $groups = app(AdminNavigationBuilder::class)->build($user, 'seviaflow.dashboard');
+
+    $keys = array_map(static fn (NavigationItem $item): string => $item->key, navItems($groups));
+    expect($keys)->not->toContain('copilot');
 });
 
 /**
@@ -644,5 +703,76 @@ final class NavHiddenDashboard extends DashboardDefinition
     public static function visibleFor(mixed $user): bool
     {
         return false;
+    }
+}
+
+final class NavSecondaryDashboard extends DashboardDefinition
+{
+    public static function slug(): string
+    {
+        return 'secondary-dashboard';
+    }
+
+    public static function label(): string
+    {
+        return 'Secondary Dashboard';
+    }
+}
+
+final class NavExtensionContributor implements NavigationContributor
+{
+    public function groups(): array
+    {
+        return [
+            [
+                'key' => 'main',
+                'label' => 'Main',
+                'items' => [
+                    [
+                        'type' => 'extension',
+                        'key' => 'copilot',
+                        'label' => 'Copilot',
+                        'icon' => 'sparkles',
+                        'requires_auth' => true,
+                        'method' => 'GET',
+                        'route_name' => 'seviaflow.copilot.index',
+                        'route_params' => [],
+                        'active_pattern' => 'route_prefix',
+                        'active_route_prefix' => 'seviaflow.copilot.',
+                    ],
+                ],
+            ],
+        ];
+    }
+}
+
+final class NavPermissionedExtensionContributor implements NavigationContributor
+{
+    public function groups(): array
+    {
+        return [
+            [
+                'key' => 'main',
+                'label' => 'Main',
+                'items' => [
+                    [
+                        'type' => 'extension',
+                        'key' => 'copilot',
+                        'label' => 'Copilot',
+                        'icon' => 'sparkles',
+                        'requires_auth' => true,
+                        'permission' => [
+                            'resource' => '__copilot',
+                            'ability' => 'copilot.view',
+                        ],
+                        'method' => 'GET',
+                        'route_name' => 'seviaflow.copilot.index',
+                        'route_params' => [],
+                        'active_pattern' => 'route_prefix',
+                        'active_route_prefix' => 'seviaflow.copilot.',
+                    ],
+                ],
+            ],
+        ];
     }
 }
