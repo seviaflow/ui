@@ -17,8 +17,12 @@ beforeEach(function (): void {
 
 it('stores chart type', function (): void {
     $widget = ChartWidget::make('orders')->type('line');
+    $grouped = ChartWidget::make('grouped_orders')->type('grouped_bar');
+    $stacked = ChartWidget::make('stacked_orders')->type('stacked_bar');
 
-    expect($widget->getType())->toBe('line');
+    expect($widget->getType())->toBe('line')
+        ->and($grouped->getType())->toBe('grouped_bar')
+        ->and($stacked->getType())->toBe('stacked_bar');
 });
 
 it('rejects invalid chart type', function (): void {

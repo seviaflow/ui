@@ -13,7 +13,7 @@ final class ChartWidget extends Widget
     /**
      * @var array<int, string>
      */
-    private const ALLOWED_TYPES = ['bar', 'line', 'doughnut'];
+    private const ALLOWED_TYPES = ['bar', 'line', 'grouped_bar', 'stacked_bar', 'doughnut'];
 
     private string $type = 'bar';
 

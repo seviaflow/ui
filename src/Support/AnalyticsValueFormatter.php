@@ -19,7 +19,7 @@ final class AnalyticsValueFormatter
             return '—';
         }
 
-        $type = (string) ($measureMetadata['type'] ?? 'number');
+        $type = (string) ($measureMetadata['unit'] ?? ($measureMetadata['type'] ?? 'number'));
         /** @var array<string, mixed> $format */
         $format = is_array($measureMetadata['format'] ?? null) ? $measureMetadata['format'] : [];
 
@@ -35,8 +35,20 @@ final class AnalyticsValueFormatter
             return e((string) $value);
         }
 
-        if ($type === 'integer') {
+        if (in_array($type, ['integer', 'count'], true)) {
             return e(number_format((int) $value));
+        }
+
+        if ($type === 'percent') {
+            $decimals = is_numeric($format['decimals'] ?? null) ? (int) $format['decimals'] : 1;
+
+            return e(number_format((float) $value, $decimals, '.', ',').'%');
+        }
+
+        if ($type === 'duration') {
+            $decimals = is_numeric($format['decimals'] ?? null) ? (int) $format['decimals'] : 1;
+
+            return e(number_format((float) $value, $decimals, '.', ',').' min');
         }
 
         $decimals = is_numeric($format['decimals'] ?? null) ? (int) $format['decimals'] : 2;

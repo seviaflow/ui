@@ -49,7 +49,25 @@ const initDashboardCharts = () => {
       parsedData = { labels: [], datasets: [] };
     }
 
-    const safeType = ['bar', 'line', 'doughnut'].includes(type) ? type : 'bar';
+    const safeType = {
+      bar: 'bar',
+      grouped_bar: 'bar',
+      stacked_bar: 'bar',
+      line: 'line',
+      doughnut: 'doughnut',
+    }[type] ?? 'bar';
+    const stacked = type === 'stacked_bar' || parsedData.stacked === true;
+    const scales = safeType === 'doughnut'
+      ? {}
+      : {
+          x: {
+            stacked,
+          },
+          y: {
+            beginAtZero: true,
+            stacked,
+          },
+        };
 
     new Chart(canvas, {
       type: safeType,
@@ -57,6 +75,7 @@ const initDashboardCharts = () => {
       options: {
         responsive: true,
         maintainAspectRatio: false,
+        scales,
         plugins: {
           legend: {
             display: true,

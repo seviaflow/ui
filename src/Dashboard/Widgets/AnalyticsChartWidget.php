@@ -15,7 +15,7 @@ final class AnalyticsChartWidget extends Widget
     /**
      * @var array<int, string>
      */
-    private const array ALLOWED_TYPES = ['bar', 'line', 'doughnut'];
+    private const array ALLOWED_TYPES = ['bar', 'line', 'grouped_bar', 'stacked_bar', 'doughnut'];
 
     private string $type = 'bar';
 

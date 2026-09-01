@@ -8,6 +8,8 @@ it('package javascript initializes dashboard charts', function (): void {
     expect($js)->not->toBeFalse()
         ->and($js)->toContain('data-sf-chart')
         ->and($js)->toContain('new Chart')
+        ->and($js)->toContain('grouped_bar')
+        ->and($js)->toContain('stacked_bar')
         ->and($js)->toContain('data-sf-dashboard-layout-editor')
         ->and($js)->toContain('initDashboardLayoutEditor')
         ->and($js)->toContain('data-sf-command-palette')
