@@ -2031,12 +2031,42 @@ body {
     min-height: 16rem;
   }
 
-  .sf-dashboard-chart-canvas {
+.sf-dashboard-chart-canvas {
     display: block;
     width: 100% !important;
     height: 100% !important;
     min-height: 16rem;
-  }
+}
+
+.sf-chart-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+}
+
+.sf-chart-facet {
+    min-width: 0;
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    border-radius: 1.25rem;
+    background: rgba(255, 255, 255, 0.78);
+    padding: 1rem;
+    box-shadow: 0 16px 36px rgba(15, 23, 42, 0.08);
+}
+
+.sf-chart-facet-title {
+    margin: 0 0 .75rem;
+    color: var(--sf-ink);
+    font-size: .82rem;
+    font-weight: 800;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+}
+
+@media (min-width: 768px) {
+    .sf-chart-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
 
   .sf-widget-list {
     display: grid;

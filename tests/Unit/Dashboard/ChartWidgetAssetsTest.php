@@ -30,3 +30,12 @@ it('package dependencies include chart js for bundled assets', function (): void
 
     expect($devDependencies)->toHaveKey('chart.js');
 });
+
+it('package css includes generic responsive chart grid styles', function (): void {
+    $css = file_get_contents(__DIR__.'/../../../resources/css/seviaflow.css');
+
+    expect($css)->not->toBeFalse()
+        ->and($css)->toContain('.sf-chart-grid')
+        ->and($css)->toContain('.sf-chart-facet')
+        ->and($css)->toContain('grid-template-columns: repeat(2, minmax(0, 1fr))');
+});
