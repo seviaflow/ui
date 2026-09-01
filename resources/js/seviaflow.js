@@ -29,18 +29,33 @@ const escapeHtml = (value) => String(value)
   .replaceAll('>', '&gt;')
   .replaceAll('"', '&quot;');
 
+const dashboardChartState = new WeakMap();
+let livewireHooksRegistered = false;
+let dashboardChartObserverRegistered = false;
+
+const scheduleDashboardCharts = () => {
+  window.requestAnimationFrame(() => initDashboardCharts());
+};
+
 const initDashboardCharts = () => {
   document.querySelectorAll('[data-sf-chart="1"]').forEach((canvas) => {
     if (!(canvas instanceof HTMLCanvasElement)) {
       return;
     }
 
-    if (canvas.dataset.sfChartInitialized === '1') {
+    const type = canvas.dataset.chartType ?? 'bar';
+    const dataRaw = canvas.dataset.chartData ?? '{}';
+    const signature = `${type}:${dataRaw}`;
+    const existingState = dashboardChartState.get(canvas);
+    const existingChart = existingState?.chart;
+
+    if (existingState?.signature === signature && existingChart) {
       return;
     }
 
-    const type = canvas.dataset.chartType ?? 'bar';
-    const dataRaw = canvas.dataset.chartData ?? '{}';
+    if (existingChart) {
+      existingChart.destroy();
+    }
 
     let parsedData = {};
     try {
@@ -69,7 +84,7 @@ const initDashboardCharts = () => {
           },
         };
 
-    new Chart(canvas, {
+    const chart = new Chart(canvas, {
       type: safeType,
       data: parsedData,
       options: {
@@ -85,8 +100,43 @@ const initDashboardCharts = () => {
       },
     });
 
+    dashboardChartState.set(canvas, { chart, signature });
     canvas.dataset.sfChartInitialized = '1';
+    canvas.dataset.sfChartSignature = signature;
   });
+};
+
+const registerLivewireChartHooks = () => {
+  if (livewireHooksRegistered || typeof window.Livewire === 'undefined' || typeof window.Livewire.hook !== 'function') {
+    return;
+  }
+
+  window.Livewire.hook('morphed', scheduleDashboardCharts);
+  window.Livewire.hook('morph.added', scheduleDashboardCharts);
+  livewireHooksRegistered = true;
+};
+
+const registerDashboardChartObserver = () => {
+  if (dashboardChartObserverRegistered || typeof window.MutationObserver === 'undefined' || !(document.body instanceof HTMLElement)) {
+    return;
+  }
+
+  const observer = new MutationObserver((mutations) => {
+    const hasNewChart = mutations.some((mutation) => Array.from(mutation.addedNodes).some((node) => {
+      if (!(node instanceof HTMLElement)) {
+        return false;
+      }
+
+      return node.matches('[data-sf-chart="1"]') || node.querySelector('[data-sf-chart="1"]') !== null;
+    }));
+
+    if (hasNewChart) {
+      scheduleDashboardCharts();
+    }
+  });
+
+  observer.observe(document.body, { childList: true, subtree: true });
+  dashboardChartObserverRegistered = true;
 };
 
 const initDashboardLayoutEditor = () => {
@@ -558,6 +608,8 @@ const initTableDensity = () => {
 };
 
 const initSeviaFlowUi = () => {
+  registerLivewireChartHooks();
+  registerDashboardChartObserver();
   initDashboardCharts();
   initDashboardLayoutEditor();
   initShell();
@@ -566,4 +618,5 @@ const initSeviaFlowUi = () => {
 };
 
 document.addEventListener('DOMContentLoaded', initSeviaFlowUi);
+document.addEventListener('livewire:initialized', initSeviaFlowUi);
 document.addEventListener('livewire:navigated', initSeviaFlowUi);

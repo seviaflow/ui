@@ -168,7 +168,8 @@ it('renders analytics chart and table views with responsive dashboard markup', f
         'widget' => ['label' => $table->getLabel(), 'description' => $table->getDescription()],
     ]))->render();
 
-    expect($chartHtml)->toContain('sf-dashboard-chart-canvas')
+    expect($chartHtml)->toContain('sf-dashboard-chart-frame')
+        ->and($chartHtml)->toContain('sf-dashboard-chart-canvas')
         ->and($chartHtml)->toContain('data-sf-chart="1"')
         ->and($tableHtml)->toContain('sf-table-wrapper')
         ->and($tableHtml)->toContain('sf-table !min-w-full');

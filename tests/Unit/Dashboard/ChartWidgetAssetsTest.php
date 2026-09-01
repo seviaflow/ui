@@ -10,11 +10,17 @@ it('package javascript initializes dashboard charts', function (): void {
         ->and($js)->toContain('new Chart')
         ->and($js)->toContain('grouped_bar')
         ->and($js)->toContain('stacked_bar')
+        ->and($js)->toContain('dashboardChartState')
+        ->and($js)->toContain('sfChartSignature')
+        ->and($js)->toContain('MutationObserver')
+        ->and($js)->toContain("window.Livewire.hook('morphed'")
+        ->and($js)->toContain("window.Livewire.hook('morph.added'")
         ->and($js)->toContain('data-sf-dashboard-layout-editor')
         ->and($js)->toContain('initDashboardLayoutEditor')
         ->and($js)->toContain('data-sf-command-palette')
         ->and($js)->toContain('data-sf-drawer-target')
         ->and($js)->toContain('data-sf-density')
+        ->and($js)->toContain('livewire:initialized')
         ->and($js)->toContain('livewire:navigated');
 });
 

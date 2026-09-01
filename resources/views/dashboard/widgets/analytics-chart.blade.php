@@ -15,7 +15,7 @@
     @elseif($state === 'empty')
         <div class="sf-dashboard-empty mt-4">No analytics data found.</div>
     @else
-        <div class="mt-4">
+        <div class="sf-dashboard-chart-frame mt-4">
             <canvas
                 class="sf-dashboard-chart-canvas"
                 data-sf-chart="1"

@@ -8,7 +8,7 @@
         </div>
     </div>
 
-    <div class="mt-4">
+    <div class="sf-dashboard-chart-frame mt-4">
         <canvas
             class="sf-dashboard-chart-canvas"
             data-sf-chart="1"
