@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 namespace SeviaFlow\Ui;
 
+use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Routing\Router;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
+use Livewire\Livewire;
 use SeviaFlow\Core\Resources\ResourceRegistry;
 use SeviaFlow\Core\Support\Cache\CacheParticipant;
 use SeviaFlow\Core\Support\Capabilities\CapabilityRegistry;
@@ -39,6 +42,21 @@ final class SeviaFlowUiServiceProvider extends ServiceProvider
 
     public function boot(CapabilityRegistry $capabilities): void
     {
+        RateLimiter::for('seviaflow.login', function ($request): Limit {
+            $limit = max(1, (int) config('seviaflow-ui.auth.login_throttle.max_attempts', 5));
+            $decay = max(1, (int) config('seviaflow-ui.auth.login_throttle.decay_minutes', 1));
+            $email = strtolower(trim((string) $request->input('email', '')));
+
+            return Limit::perMinutes($decay, $limit)->by('seviaflow-login|'.$email.'|'.$request->ip());
+        });
+        RateLimiter::for('seviaflow.two-factor', function ($request): Limit {
+            $limit = max(1, (int) config('seviaflow-ui.auth.login_throttle.max_attempts', 5));
+            $decay = max(1, (int) config('seviaflow-ui.auth.login_throttle.decay_minutes', 1));
+            $pending = $request->session()->get('seviaflow.auth.pending_two_factor');
+            $key = is_array($pending) ? (string) ($pending['id'] ?? '') : '';
+
+            return Limit::perMinutes($decay, $limit)->by('seviaflow-two-factor|'.$key.'|'.$request->ip());
+        });
         $capabilities->register('ui', (bool) config('seviaflow-ui.enabled', true), 'Operator-facing Livewire UI');
         $capabilities->register('dashboard', (bool) config('seviaflow-ui.dashboard.enabled', true), 'Dashboard UI');
 
@@ -50,6 +68,9 @@ final class SeviaFlowUiServiceProvider extends ServiceProvider
         $this->loadMigrationsFrom(__DIR__.'/../database/migrations');
         $this->loadRoutesFrom(__DIR__.'/../routes/web.php');
         $this->registerMiddlewareAliases();
+        if (class_exists(Livewire::class)) {
+            Livewire::addPersistentMiddleware(AdminAuthenticate::class);
+        }
 
         if (! $this->app->runningInConsole()) {
             return;

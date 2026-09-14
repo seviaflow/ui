@@ -36,6 +36,30 @@ final class BulkSelectionState
     }
 
     /**
+     * @param  array<int, mixed>  $values
+     * @return array<int, string>
+     */
+    public function normalizeSelection(array $values): array
+    {
+        $normalized = [];
+
+        foreach ($values as $value) {
+            if (! is_scalar($value)) {
+                continue;
+            }
+
+            $key = (string) $value;
+            if ($key === '') {
+                continue;
+            }
+
+            $normalized[$key] = $key;
+        }
+
+        return array_values($normalized);
+    }
+
+    /**
      * @param  array<int, Model>  $records
      * @return array<int, string>
      */

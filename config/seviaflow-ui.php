@@ -20,6 +20,16 @@ return [
         'two_factor_authentication' => true,
         'redirect_after_login' => null,
         'redirect_after_logout' => null,
+        'login_throttle' => [
+            'enabled' => true,
+            'max_attempts' => 5,
+            'decay_minutes' => 1,
+        ],
+        'two_factor_login' => [
+            'enabled' => true,
+            'verify' => null,
+            'consume_recovery_code' => null,
+        ],
     ],
     'dashboard' => [
         'enabled' => true,

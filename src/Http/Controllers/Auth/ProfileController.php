@@ -74,9 +74,11 @@ final class ProfileController
         return $this->render('two_factor_authentication');
     }
 
-    public function enableTwoFactorAuthentication(): RedirectResponse
+    public function enableTwoFactorAuthentication(Request $request): RedirectResponse
     {
         $user = $this->authenticatedUser();
+
+        $this->validateFreshPassword($request);
 
         if (! $this->twoFactorFeatureEnabled()) {
             return back()->withErrors(['two_factor_authentication' => 'Two-factor authentication is disabled by configuration.']);
@@ -98,6 +100,7 @@ final class ProfileController
         ], [
             'confirm_disable.accepted' => 'Please confirm that you want to disable two-factor authentication.',
         ]);
+        $this->validateFreshPassword($request);
 
         if (! $this->twoFactorFeatureEnabled()) {
             return back()->withErrors(['two_factor_authentication' => 'Two-factor authentication is disabled by configuration.']);
@@ -110,9 +113,11 @@ final class ProfileController
         return back()->with('status', 'Two-factor authentication disabled successfully.');
     }
 
-    public function regenerateTwoFactorRecoveryCodes(): RedirectResponse
+    public function regenerateTwoFactorRecoveryCodes(Request $request): RedirectResponse
     {
         $user = $this->authenticatedUser();
+
+        $this->validateFreshPassword($request);
 
         if (! $this->twoFactorFeatureEnabled()) {
             return back()->withErrors(['two_factor_authentication' => 'Two-factor authentication is disabled by configuration.']);
@@ -208,5 +213,14 @@ final class ProfileController
     private function twoFactorFeatureEnabled(): bool
     {
         return (bool) config('seviaflow-ui.auth.two_factor_authentication', true);
+    }
+
+    private function validateFreshPassword(Request $request): void
+    {
+        $guard = (string) config('seviaflow-ui.auth.guard', 'web');
+
+        $request->validate([
+            'current_password' => ['required', 'current_password:'.$guard],
+        ]);
     }
 }

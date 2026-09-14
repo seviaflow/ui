@@ -6,6 +6,7 @@ namespace SeviaFlow\Ui\Auth;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\App;
+use Throwable;
 
 final class TwoFactorAuthenticationManager
 {
@@ -29,6 +30,67 @@ final class TwoFactorAuthenticationManager
         }
 
         return (bool) $user->hasEnabledTwoFactorAuthentication();
+    }
+
+    public function challengeRequired(Model $user): bool
+    {
+        return (bool) config('seviaflow-ui.auth.two_factor_authentication', true)
+            && (bool) config('seviaflow-ui.auth.two_factor_login.enabled', true)
+            && $this->enabled($user);
+    }
+
+    public function loginChallengeAvailable(Model $user): bool
+    {
+        if (is_callable(config('seviaflow-ui.auth.two_factor_login.verify'))) {
+            return true;
+        }
+
+        if (is_callable(config('seviaflow-ui.auth.two_factor_login.consume_recovery_code'))) {
+            return true;
+        }
+
+        if (method_exists($user, 'consumeTwoFactorRecoveryCode')) {
+            return true;
+        }
+
+        if (method_exists($user, 'replaceRecoveryCode') && method_exists($user, 'recoveryCodes')) {
+            return true;
+        }
+
+        return $this->fortifyProvider() !== null && $this->twoFactorSecret($user) !== null;
+    }
+
+    public function verifyLoginChallenge(Model $user, string $code): bool
+    {
+        $code = trim($code);
+        if ($code === '') {
+            return false;
+        }
+
+        $verifier = config('seviaflow-ui.auth.two_factor_login.verify');
+        if (is_callable($verifier)) {
+            try {
+                return (bool) call_user_func($verifier, $user, $code);
+            } catch (Throwable) {
+                return false;
+            }
+        }
+
+        if ($this->consumeRecoveryCode($user, $code)) {
+            return true;
+        }
+
+        $provider = $this->fortifyProvider();
+        $secret = $this->twoFactorSecret($user);
+        if ($provider === null || $secret === null || ! method_exists($provider, 'verify')) {
+            return false;
+        }
+
+        try {
+            return (bool) $provider->verify($secret, $code);
+        } catch (Throwable) {
+            return false;
+        }
     }
 
     public function qrCodeSvg(Model $user): ?string
@@ -90,5 +152,79 @@ final class TwoFactorAuthenticationManager
         $action($user);
 
         return true;
+    }
+
+    private function consumeRecoveryCode(Model $user, string $code): bool
+    {
+        $consumer = config('seviaflow-ui.auth.two_factor_login.consume_recovery_code');
+        if (is_callable($consumer)) {
+            try {
+                return (bool) call_user_func($consumer, $user, $code);
+            } catch (Throwable) {
+                return false;
+            }
+        }
+
+        if (method_exists($user, 'consumeTwoFactorRecoveryCode')) {
+            try {
+                return (bool) $user->consumeTwoFactorRecoveryCode($code);
+            } catch (Throwable) {
+                return false;
+            }
+        }
+
+        if (! method_exists($user, 'replaceRecoveryCode')) {
+            return false;
+        }
+
+        if (! in_array($code, $this->recoveryCodes($user), true)) {
+            return false;
+        }
+
+        try {
+            $user->replaceRecoveryCode($code);
+
+            return true;
+        } catch (Throwable) {
+            return false;
+        }
+    }
+
+    private function fortifyProvider(): ?object
+    {
+        $contract = 'Laravel\\Fortify\\Contracts\\TwoFactorAuthenticationProvider';
+        if (! interface_exists($contract) || ! App::bound($contract)) {
+            return null;
+        }
+
+        try {
+            $provider = App::make($contract);
+
+            return is_object($provider) ? $provider : null;
+        } catch (Throwable) {
+            return null;
+        }
+    }
+
+    private function twoFactorSecret(Model $user): ?string
+    {
+        foreach (['twoFactorSecret', 'getTwoFactorSecret'] as $method) {
+            if (! method_exists($user, $method)) {
+                continue;
+            }
+
+            try {
+                $secret = $user->{$method}();
+                if (is_string($secret) && $secret !== '') {
+                    return $secret;
+                }
+            } catch (Throwable) {
+                return null;
+            }
+        }
+
+        $secret = $user->getAttribute('two_factor_secret');
+
+        return is_string($secret) && $secret !== '' ? $secret : null;
     }
 }

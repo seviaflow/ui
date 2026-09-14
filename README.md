@@ -8,6 +8,20 @@ UI is the optional Livewire and Blade operator interface over `seviaflow/core`. 
 
 UI depends on Core and Livewire. It does not require `seviaflow/api`.
 
+## Authentication and Panel Access
+
+The host must configure Core's `seviaflow.permissions.admin_gate`; the default
+missing hook fails closed. The callable is checked for every protected request
+and Livewire update, so removing a user's panel role denies subsequent reads and
+mutations. Login authenticates through the configured Laravel guard, then applies
+the same panel gate before creating a panel session.
+
+Login throttling is enabled by default. If the host enables 2FA, the UI uses a
+real Fortify backend or the explicit `auth.two_factor_login.verify` and
+`consume_recovery_code` adapters. Without one of these adapters, profile and
+login protection are unavailable rather than simulated. Password, 2FA and
+browser-session security operations require a fresh `current_password` check.
+
 ## Installation Status
 
 SeviaFlow is pre-release. The `main` branch is aliased as `0.1.x-dev`; the first stable tag is expected to start at `0.1.0`.

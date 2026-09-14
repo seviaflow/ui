@@ -48,6 +48,11 @@ final class BulkActionRunner
                 : 'Selected records are no longer available. Please refresh selection.');
         }
 
+        $selectedCount = count(array_unique(array_map('strval', $selectedRecords)));
+        if ($selectedCount !== $records->count()) {
+            return $this->result(errorMessage: 'Selected records are no longer available. Please refresh selection.');
+        }
+
         if ($maxByConfig !== null && $records->count() > $maxByConfig) {
             return $this->result(errorMessage: sprintf('You can select up to %d records for bulk actions.', $maxByConfig));
         }

@@ -126,6 +126,9 @@
                     @if ($twoFactorFeatureEnabled && $twoFactorBackendAvailable && ! $twoFactorEnabled)
                         <form class="mt-4" method="POST" action="{{ route($routeNamePrefix.'profile.two-factor-authentication.enable') }}">
                             @csrf
+                            <label class="sf-label" for="two_factor_enable_current_password">Current password</label>
+                            <input class="sf-input mt-2" id="two_factor_enable_current_password" name="current_password" type="password" required autocomplete="current-password">
+                            @error('current_password')<p class="sf-error">{{ $message }}</p>@enderror
                             <button class="sf-button sf-button-primary" type="submit">
                                 Enable two-factor authentication
                             </button>
@@ -156,6 +159,9 @@
 
                         <form class="mt-4" method="POST" action="{{ route($routeNamePrefix.'profile.two-factor-authentication.recovery-codes.regenerate') }}">
                             @csrf
+                            <label class="sf-label" for="two_factor_recovery_current_password">Current password</label>
+                            <input class="sf-input mt-2" id="two_factor_recovery_current_password" name="current_password" type="password" required autocomplete="current-password">
+                            @error('current_password')<p class="sf-error">{{ $message }}</p>@enderror
                             <button class="sf-button sf-button-secondary" type="submit">
                                 Regenerate recovery codes
                             </button>
@@ -169,6 +175,9 @@
                                 <span>I understand this will disable two-factor authentication.</span>
                             </label>
                             @error('confirm_disable')<p class="sf-error">{{ $message }}</p>@enderror
+                            <label class="sf-label mt-3" for="two_factor_disable_current_password">Current password</label>
+                            <input class="sf-input mt-2" id="two_factor_disable_current_password" name="current_password" type="password" required autocomplete="current-password">
+                            @error('current_password')<p class="sf-error">{{ $message }}</p>@enderror
                             <div class="sf-resource-actions">
                                 <button class="sf-button sf-button-danger" type="submit">
                                     Disable two-factor authentication

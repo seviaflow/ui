@@ -24,6 +24,12 @@ it('bulk selection normalizes values to current visible records', function (): v
     expect($normalized)->toBe(['1', '2']);
 });
 
+it('sanitizes selection values without silently dropping stale records', function (): void {
+    $normalized = (new BulkSelectionState)->normalizeSelection(['1', '2', '2', '999', '', ['x']]);
+
+    expect($normalized)->toBe(['1', '2', '999']);
+});
+
 it('row action runner executes action and returns success state', function (): void {
     $record = new IndexCollaboratorModel(['name' => 'Before']);
 
@@ -79,6 +85,31 @@ it('bulk action runner executes custom bulk action', function (): void {
     expect($result['statusMessage'])->toBe('Bulk done')
         ->and($result['errorMessage'])->toBeNull()
         ->and($record->getAttribute('name'))->toBe('After');
+});
+
+it('does not execute bulk actions for stale selected records', function (): void {
+    $record = new IndexCollaboratorModel(['name' => 'Before']);
+    /** @var Collection<int, Model> $records */
+    $records = new Collection([$record]);
+    $internalError = null;
+
+    $result = (new BulkActionRunner)->run(
+        actions: [BulkAction::make('bulk-activate')->handle(fn (Collection $selected): Collection => $selected)],
+        actionName: 'bulk-activate',
+        records: $records,
+        selectedRecords: ['1', '999'],
+        confirmed: true,
+        maxByConfig: null,
+        canExecuteBulkAction: fn (): bool => true,
+        isBuiltInBulkDelete: fn (): bool => false,
+        isBuiltInBulkRestore: fn (): bool => false,
+        runBuiltInBulkDelete: fn (): null => null,
+        runBuiltInBulkRestore: fn (): null => null,
+        internalError: $internalError
+    );
+
+    expect($result['errorMessage'])->toBe('Selected records are no longer available. Please refresh selection.')
+        ->and($record->getAttribute('name'))->toBe('Before');
 });
 
 it('table value formatter handles relation badge boolean and null values', function (): void {

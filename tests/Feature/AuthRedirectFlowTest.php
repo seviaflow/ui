@@ -79,6 +79,63 @@ it('authenticated user visiting admin login is redirected to dashboard', functio
         ->assertRedirect('/admin');
 });
 
+it('does not grant panel access when the host gate denies the user', function (): void {
+    config()->set('seviaflow.permissions.admin_gate', static fn (): bool => false);
+    $user = AuthRedirectUser::query()->create([
+        'name' => 'Denied Panel User',
+        'email' => 'denied-panel@example.com',
+        'password' => Hash::make('secret-password'),
+    ]);
+
+    pest_test_case()->actingAs($user, 'web');
+
+    pest_test_case()->get('/admin')->assertForbidden();
+    pest_test_case()->get('/admin/login')->assertOk();
+});
+
+it('requires a two-factor challenge before creating the panel session', function (): void {
+    config()->set('auth.providers.users.model', TwoFactorLoginUser::class);
+    config()->set('seviaflow-ui.auth.two_factor_login.verify', static fn (TwoFactorLoginUser $user, string $code): bool => $code === '123456');
+
+    $user = TwoFactorLoginUser::query()->create([
+        'name' => 'Two Factor Login User',
+        'email' => 'two-factor-login@example.com',
+        'password' => Hash::make('secret-password'),
+    ]);
+
+    pest_test_case()->post('/admin/login', [
+        'email' => $user->email,
+        'password' => 'secret-password',
+    ])->assertRedirect('/admin/login/two-factor');
+
+    pest_test_case()->assertGuest('web');
+    pest_test_case()->get('/admin/login/two-factor')
+        ->assertOk()
+        ->assertSee('Verify your sign in');
+
+    pest_test_case()->post('/admin/login/two-factor', ['code' => 'wrong-code'])
+        ->assertSessionHasErrors('code');
+    pest_test_case()->assertGuest('web');
+
+    pest_test_case()->post('/admin/login/two-factor', ['code' => '123456'])
+        ->assertRedirect('/admin');
+    pest_test_case()->assertAuthenticatedAs($user, 'web');
+});
+
+it('throttles repeated login attempts', function (): void {
+    config()->set('seviaflow-ui.auth.login_throttle.max_attempts', 1);
+
+    pest_test_case()->post('/admin/login', [
+        'email' => 'throttled@example.com',
+        'password' => 'wrong-password',
+    ])->assertRedirect();
+
+    pest_test_case()->post('/admin/login', [
+        'email' => 'throttled@example.com',
+        'password' => 'wrong-password',
+    ])->assertTooManyRequests();
+});
+
 it('logout redirects to admin login', function (): void {
     $user = AuthRedirectUser::query()->create([
         'name' => 'Logout Redirect User',
@@ -123,4 +180,16 @@ final class AuthRedirectUser extends AuthenticatableUser
     protected $table = 'users';
 
     protected $guarded = [];
+}
+
+final class TwoFactorLoginUser extends AuthenticatableUser
+{
+    protected $table = 'users';
+
+    protected $guarded = [];
+
+    public function hasEnabledTwoFactorAuthentication(): bool
+    {
+        return true;
+    }
 }

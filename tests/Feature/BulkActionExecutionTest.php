@@ -152,10 +152,10 @@ it('does not execute selected IDs from outside current page/resource scope', fun
     Livewire::test(ResourceIndex::class, ['resource' => 'bulk-users'])
         ->set('selectedRecords', [(string) $first->getKey(), (string) $second->getKey(), '999999'])
         ->call('executeBulkAction', 'deactivate-selected', true)
-        ->assertSee('Selected users have been deactivated.');
+        ->assertSee('Selected records are no longer available. Please refresh selection.');
 
-    expect($first->fresh()?->is_active)->toBeFalse()
-        ->and($second->fresh()?->is_active)->toBeFalse()
+    expect($first->fresh()?->is_active)->toBeTrue()
+        ->and($second->fresh()?->is_active)->toBeTrue()
         ->and(BulkActionOther::query()->count())->toBe(1);
 });
 

@@ -235,7 +235,7 @@ final class ResourceIndex extends Component
 
     public function updatedSelectedRecords(): void
     {
-        $this->selectedRecords = $this->bulkSelectionState()->normalize($this->selectedRecords, $this->visibleRecordKeys());
+        $this->selectedRecords = $this->bulkSelectionState()->normalizeSelection($this->selectedRecords);
         $this->selectPage = $this->selectedRecords !== [] && $this->selectedRecords === $this->visibleRecordKeys();
         $this->pendingBulkActionName = null;
     }
@@ -858,6 +858,7 @@ final class ResourceIndex extends Component
         if ($this->supportsSoftDeletes()) {
             $actions[] = BulkAction::make(self::BUILT_IN_BULK_DELETE)
                 ->label('Move selected to trash')
+                ->mutating()
                 ->danger()
                 ->confirmButton('Move selected to trash')
                 ->cancelButton('Cancel')
@@ -866,6 +867,7 @@ final class ResourceIndex extends Component
             if ($this->trashedScope !== 'active') {
                 $actions[] = BulkAction::make(self::BUILT_IN_BULK_RESTORE)
                     ->label('Restore selected')
+                    ->mutating()
                     ->requiresConfirmation()
                     ->confirmButton('Restore selected records')
                     ->cancelButton('Cancel')
@@ -877,6 +879,7 @@ final class ResourceIndex extends Component
 
         $actions[] = BulkAction::make(self::BUILT_IN_BULK_DELETE)
             ->label('Delete selected')
+            ->mutating()
             ->danger()
             ->confirmButton('Delete selected records')
             ->cancelButton('Cancel')
@@ -1183,7 +1186,24 @@ final class ResourceIndex extends Component
      */
     private function canExecuteBulkAction(BulkAction $action, Collection $records): bool
     {
-        return $action->canExecute(Auth::user(), $records);
+        if ($this->isBuiltInBulkDelete($action) || $this->isBuiltInBulkRestore($action)) {
+            return true;
+        }
+
+        $user = Auth::user();
+        $authorization = $this->authorization();
+
+        foreach ($records as $record) {
+            $allowed = $action->isReadOnly()
+                ? $authorization->canView($user, $record)
+                : $authorization->canUpdate($user, $record);
+
+            if (! $allowed) {
+                return false;
+            }
+        }
+
+        return $action->canExecute($user, $records);
     }
 
     private function bulkSelectionState(): BulkSelectionState

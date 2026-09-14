@@ -75,6 +75,10 @@ Route::prefix(config('seviaflow-ui.route_prefix', 'admin'))
 
         $adminMiddleware = array_values(array_unique($adminMiddleware));
         $publicAuthMiddleware = array_values(array_unique(array_merge($authMiddleware, ['seviaflow.guest:'.$guard])));
+        if ((bool) config('seviaflow-ui.auth.login_throttle.enabled', true)) {
+            $publicAuthMiddleware[] = 'throttle:seviaflow.login';
+        }
+        $publicAuthMiddleware = array_values(array_unique($publicAuthMiddleware));
         $authEnabled = (bool) config('seviaflow-ui.auth.enabled', true);
 
         Route::middleware($adminMiddleware)->group(function (): void {
@@ -112,6 +116,10 @@ Route::prefix(config('seviaflow-ui.route_prefix', 'admin'))
             Route::middleware($publicAuthMiddleware)->group(function (): void {
                 Route::get('/login', [LoginController::class, 'create'])->name('login');
                 Route::post('/login', [LoginController::class, 'store'])->name('login.store');
+                Route::get('/login/two-factor', [LoginController::class, 'twoFactor'])->name('login.two-factor');
+                Route::post('/login/two-factor', [LoginController::class, 'verifyTwoFactor'])
+                    ->middleware('throttle:seviaflow.two-factor')
+                    ->name('login.two-factor.verify');
 
                 Route::get('/forgot-password', [ForgotPasswordController::class, 'create'])->name('password.request');
                 Route::post('/forgot-password', [ForgotPasswordController::class, 'store'])->name('password.email');

@@ -29,7 +29,7 @@ it('renders row selection controls', function (): void {
         ->assertSee('0 records selected');
 });
 
-it('selects one visible record safely', function (): void {
+it('keeps stale record IDs for deterministic bulk-action rejection', function (): void {
     $first = TestUser::query()->create([
         'name' => 'First Selected',
         'email' => 'first-selected@example.com',
@@ -45,9 +45,8 @@ it('selects one visible record safely', function (): void {
 
     Livewire::test(ResourceIndex::class, ['resource' => 'search-sort-users'])
         ->set('selectedRecords', [(string) $first->getKey(), '999999'])
-        ->assertSet('selectedRecords', [(string) $first->getKey()])
-        ->assertSee('1 record selected')
-        ->assertDontSee('999999')
+        ->assertSet('selectedRecords', [(string) $first->getKey(), '999999'])
+        ->assertSee('2 records selected')
         ->assertSee($first->name)
         ->assertSee($second->name);
 });

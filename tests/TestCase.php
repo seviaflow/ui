@@ -39,5 +39,6 @@ abstract class TestCase extends Orchestra
         ]);
         $app['config']->set('seviaflow-ui.admin_middleware', ['web']);
         $app['config']->set('seviaflow-ui.middleware', ['web']);
+        $app['config']->set('seviaflow.permissions.admin_gate', static fn (mixed $user): bool => $user !== null);
     }
 }
