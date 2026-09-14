@@ -33,6 +33,7 @@
                     @foreach($actions as $action)
                         @if($pendingActionName === $action->name())
                             @component('seviaflow-ui::livewire.partials.action-confirmation', [
+                                'id' => 'sf-record-action-confirmation-'.\Illuminate\Support\Str::slug($action->name()),
                                 'variant' => $action->isDanger() ? 'danger' : 'safe',
                                 'title' => $action->isDanger() ? 'Confirm dangerous action' : 'Confirm action',
                                 'message' => 'Review this action before continuing.',
@@ -176,6 +177,7 @@
                                             <div class="sf-resource-actions">
                                                 @if($pendingWorkflowTransitionName === $transition->name() && $transition->requiresConfirmation())
                                                     @component('seviaflow-ui::livewire.partials.action-confirmation', [
+                                                        'id' => 'sf-workflow-confirmation-'.\Illuminate\Support\Str::slug($transition->name()),
                                                         'variant' => $transition->isDanger() ? 'danger' : 'safe',
                                                         'title' => $transition->isDanger() ? 'Confirm dangerous transition' : 'Confirm transition',
                                                         'message' => 'This workflow transition will update the current state.',
@@ -270,6 +272,9 @@
                         <button
                             type="button"
                             wire:click="openHasManyCreateModal('{{ $manager['relationshipName'] }}')"
+                            data-sf-modal-target="sf-relation-modal"
+                            aria-controls="sf-relation-modal"
+                            aria-expanded="false"
                             class="sf-button sf-button-primary !px-3 !py-2"
                         >
                             {{ $manager['createLabel'] }}
@@ -279,6 +284,9 @@
                         <button
                             type="button"
                             wire:click="openHasOneCreateModal('{{ $manager['relationshipName'] }}')"
+                            data-sf-modal-target="sf-relation-modal"
+                            aria-controls="sf-relation-modal"
+                            aria-expanded="false"
                             class="sf-button sf-button-primary !px-3 !py-2"
                         >
                             {{ $manager['createLabel'] }}
@@ -301,6 +309,9 @@
                                 <button
                                     type="button"
                                     wire:click="openBelongsToManyAttachModal('{{ $manager['relationshipName'] }}')"
+                                    data-sf-modal-target="sf-pivot-modal"
+                                    aria-controls="sf-pivot-modal"
+                                    aria-expanded="false"
                                     class="sf-button sf-button-primary !px-3 !py-2"
                                 >
                                     Attach
@@ -354,6 +365,9 @@
                                                 <button
                                                     type="button"
                                                     wire:click="openBelongsToManyEditPivotModal('{{ $manager['relationshipName'] }}', '{{ $relationRecord->getKey() }}')"
+                                                    data-sf-modal-target="sf-pivot-modal"
+                                                    aria-controls="sf-pivot-modal"
+                                                    aria-expanded="false"
                                                     class="sf-button sf-button-secondary !px-3 !py-1.5"
                                                 >
                                                     Edit pivot
@@ -363,6 +377,9 @@
                                                 <button
                                                     type="button"
                                                     wire:click="openHasManyEditModal('{{ $manager['relationshipName'] }}', '{{ $relationRecord->getKey() }}')"
+                                                    data-sf-modal-target="sf-relation-modal"
+                                                    aria-controls="sf-relation-modal"
+                                                    aria-expanded="false"
                                                     class="sf-button sf-button-secondary !px-3 !py-1.5"
                                                 >
                                                     {{ $manager['editLabel'] }}
@@ -372,6 +389,9 @@
                                                 <button
                                                     type="button"
                                                     wire:click="openHasOneEditModal('{{ $manager['relationshipName'] }}', '{{ $relationRecord->getKey() }}')"
+                                                    data-sf-modal-target="sf-relation-modal"
+                                                    aria-controls="sf-relation-modal"
+                                                    aria-expanded="false"
                                                     class="sf-button sf-button-secondary !px-3 !py-1.5"
                                                 >
                                                     {{ $manager['editLabel'] }}
@@ -488,11 +508,15 @@
     @endforeach
 
     @if($relationModalState['visible'] ?? false)
-        <section class="sf-card">
-            <div class="sf-card-header">
-                <h2 class="sf-card-title">{{ $relationModalState['title'] }}</h2>
-            </div>
-            <div class="sf-card-body">
+        <section id="sf-relation-modal" class="sf-modal" role="dialog" aria-modal="true" aria-hidden="false" aria-labelledby="sf-relation-modal-title" data-sf-modal>
+            <div class="sf-modal-panel sf-card">
+                <div class="sf-modal-header">
+                    <h2 id="sf-relation-modal-title" class="sf-card-title">{{ $relationModalState['title'] }}</h2>
+                    <button type="button" class="sf-icon-button" aria-label="Close related record dialog" data-sf-modal-close wire:click="cancelRelationModal">
+                        <x-seviaflow-ui::icon name="x-circle" />
+                    </button>
+                </div>
+                <div class="sf-modal-body">
                 <div class="sf-form-grid">
                     @foreach($relationModalState['fields'] as $field)
                         @include('seviaflow-ui::livewire.partials.form-field', [
@@ -505,20 +529,25 @@
                         ])
                     @endforeach
                 </div>
-                <div class="sf-resource-actions mt-4">
+                <div class="sf-modal-footer">
                     <button type="button" wire:click="saveRelationModal" class="sf-button sf-button-primary">Save</button>
-                    <button type="button" wire:click="cancelRelationModal" class="sf-button sf-button-secondary">Cancel</button>
+                    <button type="button" wire:click="cancelRelationModal" class="sf-button sf-button-secondary" data-sf-modal-close>Cancel</button>
                 </div>
+            </div>
             </div>
         </section>
     @endif
 
     @if($pivotModalState['visible'] ?? false)
-        <section class="sf-card">
-            <div class="sf-card-header">
-                <h2 class="sf-card-title">{{ $pivotModalMode === 'edit' ? 'Edit pivot values' : 'Attach with details' }}</h2>
-            </div>
-            <div class="sf-card-body">
+        <section id="sf-pivot-modal" class="sf-modal" role="dialog" aria-modal="true" aria-hidden="false" aria-labelledby="sf-pivot-modal-title" data-sf-modal>
+            <div class="sf-modal-panel sf-card">
+                <div class="sf-modal-header">
+                    <h2 id="sf-pivot-modal-title" class="sf-card-title">{{ $pivotModalMode === 'edit' ? 'Edit pivot values' : 'Attach with details' }}</h2>
+                    <button type="button" class="sf-icon-button" aria-label="Close pivot dialog" data-sf-modal-close wire:click="cancelPivotModal">
+                        <x-seviaflow-ui::icon name="x-circle" />
+                    </button>
+                </div>
+                <div class="sf-modal-body">
                 <div class="sf-form-grid">
                     @foreach($pivotModalState['pivotFields'] as $field)
                         @include('seviaflow-ui::livewire.partials.form-field', [
@@ -531,10 +560,11 @@
                         ])
                     @endforeach
                 </div>
-                <div class="sf-resource-actions mt-4">
+                <div class="sf-modal-footer">
                     <button type="button" wire:click="savePivotModal" class="sf-button sf-button-primary">Save</button>
-                    <button type="button" wire:click="cancelPivotModal" class="sf-button sf-button-secondary">Cancel</button>
+                    <button type="button" wire:click="cancelPivotModal" class="sf-button sf-button-secondary" data-sf-modal-close>Cancel</button>
                 </div>
+            </div>
             </div>
         </section>
     @endif

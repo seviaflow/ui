@@ -4,6 +4,9 @@
 @endphp
 
 <div class="sf-resource-index">
+    <div class="sf-livewire-loading" wire:loading wire:target="search,perPage,trashedScope,filterValues,selectedSavedViewId" role="status" aria-live="polite">
+        {{ __('seviaflow-ui::ui.states.loading') }}
+    </div>
     <div class="grid gap-4">
         @if($statusMessage)
             @include('seviaflow-ui::livewire.partials.feedback-alert', ['type' => 'success', 'message' => $statusMessage])
@@ -55,12 +58,12 @@
                         </a>
                     @endif
                     @if($canExport)
-                        <button type="button" wire:click="openExportModal" class="sf-button sf-button-secondary">
+                        <button type="button" wire:click="openExportModal" data-sf-modal-target="sf-resource-export" class="sf-button sf-button-secondary" aria-controls="sf-resource-export" aria-expanded="false">
                             Export
                         </button>
                     @endif
                     @if($canImport)
-                        <button type="button" wire:click="openImportModal" class="sf-button sf-button-secondary">
+                        <button type="button" wire:click="openImportModal" data-sf-modal-target="sf-resource-import" class="sf-button sf-button-secondary" aria-controls="sf-resource-import" aria-expanded="false">
                             Import
                         </button>
                     @endif
@@ -192,6 +195,7 @@
                             @if($pendingBulkActionName === $action->name())
                                 <div class="w-full">
                                     @component('seviaflow-ui::livewire.partials.action-confirmation', [
+                                        'id' => 'sf-bulk-action-confirmation-'.\Illuminate\Support\Str::slug($action->name()),
                                         'variant' => $action->isDanger() ? 'danger' : 'safe',
                                         'title' => $action->isDanger() ? 'Confirm dangerous bulk action' : 'Confirm bulk action',
                                         'message' => 'You are about to run this action on '.$selectedCount.' '.($selectedCount === 1 ? 'record' : 'records').'.',
@@ -235,11 +239,15 @@
         @endif
 
         @if($showExportModal && $canExport)
-            <section class="sf-card">
-                <div class="sf-card-header">
-                    <h2 class="sf-card-title">Export records</h2>
-                </div>
-                <div class="sf-card-body grid gap-4">
+            <section id="sf-resource-export" class="sf-modal" role="dialog" aria-modal="true" aria-hidden="false" aria-labelledby="sf-resource-export-title" data-sf-modal>
+                <div class="sf-modal-panel sf-card">
+                    <div class="sf-modal-header">
+                        <h2 id="sf-resource-export-title" class="sf-card-title">Export records</h2>
+                        <button type="button" class="sf-icon-button" aria-label="Close export dialog" data-sf-modal-close wire:click="closeExportModal">
+                            <x-seviaflow-ui::icon name="x-circle" />
+                        </button>
+                    </div>
+                    <div class="sf-modal-body grid gap-4">
                     <div>
                         <div class="mb-2 flex items-center justify-between gap-2">
                             <label class="sf-label mb-0">Fields</label>
@@ -280,25 +288,32 @@
                         </div>
                     </div>
 
-                    <div class="sf-resource-actions">
+                    <div class="sf-modal-footer">
                         <button type="button" wire:click="exportRecords" class="sf-button sf-button-primary !px-3 !py-1.5">
                             Export
                         </button>
-                        <button type="button" wire:click="closeExportModal" class="sf-button sf-button-secondary !px-3 !py-1.5">
+                        <button type="button" wire:click="closeExportModal" class="sf-button sf-button-secondary !px-3 !py-1.5" data-sf-modal-close>
                             Cancel
                         </button>
+                    </div>
                     </div>
                 </div>
             </section>
         @endif
 
         @if($showImportModal && $canImport)
-            <section class="sf-card">
-                <div class="sf-card-header">
-                    <h2 class="sf-card-title">Import CSV preview</h2>
-                    <p class="sf-card-description">Headers must match allowed fields exactly.</p>
-                </div>
-                <div class="sf-card-body grid gap-4">
+            <section id="sf-resource-import" class="sf-modal" role="dialog" aria-modal="true" aria-hidden="false" aria-labelledby="sf-resource-import-title" data-sf-modal>
+                <div class="sf-modal-panel sf-card">
+                    <div class="sf-modal-header">
+                        <div>
+                            <h2 id="sf-resource-import-title" class="sf-card-title">Import CSV preview</h2>
+                            <p class="sf-card-description">Headers must match allowed fields exactly.</p>
+                        </div>
+                        <button type="button" class="sf-icon-button" aria-label="Close import dialog" data-sf-modal-close wire:click="closeImportModal">
+                            <x-seviaflow-ui::icon name="x-circle" />
+                        </button>
+                    </div>
+                    <div class="sf-modal-body grid gap-4">
                     <div>
                         <label for="import-file" class="sf-label">CSV file</label>
                         <input id="import-file" type="file" wire:model="importFile" accept=".csv,text/csv" class="sf-input">
@@ -311,14 +326,14 @@
                         Allowed fields: {{ implode(', ', $importAllowedFields) }}
                     </div>
 
-                    <div class="sf-resource-actions">
+                    <div class="sf-modal-footer">
                         <button type="button" wire:click="previewImport" class="sf-button sf-button-primary !px-3 !py-1.5">
                             Preview
                         </button>
                         <button type="button" wire:click="executeImport" class="sf-button sf-button-primary !px-3 !py-1.5">
                             Import now
                         </button>
-                        <button type="button" wire:click="closeImportModal" class="sf-button sf-button-secondary !px-3 !py-1.5">
+                        <button type="button" wire:click="closeImportModal" class="sf-button sf-button-secondary !px-3 !py-1.5" data-sf-modal-close>
                             Cancel
                         </button>
                     </div>
@@ -373,6 +388,7 @@
                             </table>
                         </div>
                     @endif
+                    </div>
                 </div>
             </section>
         @endif
@@ -462,6 +478,7 @@
                                         @if($pendingActionName === $action->name() && (string) $pendingActionRecordId === (string) $record->getKey())
                                             <div class="min-w-64">
                                                 @component('seviaflow-ui::livewire.partials.action-confirmation', [
+                                                    'id' => 'sf-row-action-confirmation-'.$record->getKey().'-'.\Illuminate\Support\Str::slug($action->name()),
                                                     'variant' => $action->isDanger() ? 'danger' : 'safe',
                                                     'title' => $action->isDanger() ? 'Confirm dangerous action' : 'Confirm action',
                                                     'message' => 'Please confirm before continuing.',

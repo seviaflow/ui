@@ -67,6 +67,7 @@ final class SeviaFlowUiServiceProvider extends ServiceProvider
             return;
         }
 
+        $this->loadTranslationsFrom(__DIR__.'/../resources/lang', 'seviaflow-ui');
         $this->loadViewsFrom(__DIR__.'/../resources/views', 'seviaflow-ui');
         $this->loadMigrationsFrom(__DIR__.'/../database/migrations');
         $this->loadRoutesFrom(__DIR__.'/../routes/web.php');

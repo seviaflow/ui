@@ -42,7 +42,9 @@
     $resourceSections = [];
     if ($hasResourceGroups) {
         foreach ($resourcesNav as $item) {
-            $groupLabel = is_string($item->group) && trim($item->group) !== '' ? trim($item->group) : 'Other';
+            $groupLabel = is_string($item->group) && trim($item->group) !== ''
+                ? trim($item->group)
+                : __('seviaflow-ui::ui.navigation.other');
             $resourceSections[$groupLabel] ??= [];
             $resourceSections[$groupLabel][] = $item;
         }
@@ -61,32 +63,32 @@
     $brandHref = $dashboardRouteName !== null ? route($dashboardRouteName) : '#';
 
     $defaultTitle = 'Admin';
-    $defaultEyebrow = 'Workspace';
+    $defaultEyebrow = __('seviaflow-ui::ui.navigation.workspace');
     $defaultDescription = 'Operator workspace';
     $defaultBreadcrumbs = [['label' => 'Admin', 'url' => $brandHref]];
 
     if ($currentResourceSlug !== null) {
         $resourceLabel = Str::of($currentResourceSlug)->replace('-', ' ')->headline()->toString();
         $defaultTitle = $resourceLabel;
-        $defaultEyebrow = 'Data resource';
+        $defaultEyebrow = __('seviaflow-ui::ui.navigation.data');
         $defaultDescription = 'Manage '.$resourceLabel.' records.';
         $defaultBreadcrumbs[] = ['label' => 'Data', 'url' => null];
         $defaultBreadcrumbs[] = ['label' => $resourceLabel, 'url' => null];
     } elseif (str_starts_with($currentRouteName, $routeNamePrefix.'settings.roles.')) {
         $defaultTitle = 'Roles';
-        $defaultEyebrow = 'Settings';
+        $defaultEyebrow = __('seviaflow-ui::ui.navigation.settings');
         $defaultDescription = 'Manage admin roles and permissions.';
         $defaultBreadcrumbs[] = ['label' => 'Settings', 'url' => null];
         $defaultBreadcrumbs[] = ['label' => 'Roles', 'url' => null];
     } elseif (str_starts_with($currentRouteName, $routeNamePrefix.'settings.admin-users.')) {
         $defaultTitle = 'Admin users';
-        $defaultEyebrow = 'Settings';
+        $defaultEyebrow = __('seviaflow-ui::ui.navigation.settings');
         $defaultDescription = 'Manage role assignments for admin users.';
         $defaultBreadcrumbs[] = ['label' => 'Settings', 'url' => null];
         $defaultBreadcrumbs[] = ['label' => 'Admin users', 'url' => null];
     } elseif (str_starts_with($currentRouteName, $routeNamePrefix.'profile.')) {
         $defaultTitle = 'Account settings';
-        $defaultEyebrow = 'Account';
+        $defaultEyebrow = __('seviaflow-ui::ui.navigation.account');
         $defaultDescription = 'Manage your admin account security and profile details.';
         $defaultBreadcrumbs[] = ['label' => 'Profile', 'url' => null];
     }
@@ -141,15 +143,17 @@
 @endphp
 <main class="sf-shell" data-sf-shell>
     <div class="sf-shell-grid">
-        <aside class="sf-sidebar" id="sf-sidebar" aria-label="Primary navigation" data-sf-sidebar>
+        <aside class="sf-sidebar" id="sf-sidebar" aria-label="{{ __('seviaflow-ui::ui.navigation.primary') }}" data-sf-sidebar>
             <div class="sf-sidebar-brand">
                 <x-seviaflow-ui::brand :href="$brandHref" surface="dark" />
                 <button
                     type="button"
                     class="sf-sidebar-toggle"
-                    aria-label="Collapse navigation"
+                    aria-label="{{ __('seviaflow-ui::ui.navigation.collapse') }}"
                     aria-controls="sf-sidebar"
                     aria-expanded="true"
+                    data-sf-label-expanded="{{ __('seviaflow-ui::ui.navigation.collapse') }}"
+                    data-sf-label-collapsed="{{ __('seviaflow-ui::ui.navigation.expand') }}"
                     data-sf-sidebar-toggle
                 >
                     <x-seviaflow-ui::icon name="bars-3" class="sf-sidebar-toggle-icon" />
@@ -159,7 +163,7 @@
             <div class="sf-sidebar-scroll">
                 @if(count($workspaceNav) > 0)
                     <section class="sf-nav-section">
-                        <div class="sf-nav-section-title">Workspace</div>
+                        <div class="sf-nav-section-title">{{ __('seviaflow-ui::ui.navigation.workspace') }}</div>
                         <div class="sf-nav-list">
                             @foreach($workspaceNav as $item)
                                 <x-seviaflow-ui::sidebar-link :item="$item" />
@@ -171,8 +175,8 @@
                 @if(count($resourcesNav) > 0)
                     <section class="sf-nav-section">
                         <div class="sf-nav-section-title">
-                            <span>Data</span>
-                            <span class="sf-nav-section-count">{{ count($resourcesNav) }} {{ count($resourcesNav) === 1 ? 'resource' : 'resources' }}</span>
+                            <span>{{ __('seviaflow-ui::ui.navigation.data') }}</span>
+                            <span class="sf-nav-section-count">{{ trans_choice('seviaflow-ui::ui.navigation.resource_count', count($resourcesNav), ['count' => count($resourcesNav)]) }}</span>
                         </div>
                         @foreach($resourceSections as $resourceGroupLabel => $resourceItems)
                             @if($hasResourceGroups)
@@ -189,7 +193,7 @@
 
                 @if(count($settingsNav) > 0)
                     <section class="sf-nav-section">
-                        <div class="sf-nav-section-title">Settings</div>
+                        <div class="sf-nav-section-title">{{ __('seviaflow-ui::ui.navigation.settings') }}</div>
                         <div class="sf-nav-list">
                             @foreach($settingsNav as $item)
                                 <x-seviaflow-ui::sidebar-link :item="$item" />
@@ -200,7 +204,7 @@
 
                 @if(count($developerNav) > 0)
                     <section class="sf-nav-section">
-                        <div class="sf-nav-section-title">Developer</div>
+                        <div class="sf-nav-section-title">{{ __('seviaflow-ui::ui.navigation.developer') }}</div>
                         <div class="sf-nav-list">
                             @foreach($developerNav as $item)
                                 <x-seviaflow-ui::sidebar-link :item="$item" />
@@ -210,7 +214,7 @@
                 @endif
 
                 @if(! $hasSidebarNavigation)
-                    <p class="sf-nav-empty">No navigation items available.</p>
+                    <p class="sf-nav-empty">{{ __('seviaflow-ui::ui.navigation.no_items') }}</p>
                 @endif
             </div>
 
@@ -228,7 +232,7 @@
                             @if($authUserEmail)
                                 <span class="sf-user-email">{{ $authUserEmail }}</span>
                             @else
-                                <span class="sf-user-email">Account settings</span>
+                                <span class="sf-user-email">{{ __('seviaflow-ui::ui.account.settings') }}</span>
                             @endif
                         </span>
                     </a>
@@ -266,9 +270,11 @@
                     <button
                         type="button"
                         class="sf-mobile-menu"
-                        aria-label="Open navigation"
+                        aria-label="{{ __('seviaflow-ui::ui.navigation.open') }}"
                         aria-controls="sf-sidebar"
                         aria-expanded="false"
+                        data-sf-label-expanded="{{ __('seviaflow-ui::ui.navigation.close') }}"
+                        data-sf-label-collapsed="{{ __('seviaflow-ui::ui.navigation.open') }}"
                         data-sf-mobile-menu
                     >
                         <x-seviaflow-ui::icon name="bars-3" class="sf-topbar-icon" />
@@ -279,7 +285,7 @@
                             <x-seviaflow-ui::icon name="clipboard-document-check" class="sf-topbar-context-icon-svg" />
                         </span>
                         <span class="sf-topbar-context-copy">
-                            <span>SeviaFlow workspace</span>
+                            <span>{{ __('seviaflow-ui::ui.navigation.workspace_context') }}</span>
                             <strong>{{ $pageTitle }}</strong>
                         </span>
                     </div>
@@ -293,7 +299,7 @@
                         data-sf-command-open
                     >
                         <x-seviaflow-ui::icon name="magnifying-glass" class="sf-command-trigger-icon" />
-                        <span>Search navigation...</span>
+                        <span>{{ __('seviaflow-ui::ui.navigation.search') }}</span>
                         <kbd>Ctrl K</kbd>
                     </button>
                 </div>
@@ -347,18 +353,18 @@
         class="sf-command-palette"
         role="dialog"
         aria-modal="true"
-        aria-label="Command palette"
+        aria-label="{{ __('seviaflow-ui::ui.navigation.search') }}"
         hidden
         data-sf-command-palette
     >
         <div class="sf-command-input">
             <x-seviaflow-ui::icon name="magnifying-glass" class="sf-command-input-icon" />
-            <label for="sf-command-search" class="sr-only">Search navigation destinations</label>
-            <input id="sf-command-search" type="search" placeholder="Search dashboards, resources and settings" autocomplete="off" data-sf-command-input>
+            <label for="sf-command-search" class="sr-only">{{ __('seviaflow-ui::ui.navigation.search_label') }}</label>
+            <input id="sf-command-search" type="search" placeholder="{{ __('seviaflow-ui::ui.navigation.search_placeholder') }}" autocomplete="off" data-sf-command-input>
             <kbd>Esc</kbd>
         </div>
-        <div class="sf-command-results" role="listbox" aria-label="Navigation destinations" data-sf-command-results></div>
-        <p class="sf-command-empty" hidden data-sf-command-empty>No matching destinations.</p>
+        <div class="sf-command-results" role="listbox" aria-label="{{ __('seviaflow-ui::ui.navigation.destinations') }}" data-sf-command-results></div>
+        <p class="sf-command-empty" hidden data-sf-command-empty>{{ __('seviaflow-ui::ui.navigation.no_matches') }}</p>
         <script type="application/json" data-sf-command-items>@json($commandPaletteItems)</script>
     </section>
 </main>

@@ -16,7 +16,7 @@
     <label for="{{ $fieldId }}" class="sf-label">
         {{ $field->getLabel() }}
         @if($isRequired)
-            <span class="text-red-600" aria-hidden="true">*</span>
+            <span class="sf-required" aria-label="{{ __('seviaflow-ui::ui.fields.required') }}">*</span>
         @endif
     </label>
 

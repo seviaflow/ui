@@ -13,6 +13,8 @@
         placeholder="{{ $field->getPlaceholder() }}"
         @if($field->getMin() !== null) min="{{ $field->getMin() }}" @endif
         @if($field->getMax() !== null) max="{{ $field->getMax() }}" @endif
+        @if($isRequired) aria-required="true" @endif
+        @if($hasError) aria-invalid="true" @endif
         @if($describedBy !== '') aria-describedby="{{ $describedBy }}" @endif
         @class($controlClasses)
     >

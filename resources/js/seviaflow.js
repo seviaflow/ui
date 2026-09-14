@@ -32,6 +32,293 @@ const escapeHtml = (value) => String(value)
 const dashboardChartState = new WeakMap();
 let livewireHooksRegistered = false;
 let dashboardChartObserverRegistered = false;
+let overlayControllerRegistered = false;
+let overlayLivewireHookRegistered = false;
+let activeDialogId = null;
+let activeDialogTrigger = null;
+let pendingDialogId = null;
+const inertBackgroundNodes = new Map();
+
+const focusableSelector = [
+  'a[href]',
+  'area[href]',
+  'button:not([disabled])',
+  'input:not([disabled]):not([type="hidden"])',
+  'select:not([disabled])',
+  'textarea:not([disabled])',
+  'iframe',
+  '[contenteditable="true"]',
+  '[tabindex]:not([tabindex="-1"])',
+].join(',');
+
+const getFocusableElements = (container) => Array.from(container.querySelectorAll(focusableSelector))
+  .filter((element) => element instanceof HTMLElement
+    && !element.hidden
+    && element.getAttribute('aria-hidden') !== 'true'
+    && !element.closest('[inert]'));
+
+const getOverlay = () => document.querySelector('[data-sf-overlay]');
+
+const setOverlayVisible = (visible) => {
+  const overlay = getOverlay();
+  if (!(overlay instanceof HTMLElement)) {
+    return;
+  }
+
+  overlay.hidden = !visible;
+  overlay.classList.toggle('sf-backdrop-visible', visible);
+  document.body.classList.toggle('sf-overlay-open', visible);
+};
+
+const syncDialogTriggers = (dialog, expanded) => {
+  if (!(dialog instanceof HTMLElement) || !dialog.id) {
+    return;
+  }
+
+  document.querySelectorAll('[data-sf-drawer-target], [data-sf-modal-target]').forEach((trigger) => {
+    if (trigger instanceof HTMLElement
+      && (trigger.dataset.sfDrawerTarget === dialog.id || trigger.dataset.sfModalTarget === dialog.id)) {
+      trigger.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+    }
+  });
+};
+
+const findDialogTrigger = (dialogId) => {
+  const triggers = document.querySelectorAll('[data-sf-drawer-target], [data-sf-modal-target]');
+  for (const trigger of triggers) {
+    if (trigger instanceof HTMLElement && (trigger.dataset.sfDrawerTarget === dialogId || trigger.dataset.sfModalTarget === dialogId)) {
+      return trigger;
+    }
+  }
+
+  return null;
+};
+
+const clearInertBackground = () => {
+  inertBackgroundNodes.forEach((previous, node) => {
+    if (!(node instanceof HTMLElement)) {
+      return;
+    }
+
+    if (previous.hadInertAttribute) {
+      node.setAttribute('inert', '');
+    } else {
+      node.removeAttribute('inert');
+    }
+
+    if ('inert' in node) {
+      node.inert = previous.inert;
+    }
+  });
+  inertBackgroundNodes.clear();
+};
+
+const inertDialogBackground = (dialog) => {
+  clearInertBackground();
+
+  let current = dialog;
+  while (current instanceof HTMLElement && current !== document.body) {
+    const parent = current.parentElement;
+    if (!(parent instanceof HTMLElement)) {
+      break;
+    }
+
+    Array.from(parent.children).forEach((sibling) => {
+      if (!(sibling instanceof HTMLElement) || sibling === current || sibling.matches('[data-sf-overlay]')) {
+        return;
+      }
+
+      inertBackgroundNodes.set(sibling, {
+        hadInertAttribute: sibling.hasAttribute('inert'),
+        inert: 'inert' in sibling ? sibling.inert : false,
+      });
+      sibling.setAttribute('inert', '');
+      if ('inert' in sibling) {
+        sibling.inert = true;
+      }
+    });
+
+    current = parent;
+  }
+};
+
+const restoreDialogFocus = () => {
+  if (activeDialogTrigger instanceof HTMLElement && document.contains(activeDialogTrigger) && !activeDialogTrigger.matches('[disabled]')) {
+    activeDialogTrigger.focus();
+  }
+};
+
+const closeActiveDialog = (restoreFocus = true) => {
+  const dialog = activeDialogId ? document.getElementById(activeDialogId) : null;
+  if (dialog instanceof HTMLElement) {
+    dialog.hidden = true;
+    dialog.setAttribute('aria-hidden', 'true');
+    syncDialogTriggers(dialog, false);
+  }
+
+  clearInertBackground();
+  activeDialogId = null;
+  pendingDialogId = null;
+  if (restoreFocus) {
+    restoreDialogFocus();
+  }
+  activeDialogTrigger = null;
+
+  if (!document.body.classList.contains('sf-mobile-nav-open')) {
+    setOverlayVisible(false);
+  }
+};
+
+const openDialog = (dialog, trigger = null, focus = true) => {
+  if (!(dialog instanceof HTMLElement) || !dialog.id) {
+    return;
+  }
+
+  if (activeDialogId !== null && activeDialogId !== dialog.id) {
+    closeActiveDialog(false);
+  }
+
+  activeDialogId = dialog.id;
+  activeDialogTrigger = trigger instanceof HTMLElement
+    ? trigger
+    : (activeDialogTrigger instanceof HTMLElement ? activeDialogTrigger : findDialogTrigger(dialog.id));
+  pendingDialogId = null;
+  dialog.hidden = false;
+  dialog.setAttribute('aria-hidden', 'false');
+  syncDialogTriggers(dialog, true);
+  inertDialogBackground(dialog);
+  setOverlayVisible(true);
+
+  if (!focus) {
+    return;
+  }
+
+  const focusable = getFocusableElements(dialog);
+  const target = focusable[0];
+  if (target instanceof HTMLElement) {
+    target.focus();
+  } else {
+    dialog.setAttribute('tabindex', '-1');
+    dialog.focus();
+  }
+};
+
+const refreshDialogState = () => {
+  const visibleDialog = document.querySelector('[data-sf-modal][aria-hidden="false"], [data-sf-drawer][aria-hidden="false"]');
+  const dialogId = activeDialogId ?? pendingDialogId ?? visibleDialog?.id ?? null;
+  if (dialogId === null) {
+    return;
+  }
+
+  const dialog = document.getElementById(dialogId);
+  if (!(dialog instanceof HTMLElement)) {
+    if (activeDialogId !== null) {
+      closeActiveDialog();
+    }
+
+    return;
+  }
+
+  const trigger = activeDialogTrigger instanceof HTMLElement && document.contains(activeDialogTrigger)
+    ? activeDialogTrigger
+    : findDialogTrigger(dialogId);
+  openDialog(dialog, trigger, activeDialogId === null);
+};
+
+const closeMobileNavigationFromController = () => {
+  document.body.classList.remove('sf-mobile-nav-open');
+  const mobileMenu = document.querySelector('[data-sf-mobile-menu]');
+  if (mobileMenu instanceof HTMLElement) {
+    mobileMenu.setAttribute('aria-expanded', 'false');
+    mobileMenu.setAttribute('aria-label', mobileMenu.dataset.sfLabelCollapsed ?? 'Open navigation');
+  }
+  if (activeDialogId === null) {
+    setOverlayVisible(false);
+  }
+};
+
+const registerOverlayController = () => {
+  if (!overlayControllerRegistered) {
+    document.addEventListener('click', (event) => {
+      if (!(event.target instanceof Element)) {
+        return;
+      }
+
+      const dialogTrigger = event.target.closest('[data-sf-drawer-target], [data-sf-modal-target]');
+      if (dialogTrigger instanceof HTMLElement) {
+        const dialogId = dialogTrigger.dataset.sfDrawerTarget ?? dialogTrigger.dataset.sfModalTarget ?? '';
+        if (dialogId !== '') {
+          pendingDialogId = dialogId;
+          openDialog(document.getElementById(dialogId), dialogTrigger);
+        }
+        return;
+      }
+
+      if (event.target.closest('[data-sf-drawer-close], [data-sf-modal-close]')) {
+        closeActiveDialog();
+        return;
+      }
+
+      if (event.target.closest('[data-sf-overlay]')) {
+        closeActiveDialog();
+        closeMobileNavigationFromController();
+      }
+    });
+
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') {
+        if (activeDialogId !== null) {
+          event.preventDefault();
+          closeActiveDialog();
+          return;
+        }
+
+        if (document.body.classList.contains('sf-mobile-nav-open')) {
+          event.preventDefault();
+          closeMobileNavigationFromController();
+        }
+
+        return;
+      }
+
+      if (event.key !== 'Tab' || activeDialogId === null) {
+        return;
+      }
+
+      const dialog = document.getElementById(activeDialogId);
+      if (!(dialog instanceof HTMLElement)) {
+        return;
+      }
+
+      const focusable = getFocusableElements(dialog);
+      if (focusable.length === 0) {
+        event.preventDefault();
+        dialog.focus();
+        return;
+      }
+
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && (document.activeElement === first || !dialog.contains(document.activeElement))) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && (document.activeElement === last || !dialog.contains(document.activeElement))) {
+        event.preventDefault();
+        first.focus();
+      }
+    });
+    overlayControllerRegistered = true;
+  }
+
+  if (!overlayLivewireHookRegistered
+    && typeof window.Livewire !== 'undefined'
+    && typeof window.Livewire.hook === 'function') {
+    window.Livewire.hook('morphed', () => {
+      window.requestAnimationFrame(refreshDialogState);
+    });
+    overlayLivewireHookRegistered = true;
+  }
+};
 
 const scheduleDashboardCharts = () => {
   window.requestAnimationFrame(() => initDashboardCharts());
@@ -264,23 +551,6 @@ const safeCommandItems = (script) => {
   }
 };
 
-const syncDrawerTriggers = (drawer, expanded) => {
-  if (!(drawer instanceof HTMLElement)) {
-    return;
-  }
-
-  const drawerId = drawer.getAttribute('id');
-  if (!drawerId) {
-    return;
-  }
-
-  document.querySelectorAll('[data-sf-drawer-target]').forEach((trigger) => {
-    if (trigger instanceof HTMLElement && trigger.getAttribute('data-sf-drawer-target') === drawerId) {
-      trigger.setAttribute('aria-expanded', expanded ? 'true' : 'false');
-    }
-  });
-};
-
 const initShell = () => {
   const shell = document.querySelector('[data-sf-shell]');
   if (!(shell instanceof HTMLElement) || shell.dataset.sfShellInitialized === '1') {
@@ -324,18 +594,33 @@ const initShell = () => {
     body.classList.remove('sf-mobile-nav-open');
     if (mobileMenu instanceof HTMLElement) {
       mobileMenu.setAttribute('aria-expanded', 'false');
+      mobileMenu.setAttribute('aria-label', mobileMenu.dataset.sfLabelCollapsed ?? 'Open navigation');
     }
     closeOverlayIfIdle();
   };
 
   const closeOpenDrawers = () => {
+    if (activeDialogId !== null) {
+      closeActiveDialog();
+
+      return;
+    }
+
     document.querySelectorAll('[data-sf-drawer][aria-hidden="false"]').forEach((drawer) => {
       if (drawer instanceof HTMLElement) {
         drawer.hidden = true;
         drawer.setAttribute('aria-hidden', 'true');
-        syncDrawerTriggers(drawer, false);
+        syncDialogTriggers(drawer, false);
       }
     });
+    document.querySelectorAll('[data-sf-modal][aria-hidden="false"]').forEach((modal) => {
+      if (modal instanceof HTMLElement) {
+        modal.hidden = true;
+        modal.setAttribute('aria-hidden', 'true');
+        syncDialogTriggers(modal, false);
+      }
+    });
+    clearInertBackground();
   };
 
   const setSidebarCollapsed = (collapsed, persist = true) => {
@@ -343,7 +628,7 @@ const initShell = () => {
       body.classList.remove('sf-sidebar-collapsed');
       if (sidebarToggle instanceof HTMLElement) {
         sidebarToggle.setAttribute('aria-expanded', 'true');
-        sidebarToggle.setAttribute('aria-label', 'Close navigation');
+        sidebarToggle.setAttribute('aria-label', sidebarToggle.dataset.sfLabelExpanded ?? 'Collapse navigation');
       }
 
       return;
@@ -352,7 +637,9 @@ const initShell = () => {
     body.classList.toggle('sf-sidebar-collapsed', collapsed);
     if (sidebarToggle instanceof HTMLElement) {
       sidebarToggle.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
-      sidebarToggle.setAttribute('aria-label', collapsed ? 'Expand navigation' : 'Collapse navigation');
+      sidebarToggle.setAttribute('aria-label', collapsed
+        ? (sidebarToggle.dataset.sfLabelCollapsed ?? 'Expand navigation')
+        : (sidebarToggle.dataset.sfLabelExpanded ?? 'Collapse navigation'));
     }
     if (persist) {
       setStoredPreference(sidebarPreferenceKey, collapsed ? '1' : '0');
@@ -395,9 +682,10 @@ const initShell = () => {
       return;
     }
 
-    commandPalette.hidden = true;
-    if (commandOpen instanceof HTMLElement) {
-      commandOpen.setAttribute('aria-expanded', 'false');
+    if (activeDialogId === commandPalette.id) {
+      closeActiveDialog();
+    } else {
+      commandPalette.hidden = true;
     }
     if (commandInput instanceof HTMLInputElement) {
       commandInput.value = '';
@@ -411,11 +699,7 @@ const initShell = () => {
       return;
     }
 
-    showOverlay();
-    commandPalette.hidden = false;
-    if (commandOpen instanceof HTMLElement) {
-      commandOpen.setAttribute('aria-expanded', 'true');
-    }
+    openDialog(commandPalette, commandOpen);
     activeCommandIndex = 0;
     renderCommands(commandInput instanceof HTMLInputElement ? commandInput.value : '');
     window.setTimeout(() => {
@@ -442,6 +726,7 @@ const initShell = () => {
     body.classList.add('sf-mobile-nav-open');
     if (mobileMenu instanceof HTMLElement) {
       mobileMenu.setAttribute('aria-expanded', 'true');
+      mobileMenu.setAttribute('aria-label', mobileMenu.dataset.sfLabelExpanded ?? 'Close navigation');
     }
     showOverlay();
   });
@@ -519,62 +804,7 @@ const initShell = () => {
 };
 
 const initDrawers = () => {
-  document.querySelectorAll('[data-sf-drawer-target]').forEach((trigger) => {
-    if (!(trigger instanceof HTMLElement) || trigger.dataset.sfDrawerTriggerInitialized === '1') {
-      return;
-    }
-
-    trigger.addEventListener('click', () => {
-      const drawerId = trigger.getAttribute('data-sf-drawer-target') || '';
-      const drawer = document.getElementById(drawerId);
-      const shell = document.querySelector('[data-sf-shell]');
-      const overlay = shell?.querySelector('[data-sf-overlay]');
-
-      if (!(drawer instanceof HTMLElement)) {
-        return;
-      }
-
-      drawer.hidden = false;
-      drawer.setAttribute('aria-hidden', 'false');
-      syncDrawerTriggers(drawer, true);
-      if (overlay instanceof HTMLElement) {
-        overlay.hidden = false;
-        overlay.classList.add('sf-backdrop-visible');
-      }
-      document.body.classList.add('sf-overlay-open');
-      drawer.querySelector('input, select, textarea, button')?.focus();
-    });
-
-    trigger.dataset.sfDrawerTriggerInitialized = '1';
-  });
-
-  document.querySelectorAll('[data-sf-drawer-close]').forEach((button) => {
-    if (!(button instanceof HTMLElement) || button.dataset.sfDrawerCloseInitialized === '1') {
-      return;
-    }
-
-    button.addEventListener('click', () => {
-      const drawer = button.closest('[data-sf-drawer]');
-      const shell = document.querySelector('[data-sf-shell]');
-      const overlay = shell?.querySelector('[data-sf-overlay]');
-
-      if (drawer instanceof HTMLElement) {
-        drawer.hidden = true;
-        drawer.setAttribute('aria-hidden', 'true');
-        syncDrawerTriggers(drawer, false);
-      }
-
-      const commandOpenState = document.querySelector('[data-sf-command-palette]:not([hidden])') !== null;
-      const mobileOpenState = document.body.classList.contains('sf-mobile-nav-open');
-      if (document.querySelector('[data-sf-drawer][aria-hidden="false"]') === null && !commandOpenState && !mobileOpenState && overlay instanceof HTMLElement) {
-        overlay.hidden = true;
-        overlay.classList.remove('sf-backdrop-visible');
-        document.body.classList.remove('sf-overlay-open');
-      }
-    });
-
-    button.dataset.sfDrawerCloseInitialized = '1';
-  });
+  refreshDialogState();
 };
 
 const initTableDensity = () => {
@@ -608,6 +838,7 @@ const initTableDensity = () => {
 };
 
 const initSeviaFlowUi = () => {
+  registerOverlayController();
   registerLivewireChartHooks();
   registerDashboardChartObserver();
   initDashboardCharts();

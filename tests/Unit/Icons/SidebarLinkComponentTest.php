@@ -18,6 +18,7 @@ it('renders sidebar links with known icons', function (): void {
     expect($html)->toContain('href="/admin/resources/customers"')
         ->and($html)->toContain('sf-sidebar-link-active')
         ->and($html)->toContain('data-seviaflow-icon="users"')
+        ->and($html)->toContain('aria-label="Customers"')
         ->and($html)->toContain('Customers');
 });
 

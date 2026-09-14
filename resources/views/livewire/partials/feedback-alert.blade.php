@@ -1,10 +1,10 @@
 @php
     $type = $type ?? 'info';
     $icon = match ($type) {
-        'success' => '✓',
-        'danger' => '!',
-        'warning' => '!',
-        default => 'i',
+        'success' => 'check-circle',
+        'danger' => 'x-circle',
+        'warning' => 'exclamation-triangle',
+        default => 'information-circle',
     };
     $classes = match ($type) {
         'success' => 'sf-alert sf-alert-success',
@@ -14,9 +14,9 @@
     };
 @endphp
 
-<div class="{{ $classes }}" role="status">
+<div class="{{ $classes }}" role="{{ $type === 'danger' ? 'alert' : 'status' }}" aria-live="{{ $type === 'danger' ? 'assertive' : 'polite' }}" aria-atomic="true">
     <div class="flex items-start gap-2">
-        <span class="inline-flex h-5 w-5 items-center justify-center rounded-full bg-white/70 text-xs font-bold">{{ $icon }}</span>
+        <span class="sf-alert-icon" aria-hidden="true"><x-seviaflow-ui::icon :name="$icon" /></span>
         <p>{{ $message }}</p>
     </div>
 </div>

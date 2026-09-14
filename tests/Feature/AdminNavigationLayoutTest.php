@@ -221,7 +221,11 @@ it('renders product navigation area headings', function (): void {
         ->assertOk()
         ->assertSee('Workspace')
         ->assertSee('Data')
-        ->assertSee('Settings');
+        ->assertSee('Settings')
+        ->assertSee('aria-label="Primary navigation"', false)
+        ->assertSee('data-sf-label-expanded="Collapse navigation"', false)
+        ->assertSee('data-sf-label-collapsed="Expand navigation"', false)
+        ->assertSee('data-sf-command-palette', false);
 });
 
 it('renders custom resource navigation groups from metadata', function (): void {

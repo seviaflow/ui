@@ -11,6 +11,8 @@
         wire:model="{{ $fieldPath }}"
         @disabled($isDisabled)
         @if($field->getAcceptedFileTypes() !== []) accept="{{ implode(',', $field->getAcceptedFileTypes()) }}" @endif
+        @if($isRequired) aria-required="true" @endif
+        @if($hasError) aria-invalid="true" @endif
         @if($describedBy !== '') aria-describedby="{{ $describedBy }}" @endif
         @class($controlClasses)
     >

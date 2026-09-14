@@ -1,4 +1,7 @@
 <div class="grid gap-4">
+    <div class="sf-livewire-loading" wire:loading role="status" aria-live="polite">
+        {{ __('seviaflow-ui::ui.states.loading') }}
+    </div>
     @if($statusMessage)
         <div class="sf-alert sf-alert-success">
             {{ $statusMessage }}

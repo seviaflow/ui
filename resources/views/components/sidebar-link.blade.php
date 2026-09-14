@@ -15,6 +15,7 @@
        'sf-sidebar-link-active' => $item->active,
    ])
    @if($item->active) aria-current="page" @endif
+   aria-label="{{ $item->label }}"
    title="{{ $item->label }}"
    data-sf-nav-link
 >

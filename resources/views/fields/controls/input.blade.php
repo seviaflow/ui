@@ -14,6 +14,8 @@
     @foreach($inputAttributes as $attribute => $value)
         {{ $attribute }}="{{ $value }}"
     @endforeach
+    @if($isRequired) aria-required="true" @endif
+    @if($hasError) aria-invalid="true" @endif
     @if($describedBy !== '') aria-describedby="{{ $describedBy }}" @endif
     @class($controlClasses)
 >
