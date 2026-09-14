@@ -19,6 +19,7 @@ use SeviaFlow\Core\Resources\Relations\BelongsToManyRelation;
 use SeviaFlow\Core\Resources\Relations\HasManyRelation;
 use SeviaFlow\Core\Resources\Relations\MorphManyRelation;
 use SeviaFlow\Core\Resources\Relations\MorphToManyRelation;
+use SeviaFlow\Core\Resources\ResourceScopedQuery;
 
 final class RelationQueryPaginator
 {
@@ -34,17 +35,14 @@ final class RelationQueryPaginator
         $pivotFieldNames = [];
         $supportsPivot = false;
 
-        if ($relationship instanceof HasMany && $relation instanceof HasManyRelation) {
+        $softDeleteScope = ResourceScopedQuery::ACTIVE;
+
+        if (
+            ($relationship instanceof HasMany && $relation instanceof HasManyRelation)
+            || ($relationship instanceof MorphMany && $relation instanceof MorphManyRelation)
+        ) {
             if ($relation->canRestore() && $relation->supportsSoftDeletes()) {
-                if (method_exists($relationship, 'withTrashed')) {
-                    $relationship->withTrashed();
-                }
-            }
-        } elseif ($relationship instanceof MorphMany && $relation instanceof MorphManyRelation) {
-            if ($relation->canRestore() && $relation->supportsSoftDeletes()) {
-                if (method_exists($relationship, 'withTrashed')) {
-                    $relationship->withTrashed();
-                }
+                $softDeleteScope = ResourceScopedQuery::WITH_TRASHED;
             }
         }
 
@@ -76,7 +74,11 @@ final class RelationQueryPaginator
             $relationship->withPivot($withPivot);
         }
 
-        $query = $relatedResourceClass::query($relationship->getQuery());
+        $query = ResourceScopedQuery::make(
+            $relatedResourceClass,
+            $relationship->getQuery(),
+            $softDeleteScope
+        );
         $pageName = 'rel_'.preg_replace('/[^A-Za-z0-9_]/', '_', $relation->getRelationshipName());
 
         $paginator = $query->paginate($relation->getPerPage(), ['*'], $pageName);

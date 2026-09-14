@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use InvalidArgumentException;
 use SeviaFlow\Core\Resources\Relations\MorphToManyRelation;
+use SeviaFlow\Core\Resources\ResourceScopedQuery;
 
 final class MorphToManyRelationManager
 {
@@ -52,7 +53,8 @@ final class MorphToManyRelationManager
             ->map(static fn (mixed $value): string => (string) $value)
             ->all();
 
-        $query = $resourceClass::query(
+        $query = ResourceScopedQuery::make(
+            $resourceClass,
             $relatedModel->newQuery()->select([$ownerKey, $titleAttribute])
         );
 
@@ -79,9 +81,12 @@ final class MorphToManyRelationManager
             return null;
         }
 
-        return $this->relationship($parent, $relation)
-            ->whereKey($relatedRecordId)
-            ->first();
+        return ResourceScopedQuery::find(
+            $relation->getResourceClass(),
+            $relatedRecordId,
+            ResourceScopedQuery::ACTIVE,
+            $this->relationship($parent, $relation)->getQuery()
+        );
     }
 
     public function resolveRelatedRecord(Model $parent, MorphToManyRelation $relation, int|string|null $relatedRecordId): ?Model
@@ -90,7 +95,10 @@ final class MorphToManyRelationManager
             return null;
         }
 
-        return $this->relationship($parent, $relation)->getRelated()->newQuery()->find($relatedRecordId);
+        return ResourceScopedQuery::find(
+            $relation->getResourceClass(),
+            $relatedRecordId
+        );
     }
 
     /**
@@ -111,7 +119,7 @@ final class MorphToManyRelationManager
             return null;
         }
 
-        return $this->relationship($parent, $relation)->getRelated()->newQuery()->find($relatedId);
+        return ResourceScopedQuery::find($resourceClass, $relatedId);
     }
 
     public function isAttached(Model $parent, MorphToManyRelation $relation, int|string $relatedRecordId): bool

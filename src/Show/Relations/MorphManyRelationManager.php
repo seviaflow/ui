@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use InvalidArgumentException;
 use SeviaFlow\Core\Resources\Relations\MorphManyRelation;
+use SeviaFlow\Core\Resources\ResourceScopedQuery;
 
 final class MorphManyRelationManager
 {
@@ -42,7 +43,12 @@ final class MorphManyRelationManager
             return null;
         }
 
-        return $this->relationship($parent, $relation)->whereKey($recordId)->first();
+        return ResourceScopedQuery::find(
+            $relation->getResourceClass(),
+            $recordId,
+            ResourceScopedQuery::ACTIVE,
+            $this->relationship($parent, $relation)->getQuery()
+        );
     }
 
     public function resolveRecordWithTrashed(Model $parent, MorphManyRelation $relation, int|string|null $recordId): ?Model
@@ -51,12 +57,13 @@ final class MorphManyRelationManager
             return null;
         }
 
-        $query = $this->relationship($parent, $relation)->getQuery();
-
-        if ($relation->supportsSoftDeletes()) {
-            call_user_func([$query, 'withTrashed']);
-        }
-
-        return $query->whereKey($recordId)->first();
+        return ResourceScopedQuery::find(
+            $relation->getResourceClass(),
+            $recordId,
+            $relation->supportsSoftDeletes()
+                ? ResourceScopedQuery::WITH_TRASHED
+                : ResourceScopedQuery::ACTIVE,
+            $this->relationship($parent, $relation)->getQuery()
+        );
     }
 }

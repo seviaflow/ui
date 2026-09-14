@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use InvalidArgumentException;
 use SeviaFlow\Core\Resources\Relations\HasOneRelation;
+use SeviaFlow\Core\Resources\ResourceScopedQuery;
 
 final class HasOneRelationManager
 {
@@ -38,7 +39,10 @@ final class HasOneRelationManager
 
     public function resolveRecord(Model $parent, HasOneRelation $relation): ?Model
     {
-        return $this->relationship($parent, $relation)->first();
+        return ResourceScopedQuery::make(
+            $relation->getResourceClass(),
+            $this->relationship($parent, $relation)->getQuery()
+        )->first();
     }
 
     public function resolveRecordById(Model $parent, HasOneRelation $relation, int|string|null $recordId): ?Model
@@ -47,6 +51,11 @@ final class HasOneRelationManager
             return null;
         }
 
-        return $this->relationship($parent, $relation)->whereKey($recordId)->first();
+        return ResourceScopedQuery::find(
+            $relation->getResourceClass(),
+            $recordId,
+            ResourceScopedQuery::ACTIVE,
+            $this->relationship($parent, $relation)->getQuery()
+        );
     }
 }

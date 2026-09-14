@@ -7,6 +7,7 @@ namespace SeviaFlow\Ui\Livewire;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Livewire\Attributes\Locked;
 use Livewire\Component;
 use Livewire\Features\SupportFileUploads\WithFileUploads;
 use SeviaFlow\Core\Exceptions\ResourceSlugNotRegisteredException;
@@ -21,29 +22,35 @@ use SeviaFlow\Core\Resources\Form;
 use SeviaFlow\Core\Resources\ResourceAuthorization;
 use SeviaFlow\Core\Resources\ResourceContext;
 use SeviaFlow\Core\Resources\ResourceRegistry;
+use SeviaFlow\Core\Resources\ResourceScopedQuery;
 use SeviaFlow\Core\Resources\Section;
 
 final class ResourceForm extends Component
 {
     use WithFileUploads;
 
+    #[Locked]
     public string $resourceSlug;
 
     /**
      * @var class-string
      */
+    #[Locked]
     public string $resource;
 
     /**
      * @var class-string<Model>
      */
+    #[Locked]
     public string $modelClass;
 
     /**
      * @var Model|null
      */
+    #[Locked]
     public $record = null;
 
+    #[Locked]
     public bool $isEditMode = false;
 
     /**
@@ -317,7 +324,7 @@ final class ResourceForm extends Component
     {
         $model = new $this->modelClass;
 
-        return $model->newQuery();
+        return ResourceScopedQuery::make($this->resource, $model->newQuery());
     }
 
     private function formDefinition(): Form

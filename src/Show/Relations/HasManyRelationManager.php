@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use InvalidArgumentException;
 use SeviaFlow\Core\Resources\Relations\HasManyRelation;
+use SeviaFlow\Core\Resources\ResourceScopedQuery;
 
 final class HasManyRelationManager
 {
@@ -42,7 +43,12 @@ final class HasManyRelationManager
             return null;
         }
 
-        return $this->relationship($parent, $relation)->whereKey($recordId)->first();
+        return ResourceScopedQuery::find(
+            $relation->getResourceClass(),
+            $recordId,
+            ResourceScopedQuery::ACTIVE,
+            $this->relationship($parent, $relation)->getQuery()
+        );
     }
 
     public function resolveRecordWithTrashed(Model $parent, HasManyRelation $relation, int|string|null $recordId): ?Model
@@ -51,12 +57,13 @@ final class HasManyRelationManager
             return null;
         }
 
-        $query = $this->relationship($parent, $relation)->getQuery();
-
-        if ($relation->supportsSoftDeletes()) {
-            call_user_func([$query, 'withTrashed']);
-        }
-
-        return $query->whereKey($recordId)->first();
+        return ResourceScopedQuery::find(
+            $relation->getResourceClass(),
+            $recordId,
+            $relation->supportsSoftDeletes()
+                ? ResourceScopedQuery::WITH_TRASHED
+                : ResourceScopedQuery::ACTIVE,
+            $this->relationship($parent, $relation)->getQuery()
+        );
     }
 }

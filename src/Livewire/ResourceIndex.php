@@ -13,6 +13,7 @@ use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Livewire\Attributes\Locked;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 use Livewire\WithPagination;
@@ -32,6 +33,7 @@ use SeviaFlow\Core\Resources\ResourceContext;
 use SeviaFlow\Core\Resources\ResourceEventContext;
 use SeviaFlow\Core\Resources\ResourceEventDispatcher;
 use SeviaFlow\Core\Resources\ResourceRegistry;
+use SeviaFlow\Core\Resources\ResourceScopedQuery;
 use SeviaFlow\Core\Resources\Table;
 use SeviaFlow\Core\Tables\ResourceTableQuery;
 use SeviaFlow\Ui\Index\BulkActionRunner;
@@ -63,8 +65,10 @@ final class ResourceIndex extends Component
 
     private const BUILT_IN_BULK_RESTORE = '__built_in_bulk_restore';
 
+    #[Locked]
     public string $resourceSlug;
 
+    #[Locked]
     public string $resource;
 
     public string $search = '';
@@ -1050,21 +1054,12 @@ final class ResourceIndex extends Component
         $modelClass = $this->resource::model();
         /** @var Model $model */
         $model = new $modelClass;
-        $query = $this->resource::query($model->newQuery());
 
-        if (! $this->supportsSoftDeletes()) {
-            return $query;
-        }
-
-        if ($this->trashedScope === 'trashed') {
-            return $query->onlyTrashed();
-        }
-
-        if ($this->trashedScope === 'with_trashed') {
-            return $query->withTrashed();
-        }
-
-        return $query;
+        return ResourceScopedQuery::make(
+            $this->resource,
+            $model->newQuery(),
+            $this->trashedScope
+        );
     }
 
     private function maxSelectedByConfig(): ?int

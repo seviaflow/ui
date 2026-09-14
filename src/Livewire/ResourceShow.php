@@ -18,6 +18,7 @@ use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Stringable;
 use InvalidArgumentException;
+use Livewire\Attributes\Locked;
 use Livewire\Component;
 use Livewire\WithPagination;
 use SeviaFlow\Core\Exceptions\ResourceSlugNotRegisteredException;
@@ -45,6 +46,7 @@ use SeviaFlow\Core\Resources\Relations\MorphToManyRelation;
 use SeviaFlow\Core\Resources\ResourceAuthorization;
 use SeviaFlow\Core\Resources\ResourceContext;
 use SeviaFlow\Core\Resources\ResourceRegistry;
+use SeviaFlow\Core\Resources\ResourceScopedQuery;
 use SeviaFlow\Core\Resources\Section;
 use SeviaFlow\Core\Resources\Table;
 use SeviaFlow\Ui\Show\Actions\ShowActionResolver;
@@ -68,21 +70,25 @@ final class ResourceShow extends Component
 {
     use WithPagination;
 
+    #[Locked]
     public string $resourceSlug;
 
     /**
      * @var class-string
      */
+    #[Locked]
     public string $resource;
 
     /**
      * @var class-string<Model>
      */
+    #[Locked]
     public string $modelClass;
 
     /**
      * @var Model|null
      */
+    #[Locked]
     public $record = null;
 
     public ?string $statusMessage = null;
@@ -870,7 +876,7 @@ final class ResourceShow extends Component
     {
         $model = new $this->modelClass;
 
-        return $model->newQuery();
+        return ResourceScopedQuery::make($this->resource, $model->newQuery());
     }
 
     private function formDefinition(): Form
