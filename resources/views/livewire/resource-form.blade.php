@@ -40,7 +40,7 @@
 
                                 <div class="sf-form-grid">
                                     @foreach($section->getFields() as $field)
-                                        @include('seviaflow-ui::livewire.partials.form-field', ['field' => $field, 'context' => $context, 'belongsToOptions' => $belongsToOptions, 'inlineCreateAllowed' => $inlineCreateAllowed, 'belongsToPlaceholder' => $belongsToPlaceholder])
+                                        @include('seviaflow-ui::livewire.partials.form-field', ['field' => $field, 'context' => $context, 'belongsToOptions' => $belongsToOptions, 'inlineCreateAllowed' => $inlineCreateAllowed, 'belongsToPlaceholder' => $belongsToPlaceholder, 'fileDownloadUrls' => $fileDownloadUrls, 'fileHasValues' => $fileHasValues, 'fileActions' => $fileActions])
                                     @endforeach
                                 </div>
                             </section>
@@ -49,7 +49,7 @@
                 @else
                     <div class="sf-form-grid">
                         @foreach($fields as $field)
-                            @include('seviaflow-ui::livewire.partials.form-field', ['field' => $field, 'context' => $context, 'belongsToOptions' => $belongsToOptions, 'inlineCreateAllowed' => $inlineCreateAllowed, 'belongsToPlaceholder' => $belongsToPlaceholder])
+                            @include('seviaflow-ui::livewire.partials.form-field', ['field' => $field, 'context' => $context, 'belongsToOptions' => $belongsToOptions, 'inlineCreateAllowed' => $inlineCreateAllowed, 'belongsToPlaceholder' => $belongsToPlaceholder, 'fileDownloadUrls' => $fileDownloadUrls, 'fileHasValues' => $fileHasValues, 'fileActions' => $fileActions])
                         @endforeach
                     </div>
                 @endif
@@ -83,6 +83,9 @@
                             'context' => \SeviaFlow\Core\Resources\ResourceContext::Create,
                             'belongsToOptions' => $inlineCreateState['belongsToOptions'],
                             'belongsToPlaceholder' => [],
+                            'fileDownloadUrls' => [],
+                            'fileHasValues' => [],
+                            'fileActions' => [],
                             'modelPath' => 'inlineCreateValues',
                         ])
                     @endforeach

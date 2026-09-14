@@ -20,6 +20,7 @@ use SeviaFlow\Core\Operations\ResourceOperationContext;
 use SeviaFlow\Core\Operations\ResourceOperationService;
 use SeviaFlow\Core\Resources\Fields\BelongsToField;
 use SeviaFlow\Core\Resources\Fields\Field;
+use SeviaFlow\Core\Resources\Fields\FileField;
 use SeviaFlow\Core\Resources\Form;
 use SeviaFlow\Core\Resources\ResourceAuthorization;
 use SeviaFlow\Core\Resources\ResourceContext;
@@ -60,6 +61,11 @@ final class ResourceForm extends Component
      * @var array<string, mixed>
      */
     public array $fieldValues = [];
+
+    /**
+     * @var array<string, string>
+     */
+    public array $fileActions = [];
 
     /**
      * @var array<string, string>
@@ -121,6 +127,8 @@ final class ResourceForm extends Component
             'belongsToPlaceholder' => $this->belongsToPlaceholderMap(),
             'inlineCreateAllowed' => $this->inlineCreateAllowedMap(),
             'inlineCreateState' => $this->inlineCreateState(),
+            'fileDownloadUrls' => $this->fileDownloadUrls(),
+            'fileHasValues' => $this->fileHasValues(),
             'context' => $this->context(),
             'cancelUrl' => route(config('seviaflow-ui.route_name_prefix', 'seviaflow.').'resources.index', [
                 'resource' => $this->resourceSlug,
@@ -146,6 +154,7 @@ final class ResourceForm extends Component
 
         $model = $this->record ?? new $this->modelClass;
         $fieldValues = is_array($validated['fieldValues'] ?? null) ? $validated['fieldValues'] : [];
+        $fieldValues = $this->applyFileActions($fieldValues);
         $this->statusMessage = null;
 
         try {
@@ -202,6 +211,34 @@ final class ResourceForm extends Component
                 $this->fieldValues[$field->name()] = '';
             }
         }
+    }
+
+    public function removeFile(string $fieldName): void
+    {
+        if (! $this->record instanceof Model || ! $this->authorization()->canUpdate(null, $this->record)) {
+            abort(403);
+        }
+
+        if (! $this->isVisibleFileField($fieldName)) {
+            return;
+        }
+
+        $this->fileActions[$fieldName] = 'remove';
+        $this->fieldValues[$fieldName] = null;
+    }
+
+    public function retainFile(string $fieldName): void
+    {
+        if (! $this->record instanceof Model || ! $this->authorization()->canUpdate(null, $this->record)) {
+            abort(403);
+        }
+
+        if (! $this->isVisibleFileField($fieldName)) {
+            return;
+        }
+
+        $this->fileActions[$fieldName] = 'retain';
+        $this->fieldValues[$fieldName] = null;
     }
 
     public function beginInlineCreate(string $fieldName): void
@@ -325,6 +362,12 @@ final class ResourceForm extends Component
     private function initializeFieldValues(): void
     {
         $this->fieldValues = $this->formStateInitializer()->initialize($this->fields(), $this->record);
+        $this->fileActions = [];
+        foreach ($this->fields() as $field) {
+            if ($field instanceof FileField) {
+                $this->fileActions[$field->name()] = 'retain';
+            }
+        }
         $this->belongsToSearch = [];
         $this->inlineCreateFieldName = null;
         $this->inlineCreateValues = [];
@@ -376,6 +419,91 @@ final class ResourceForm extends Component
     private function formValidationRules(): FormValidationRules
     {
         return new FormValidationRules($this->formFields());
+    }
+
+    /**
+     * @param  array<string, mixed>  $fieldValues
+     * @return array<string, mixed>
+     */
+    private function applyFileActions(array $fieldValues): array
+    {
+        foreach ($this->fileActions as $fieldName => $action) {
+            if ($action !== 'remove' || ! array_key_exists($fieldName, $fieldValues) || $fieldValues[$fieldName] !== null) {
+                continue;
+            }
+
+            foreach ($this->fields() as $field) {
+                if ($field instanceof FileField && $field->name() === $fieldName) {
+                    $fieldValues[$fieldName] = ['action' => 'remove'];
+                    break;
+                }
+            }
+        }
+
+        return $fieldValues;
+    }
+
+    /**
+     * @return array<string, bool>
+     */
+    private function fileHasValues(): array
+    {
+        $values = [];
+
+        foreach ($this->fields() as $field) {
+            if (! $field instanceof FileField) {
+                continue;
+            }
+
+            $value = $this->record?->getAttribute($field->name());
+            $values[$field->name()] = is_string($value) && trim($value) !== '';
+        }
+
+        return $values;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function fileDownloadUrls(): array
+    {
+        if (! $this->record instanceof Model) {
+            return [];
+        }
+
+        $urls = [];
+        foreach ($this->visibleFields() as $field) {
+            if (! $field instanceof FileField || ! $field->canRead(auth()->user(), $this->record)) {
+                continue;
+            }
+
+            $value = $this->record->getAttribute($field->name());
+            if (! is_string($value) || trim($value) === '') {
+                continue;
+            }
+
+            $urls[$field->name()] = route(
+                config('seviaflow-ui.route_name_prefix', 'seviaflow.').'resources.files.download',
+                [
+                    'resource' => $this->resourceSlug,
+                    'record' => $this->record->getKey(),
+                    'field' => $field->name(),
+                ]
+            );
+        }
+
+        return $urls;
+    }
+
+    private function isVisibleFileField(string $fieldName): bool
+    {
+        foreach ($this->visibleFields() as $field) {
+            if ($field instanceof FileField && $field->name() === $fieldName) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function formPersistence(): FormPersistence

@@ -7,6 +7,7 @@ use SeviaFlow\Ui\Http\Controllers\Auth\ForgotPasswordController;
 use SeviaFlow\Ui\Http\Controllers\Auth\LoginController;
 use SeviaFlow\Ui\Http\Controllers\Auth\ProfileController;
 use SeviaFlow\Ui\Http\Controllers\Auth\ResetPasswordController;
+use SeviaFlow\Ui\Http\Controllers\ResourceFileController;
 use SeviaFlow\Ui\Livewire\AdminUserIndex;
 use SeviaFlow\Ui\Livewire\AdminUserRolesForm;
 use SeviaFlow\Ui\Livewire\Dashboard;
@@ -93,6 +94,8 @@ Route::prefix(config('seviaflow-ui.route_prefix', 'admin'))
                 ->name('resources.create');
             Route::get('/resources/{resource}/{record}/edit', ResourceForm::class)
                 ->name('resources.edit');
+            Route::get('/resources/{resource}/{record}/files/{field}', [ResourceFileController::class, 'download'])
+                ->name('resources.files.download');
             Route::get('/resources/{resource}/{record}', ResourceShow::class)
                 ->name('resources.show');
             Route::get('/resources/{resource}', ResourceIndex::class)

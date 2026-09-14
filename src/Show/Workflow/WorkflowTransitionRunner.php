@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SeviaFlow\Ui\Show\Workflow;
 
 use Illuminate\Database\Eloquent\Model;
+use SeviaFlow\Core\Exceptions\WorkflowTransitionConflictException;
 use SeviaFlow\Core\Resources\Resource;
 use SeviaFlow\Core\Resources\Workflows\Transition;
 use SeviaFlow\Core\Resources\Workflows\Workflow;
@@ -81,6 +82,8 @@ final class WorkflowTransitionRunner
                 clearComment: true,
                 refreshRecord: true
             );
+        } catch (WorkflowTransitionConflictException $exception) {
+            return $this->result(errorMessage: $exception->getMessage());
         } catch (Throwable $exception) {
             report($exception);
 

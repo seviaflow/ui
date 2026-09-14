@@ -15,7 +15,10 @@ final class WorkflowTimelineResolver
      */
     public function resolve(Model $record, int $limit = 10): Collection
     {
-        return WorkflowActivity::query()
+        $activity = new WorkflowActivity;
+        $activity->setConnection($record->getConnectionName());
+
+        return $activity->newQuery()
             ->forRecord($record)
             ->orderByDesc('created_at')
             ->limit($limit)

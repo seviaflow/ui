@@ -6,6 +6,9 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
+use SeviaFlow\Core\Resources\Fields\FileField;
+use SeviaFlow\Core\Resources\Form;
+use SeviaFlow\Core\Resources\Resource;
 use SeviaFlow\Ui\Livewire\ResourceForm;
 
 require __DIR__.'/../Support/ResourceFormSetup.php';
@@ -210,6 +213,53 @@ it('edit with no new file keeps existing path', function (): void {
         ->and($user->name)->toBe('Upload Edit Keep Updated');
 });
 
+it('removes an existing file through the explicit form action', function (): void {
+    Storage::fake('public');
+    Storage::disk('public')->put('documents/removable.pdf', 'old');
+    $user = FormUser::query()->create([
+        'name' => 'Upload Remove',
+        'document_path' => 'documents/removable.pdf',
+    ]);
+
+    Livewire::test(ResourceForm::class, ['resource' => 'upload-form-users', 'record' => $user->getKey()])
+        ->call('removeFile', 'document_path')
+        ->call('save')
+        ->assertHasNoErrors();
+
+    $user->refresh();
+
+    expect($user->document_path)->toBeNull();
+    Storage::disk('public')->assertMissing('documents/removable.pdf');
+});
+
+it('downloads a public file through the authorized file route', function (): void {
+    Storage::fake('public');
+    Storage::disk('public')->put('documents/download.pdf', 'download');
+    $user = FormUser::query()->create([
+        'name' => 'Upload Download',
+        'document_path' => 'documents/download.pdf',
+    ]);
+
+    pest_test_case()->get('/admin/resources/upload-form-users/'.$user->getKey().'/files/document_path')
+        ->assertOk();
+});
+
+it('blocks private file downloads without an explicit read authorization', function (): void {
+    Storage::fake('public');
+    Storage::disk('public')->put('documents/private.pdf', 'private');
+    $user = FormUser::query()->create([
+        'name' => 'Upload Private',
+        'document_path' => 'documents/private.pdf',
+    ]);
+    config()->set('seviaflow.resources', array_merge(
+        (array) config('seviaflow.resources', []),
+        ['private-upload-users' => PrivateUploadFormUserResource::class]
+    ));
+
+    pest_test_case()->get('/admin/resources/private-upload-users/'.$user->getKey().'/files/document_path')
+        ->assertForbidden();
+});
+
 it('hidden readonly and disabled file fields are not persisted when tampered', function (): void {
     Storage::fake('public');
     $originalPath = UploadedFile::fake()->create('original.pdf', 20, 'application/pdf')->store('documents', 'public');
@@ -232,3 +282,18 @@ it('hidden readonly and disabled file fields are not persisted when tampered', f
     expect((string) $user->document_path)->toBe($originalPath)
         ->and($user->name)->toBe('Upload Context Updated');
 });
+
+final class PrivateUploadFormUserResource extends Resource
+{
+    protected static string $model = FormUser::class;
+
+    public static function form(Form $form): Form
+    {
+        return $form->fields([
+            FileField::make('document_path')
+                ->disk('public')
+                ->directory('documents')
+                ->visibility(FileField::VISIBILITY_PRIVATE),
+        ]);
+    }
+}
