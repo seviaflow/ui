@@ -495,6 +495,8 @@ final class ResourceIndex extends Component
             resourceClass: $this->resource,
             import: $this->importContext()->definition($this->resource),
             maxRows: max(1, (int) config('seviaflow.import.max_rows', 1000)),
+            user: auth()->user(),
+            request: request(),
         );
         if ($run['result'] === null) {
             $this->errorMessage = $run['message'];

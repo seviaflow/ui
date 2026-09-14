@@ -94,7 +94,9 @@ final class BulkActionRunner
                 shouldClearSelection: true,
                 shouldResetPage: true
             );
-        } catch (Throwable) {
+        } catch (Throwable $exception) {
+            report($exception);
+
             return $this->result(errorMessage: $action->getErrorMessage() ?? 'The bulk action could not be completed.');
         }
     }

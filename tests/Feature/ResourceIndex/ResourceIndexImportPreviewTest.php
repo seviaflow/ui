@@ -323,10 +323,12 @@ it('import fires creating and created with source import', function (): void {
 
     expect(ImportEventTracker::$events)->toHaveCount(4)
         ->and(ImportEventTracker::$events[0]['event'])->toBe('creating')
-        ->and(ImportEventTracker::$events[1]['event'])->toBe('created')
+        ->and(ImportEventTracker::$events[1]['event'])->toBe('creating')
         ->and(ImportEventTracker::$events[0]['source'])->toBe('import')
         ->and(ImportEventTracker::$events[0]['row'])->toBe(1)
-        ->and(ImportEventTracker::$events[2]['row'])->toBe(2);
+        ->and(ImportEventTracker::$events[1]['row'])->toBe(2)
+        ->and(ImportEventTracker::$events[2]['event'])->toBe('created')
+        ->and(ImportEventTracker::$events[3]['event'])->toBe('created');
 });
 
 it('imports through event callbacks without closure scope runtime errors', function (): void {

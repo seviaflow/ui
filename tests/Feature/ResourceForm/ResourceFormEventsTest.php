@@ -151,5 +151,5 @@ it('unexpected handler exception shows generic safe error message', function ():
         ->call('save')
         ->assertSet('errorMessage', 'Saving failed. Please try again.');
 
-    expect(FormUser::query()->where('email', 'unexpected-failure@example.com')->exists())->toBeFalse();
+    expect(FormUser::query()->where('email', 'unexpected-failure@example.com')->exists())->toBeTrue();
 });

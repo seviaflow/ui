@@ -16,11 +16,14 @@ use SeviaFlow\Core\Forms\FormFields;
 use SeviaFlow\Core\Forms\FormPersistence;
 use SeviaFlow\Core\Forms\FormStateInitializer;
 use SeviaFlow\Core\Forms\FormValidationRules;
+use SeviaFlow\Core\Operations\ResourceOperationContext;
+use SeviaFlow\Core\Operations\ResourceOperationService;
 use SeviaFlow\Core\Resources\Fields\BelongsToField;
 use SeviaFlow\Core\Resources\Fields\Field;
 use SeviaFlow\Core\Resources\Form;
 use SeviaFlow\Core\Resources\ResourceAuthorization;
 use SeviaFlow\Core\Resources\ResourceContext;
+use SeviaFlow\Core\Resources\ResourceEventContext;
 use SeviaFlow\Core\Resources\ResourceRegistry;
 use SeviaFlow\Core\Resources\ResourceScopedQuery;
 use SeviaFlow\Core\Resources\Section;
@@ -261,11 +264,18 @@ final class ResourceForm extends Component
         $values = is_array($validated['inlineCreateValues'] ?? null) ? $validated['inlineCreateValues'] : [];
         $model = new $modelClass;
 
-        $created = $this->formPersistence()->persist(
-            $model,
-            $fields,
-            $values,
-            ResourceContext::Create
+        $created = $this->operationService()->execute(
+            resourceClass: $resourceClass,
+            resourceSlug: $this->resourceSlugForClass($resourceClass),
+            model: $model,
+            fields: $fields,
+            values: $values,
+            context: ResourceContext::Create,
+            operationContext: new ResourceOperationContext(
+                actor: auth()->user(),
+                source: ResourceEventContext::SOURCE_INLINE_CREATE,
+                request: request(),
+            ),
         );
 
         $this->fieldValues[$field->name()] = (string) $created->getKey();
@@ -373,6 +383,11 @@ final class ResourceForm extends Component
         return new FormPersistence($this->formFields());
     }
 
+    private function operationService(): ResourceOperationService
+    {
+        return new ResourceOperationService($this->formFields());
+    }
+
     private function authorization(): ResourceAuthorization
     {
         return ResourceAuthorization::for($this->resource);
@@ -381,6 +396,20 @@ final class ResourceForm extends Component
     private function belongsToFieldOptions(): BelongsToFieldOptions
     {
         return new BelongsToFieldOptions;
+    }
+
+    /**
+     * @param  class-string<\SeviaFlow\Core\Resources\Resource>  $resourceClass
+     */
+    private function resourceSlugForClass(string $resourceClass): string
+    {
+        foreach ((array) config('seviaflow.resources', []) as $slug => $class) {
+            if (is_string($slug) && $class === $resourceClass) {
+                return $slug;
+            }
+        }
+
+        return $resourceClass;
     }
 
     /**

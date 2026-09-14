@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace SeviaFlow\Ui\Index\Import;
 
+use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use InvalidArgumentException;
 use LogicException;
 use SeviaFlow\Core\Import\CsvImportExecutor;
 use SeviaFlow\Core\Resources\ImportResource;
 use SeviaFlow\Core\Resources\Resource;
+use Throwable;
 
 final class ImportExecutionRunner
 {
@@ -30,8 +32,14 @@ final class ImportExecutionRunner
      *   }|null
      * }
      */
-    public function run(mixed $importFile, string $resourceClass, ImportResource $import, int $maxRows): array
-    {
+    public function run(
+        mixed $importFile,
+        string $resourceClass,
+        ImportResource $import,
+        int $maxRows,
+        mixed $user = null,
+        ?Request $request = null,
+    ): array {
         if (! $importFile instanceof UploadedFile) {
             return ['ok' => false, 'message' => 'A valid CSV file is required.', 'result' => null];
         }
@@ -42,11 +50,21 @@ final class ImportExecutionRunner
                 import: $import,
                 path: $importFile->getRealPath() ?: '',
                 maxRows: $maxRows,
+                user: $user,
+                request: $request,
             );
         } catch (InvalidArgumentException|LogicException $exception) {
             return [
                 'ok' => false,
                 'message' => $exception->getMessage(),
+                'result' => null,
+            ];
+        } catch (Throwable $exception) {
+            report($exception);
+
+            return [
+                'ok' => false,
+                'message' => 'Import failed. Please try again.',
                 'result' => null,
             ];
         }

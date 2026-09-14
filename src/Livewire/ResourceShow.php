@@ -24,6 +24,7 @@ use Livewire\WithPagination;
 use SeviaFlow\Core\Exceptions\ResourceSlugNotRegisteredException;
 use SeviaFlow\Core\Forms\FormFields;
 use SeviaFlow\Core\Forms\FormValidationRules;
+use SeviaFlow\Core\Operations\ResourceOperationContext;
 use SeviaFlow\Core\Resources\Action;
 use SeviaFlow\Core\Resources\Columns\BadgeColumn;
 use SeviaFlow\Core\Resources\Columns\BelongsToColumn;
@@ -45,10 +46,12 @@ use SeviaFlow\Core\Resources\Relations\MorphOneRelation;
 use SeviaFlow\Core\Resources\Relations\MorphToManyRelation;
 use SeviaFlow\Core\Resources\ResourceAuthorization;
 use SeviaFlow\Core\Resources\ResourceContext;
+use SeviaFlow\Core\Resources\ResourceEventContext;
 use SeviaFlow\Core\Resources\ResourceRegistry;
 use SeviaFlow\Core\Resources\ResourceScopedQuery;
 use SeviaFlow\Core\Resources\Section;
 use SeviaFlow\Core\Resources\Table;
+use SeviaFlow\Core\Support\SensitiveDataPolicy;
 use SeviaFlow\Ui\Show\Actions\ShowActionResolver;
 use SeviaFlow\Ui\Show\Actions\ShowActionRunner;
 use SeviaFlow\Ui\Show\Relations\BelongsToManyRelationManager;
@@ -675,7 +678,31 @@ final class ResourceShow extends Component
         }
 
         $context = $this->relationModalMode === 'edit' ? ResourceContext::Edit : ResourceContext::Create;
-        $rules = $this->formValidationRules()->build($fields, $context, $modelClass, 'relationModalValues', $this->relationModalValues);
+        $existingRecord = null;
+        if ($this->relationModalMode === 'edit') {
+            $existingRecord = $relation instanceof HasManyRelation || $relation instanceof MorphManyRelation
+                ? $this->resolveHasManyRecord($relation, (string) $this->relationModalRecordId)
+                : $this->resolveHasOneRecordById($relation, (string) $this->relationModalRecordId);
+
+            if (! $existingRecord instanceof Model) {
+                $this->errorMessage = 'The selected related record is not available.';
+
+                return;
+            }
+
+            if (! ResourceAuthorization::for($resourceClass)->canUpdate(null, $existingRecord)) {
+                abort(403);
+            }
+        }
+
+        $rules = $this->formValidationRules()->build(
+            $fields,
+            $context,
+            $modelClass,
+            'relationModalValues',
+            $this->relationModalValues,
+            $existingRecord,
+        );
         $values = $this->relationModalValues;
 
         if ($rules !== []) {
@@ -694,21 +721,24 @@ final class ResourceShow extends Component
                 return;
             }
 
-            $record = $relation instanceof HasManyRelation || $relation instanceof MorphManyRelation
-                ? $this->resolveHasManyRecord($relation, (string) $this->relationModalRecordId)
-                : $this->resolveHasOneRecordById($relation, (string) $this->relationModalRecordId);
-            if (! $record instanceof Model) {
+            if (! $existingRecord instanceof Model) {
                 $this->errorMessage = 'The selected related record is not available.';
 
                 return;
             }
 
-            if (! ResourceAuthorization::for($resourceClass)->canUpdate(null, $record)) {
-                abort(403);
-            }
-
-            $this->relationModalFormHandler()->fillModelWithPersistableValues($record, $fields, $values, ResourceContext::Edit);
-            $record->save();
+            $this->relationModalFormHandler()->updateRelatedRecord(
+                resourceClass: $resourceClass,
+                resourceSlug: $this->resourceSlugForClass($resourceClass) ?? $resourceClass,
+                model: $existingRecord,
+                fields: $fields,
+                values: $values,
+                operationContext: new ResourceOperationContext(
+                    actor: auth()->user(),
+                    source: ResourceEventContext::SOURCE_RELATION,
+                    request: request(),
+                ),
+            );
             $this->statusMessage = 'Related record updated successfully.';
             $this->cancelRelationModal();
 
@@ -737,7 +767,19 @@ final class ResourceShow extends Component
             $relationship = $this->hasManyRelationship($relation);
         }
 
-        $this->relationModalFormHandler()->createRelatedRecord($relationship, $modelClass, $fields, $values);
+        $this->relationModalFormHandler()->createRelatedRecord(
+            relationship: $relationship,
+            modelClass: $modelClass,
+            fields: $fields,
+            values: $values,
+            resourceClass: $resourceClass,
+            resourceSlug: $this->resourceSlugForClass($resourceClass) ?? $resourceClass,
+            operationContext: new ResourceOperationContext(
+                actor: auth()->user(),
+                source: ResourceEventContext::SOURCE_RELATION,
+                request: request(),
+            ),
+        );
         $this->statusMessage = 'Related record created successfully.';
         $this->cancelRelationModal();
     }
@@ -902,7 +944,7 @@ final class ResourceShow extends Component
 
     private function formatFieldValue(Field $field): string
     {
-        if (! $this->record instanceof Model) {
+        if (! $this->record instanceof Model || SensitiveDataPolicy::isSensitive($field->name())) {
             return '—';
         }
 

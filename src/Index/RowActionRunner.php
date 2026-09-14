@@ -56,7 +56,9 @@ final class RowActionRunner
             return $this->result(
                 statusMessage: $action->getSuccessMessage() ?? 'Action completed successfully.'
             );
-        } catch (Throwable) {
+        } catch (Throwable $exception) {
+            report($exception);
+
             return $this->result(errorMessage: $action->getErrorMessage() ?? 'The action could not be completed.');
         }
     }

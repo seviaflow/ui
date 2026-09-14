@@ -9,6 +9,7 @@ use Illuminate\Support\Collection;
 use SeviaFlow\Core\Resources\ExportField;
 use SeviaFlow\Core\Resources\ExportResource;
 use SeviaFlow\Core\Resources\Resource;
+use SeviaFlow\Core\Support\SensitiveDataPolicy;
 use SeviaFlow\Core\Tables\ResourceTableQuery;
 
 final class ExportContext
@@ -21,7 +22,7 @@ final class ExportContext
         $export = $this->definition($resourceClass);
 
         return $export->isEnabled()
-            && $export->getAllowedFields() !== []
+            && $this->fields($resourceClass) !== []
             && $canViewAny;
     }
 
@@ -31,7 +32,10 @@ final class ExportContext
      */
     public function fields(string $resourceClass): array
     {
-        return $this->definition($resourceClass)->getAllowedFields();
+        return array_values(array_filter(
+            $this->definition($resourceClass)->getAllowedFields(),
+            static fn (ExportField $field): bool => ! SensitiveDataPolicy::isSensitive($field->name())
+        ));
     }
 
     /**
@@ -83,6 +87,10 @@ final class ExportContext
         foreach ($records as $record) {
             $row = [];
             foreach ($selectedFieldNames as $fieldName) {
+                if (SensitiveDataPolicy::isSensitive($fieldName)) {
+                    continue;
+                }
+
                 $row[] = data_get($record, $fieldName);
             }
             $rows[] = $row;

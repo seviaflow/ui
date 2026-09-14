@@ -11,12 +11,17 @@ use SeviaFlow\Core\Resources\Columns\BooleanColumn;
 use SeviaFlow\Core\Resources\Columns\Column;
 use SeviaFlow\Core\Resources\Columns\MoneyColumn;
 use SeviaFlow\Core\Resources\Columns\Support\BadgeRenderer;
+use SeviaFlow\Core\Support\SensitiveDataPolicy;
 use SeviaFlow\Ui\Support\MoneyFormatter;
 
 final class TableValueFormatter
 {
     public function format(Model $record, Column $column): string
     {
+        if (SensitiveDataPolicy::isSensitive($column->name())) {
+            return '—';
+        }
+
         if ($column instanceof BelongsToColumn) {
             $related = $record->getRelationValue($column->getRelationshipName());
 

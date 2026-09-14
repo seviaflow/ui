@@ -11,40 +11,31 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\Relations\MorphOne;
 use SeviaFlow\Core\Forms\BelongsToFieldOptions;
 use SeviaFlow\Core\Forms\FormFields;
+use SeviaFlow\Core\Forms\FormStateInitializer;
+use SeviaFlow\Core\Operations\ResourceOperationContext;
+use SeviaFlow\Core\Operations\ResourceOperationService;
 use SeviaFlow\Core\Resources\Fields\Field;
-use SeviaFlow\Core\Resources\Fields\NumberField;
-use SeviaFlow\Core\Resources\Fields\ToggleField;
 use SeviaFlow\Core\Resources\Form;
 use SeviaFlow\Core\Resources\Relations\HasManyRelation;
 use SeviaFlow\Core\Resources\Relations\HasOneRelation;
 use SeviaFlow\Core\Resources\Relations\MorphManyRelation;
 use SeviaFlow\Core\Resources\Relations\MorphOneRelation;
 use SeviaFlow\Core\Resources\ResourceContext;
+use SeviaFlow\Core\Resources\ResourceEventContext;
 
 final class RelationModalFormHandler
 {
+    public function __construct(
+        private readonly ResourceOperationService $operationService = new ResourceOperationService,
+    ) {}
+
     /**
      * @param  array<int, Field>  $fields
      * @return array<string, mixed>
      */
     public function initializeValuesFromFields(array $fields, ?Model $record): array
     {
-        $values = [];
-
-        foreach ($fields as $field) {
-            $name = $field->name();
-            $value = $record?->getAttribute($name);
-
-            if ($field instanceof ToggleField) {
-                $values[$name] = (bool) $value;
-
-                continue;
-            }
-
-            $values[$name] = $value === null ? '' : (string) $value;
-        }
-
-        return $values;
+        return (new FormStateInitializer)->initialize($fields, $record);
     }
 
     /**
@@ -74,48 +65,73 @@ final class RelationModalFormHandler
      */
     public function fillModelWithPersistableValues(Model $model, array $fields, array $values, ResourceContext $context): void
     {
-        foreach ((new FormFields)->persistable($fields, $context) as $field) {
-            $value = $values[$field->name()] ?? null;
-
-            if ($field instanceof ToggleField) {
-                $model->setAttribute($field->name(), (bool) $value);
-
-                continue;
-            }
-
-            if ($field instanceof NumberField) {
-                if ($value === null || $value === '') {
-                    $model->setAttribute($field->name(), null);
-
-                    continue;
-                }
-
-                if (is_int($value) || is_float($value)) {
-                    $model->setAttribute($field->name(), $value);
-
-                    continue;
-                }
-
-                $model->setAttribute($field->name(), str_contains((string) $value, '.') ? (float) $value : (int) $value);
-
-                continue;
-            }
-
-            $model->setAttribute($field->name(), $value === '' ? null : $value);
-        }
+        $this->operationService->applyValues($model, $fields, $values, $context);
     }
 
     /**
      * @param  class-string<Model>  $modelClass
      * @param  array<int, Field>  $fields
      * @param  array<string, mixed>  $values
+     * @param  class-string<\SeviaFlow\Core\Resources\Resource>|null  $resourceClass
      */
-    public function createRelatedRecord(HasOne|HasMany|MorphOne|MorphMany $relationship, string $modelClass, array $fields, array $values): Model
-    {
+    public function createRelatedRecord(
+        HasOne|HasMany|MorphOne|MorphMany $relationship,
+        string $modelClass,
+        array $fields,
+        array $values,
+        ?string $resourceClass = null,
+        ?string $resourceSlug = null,
+        ?ResourceOperationContext $operationContext = null,
+    ): Model {
         $model = new $modelClass;
-        $this->fillModelWithPersistableValues($model, $fields, $values, ResourceContext::Create);
-        $relationship->save($model);
 
-        return $model;
+        if ($resourceClass === null) {
+            $this->fillModelWithPersistableValues($model, $fields, $values, ResourceContext::Create);
+            $relationship->save($model);
+
+            return $model;
+        }
+
+        $operationContext ??= new ResourceOperationContext(
+            source: ResourceEventContext::SOURCE_RELATION,
+        );
+
+        return $this->operationService->execute(
+            resourceClass: $resourceClass,
+            resourceSlug: $resourceSlug ?? $resourceClass,
+            model: $model,
+            fields: $fields,
+            values: $values,
+            context: ResourceContext::Create,
+            operationContext: $operationContext,
+            save: static function (Model $record) use ($relationship): void {
+                $relationship->save($record);
+            },
+        );
+    }
+
+    /**
+     * @param  class-string<\SeviaFlow\Core\Resources\Resource>  $resourceClass
+     * @param  array<int, Field>  $fields
+     * @param  array<string, mixed>  $values
+     */
+    public function updateRelatedRecord(
+        string $resourceClass,
+        string $resourceSlug,
+        Model $model,
+        array $fields,
+        array $values,
+        ResourceOperationContext $operationContext,
+    ): Model {
+        return $this->operationService->execute(
+            resourceClass: $resourceClass,
+            resourceSlug: $resourceSlug,
+            model: $model,
+            fields: $fields,
+            values: $values,
+            context: ResourceContext::Edit,
+            operationContext: $operationContext,
+        );
+
     }
 }
