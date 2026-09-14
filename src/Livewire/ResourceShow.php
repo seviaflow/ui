@@ -16,7 +16,6 @@ use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Stringable;
 use InvalidArgumentException;
 use Livewire\Attributes\Locked;
 use Livewire\Component;
@@ -32,11 +31,7 @@ use SeviaFlow\Core\Resources\Columns\BooleanColumn;
 use SeviaFlow\Core\Resources\Columns\Column;
 use SeviaFlow\Core\Resources\Columns\MoneyColumn;
 use SeviaFlow\Core\Resources\Columns\Support\BadgeRenderer;
-use SeviaFlow\Core\Resources\Fields\DateField;
 use SeviaFlow\Core\Resources\Fields\Field;
-use SeviaFlow\Core\Resources\Fields\MoneyField;
-use SeviaFlow\Core\Resources\Fields\SelectField;
-use SeviaFlow\Core\Resources\Fields\ToggleField;
 use SeviaFlow\Core\Resources\Form;
 use SeviaFlow\Core\Resources\Relations\BelongsToManyRelation;
 use SeviaFlow\Core\Resources\Relations\HasManyRelation;
@@ -52,6 +47,7 @@ use SeviaFlow\Core\Resources\ResourceScopedQuery;
 use SeviaFlow\Core\Resources\Section;
 use SeviaFlow\Core\Resources\Table;
 use SeviaFlow\Core\Support\SensitiveDataPolicy;
+use SeviaFlow\Ui\Fields\FieldRendererRegistry;
 use SeviaFlow\Ui\Show\Actions\ShowActionResolver;
 use SeviaFlow\Ui\Show\Actions\ShowActionRunner;
 use SeviaFlow\Ui\Show\Relations\BelongsToManyRelationManager;
@@ -948,52 +944,11 @@ final class ResourceShow extends Component
             return '—';
         }
 
-        $value = $this->record->getAttribute($field->name());
-
-        if ($value === null || $value === '') {
-            return '—';
-        }
-
-        if ($field instanceof ToggleField) {
-            return (bool) $value ? 'Yes' : 'No';
-        }
-
-        if ($field instanceof MoneyField) {
-            return (new MoneyFormatter)->formatField($field, $value);
-        }
-
-        if ($field instanceof SelectField) {
-            $options = $field->getOptions();
-            $key = (string) $value;
-
-            return array_key_exists($key, $options) ? $options[$key] : $key;
-        }
-
-        if ($field instanceof DateField && method_exists($value, 'format')) {
-            return (string) $value->format('Y-m-d');
-        }
-
-        if (is_array($value)) {
-            $encoded = json_encode($value, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
-
-            return $encoded === false ? '[complex value]' : $encoded;
-        }
-
-        if (is_object($value)) {
-            if ($value instanceof Stringable || method_exists($value, '__toString')) {
-                return (string) $value;
-            }
-
-            if ($value instanceof \JsonSerializable) {
-                $encoded = json_encode($value, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
-
-                return $encoded === false ? '[complex value]' : $encoded;
-            }
-
-            return '[complex value]';
-        }
-
-        return (string) $value;
+        return app(FieldRendererRegistry::class)->render(
+            field: $field,
+            mode: 'show',
+            data: ['value' => $this->record->getAttribute($field->name()), 'record' => $this->record],
+        );
     }
 
     private function resourceLabel(): string

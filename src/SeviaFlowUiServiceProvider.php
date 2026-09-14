@@ -9,6 +9,7 @@ use Illuminate\Routing\Router;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Livewire\Livewire;
+use SeviaFlow\Core\Resources\Fields\NumberField;
 use SeviaFlow\Core\Resources\ResourceRegistry;
 use SeviaFlow\Core\Support\Cache\CacheParticipant;
 use SeviaFlow\Core\Support\Capabilities\CapabilityRegistry;
@@ -20,6 +21,7 @@ use SeviaFlow\Ui\Dashboard\Layouts\SavedDashboardLayoutStore;
 use SeviaFlow\Ui\Dashboard\Layouts\SavedDashboardRepository;
 use SeviaFlow\Ui\Dashboard\Widgets\DashboardWidgetResolver;
 use SeviaFlow\Ui\Dashboard\Widgets\WidgetCache;
+use SeviaFlow\Ui\Fields\FieldRendererRegistry;
 use SeviaFlow\Ui\Http\Middleware\AdminAuthenticate;
 use SeviaFlow\Ui\Http\Middleware\AdminRedirectIfAuthenticated;
 use SeviaFlow\Ui\Navigation\NavigationContributor;
@@ -38,6 +40,7 @@ final class SeviaFlowUiServiceProvider extends ServiceProvider
         $this->registerDashboardBindings();
         $this->registerNavigationBindings();
         $this->registerCacheParticipants();
+        $this->registerFieldRendererBindings();
     }
 
     public function boot(CapabilityRegistry $capabilities): void
@@ -143,6 +146,43 @@ final class SeviaFlowUiServiceProvider extends ServiceProvider
             DashboardSummaryCacheParticipant::class,
             DashboardWidgetCacheParticipant::class,
         ], CacheParticipant::class);
+    }
+
+    private function registerFieldRendererBindings(): void
+    {
+        $this->app->singleton(FieldRendererRegistry::class, function (): FieldRendererRegistry {
+            $registry = new FieldRendererRegistry;
+            $inputView = 'seviaflow-ui::fields.controls.input';
+            $showView = 'seviaflow-ui::fields.show.value';
+
+            $registry
+                ->register('text', $inputView, $showView, $showView, ['inputType' => 'text'])
+                ->register('email', $inputView, $showView, $showView, ['inputType' => 'email'])
+                ->register('url', $inputView, $showView, $showView, ['inputType' => 'url'])
+                ->register('phone', $inputView, $showView, $showView, ['inputType' => 'tel'])
+                ->register('slug', $inputView, $showView, $showView, ['inputType' => 'text'])
+                ->register('number', $inputView, $showView, $showView, [
+                    'inputType' => 'number',
+                    'inputAttributes' => static fn (NumberField $field): array => array_filter([
+                        'min' => $field->getMin(),
+                        'max' => $field->getMax(),
+                    ], static fn (mixed $value): bool => $value !== null),
+                ])
+                ->register('date', $inputView, 'seviaflow-ui::fields.show.date', $showView, ['inputType' => 'date'])
+                ->register('datetime', $inputView, $showView, $showView, ['inputType' => 'datetime-local'])
+                ->register('time', $inputView, $showView, $showView, ['inputType' => 'time'])
+                ->register('password', $inputView, $showView, $showView, ['inputType' => 'password'])
+                ->register('textarea', 'seviaflow-ui::fields.controls.textarea', $showView, $showView)
+                ->register('toggle', 'seviaflow-ui::fields.controls.toggle', 'seviaflow-ui::fields.show.toggle', 'seviaflow-ui::fields.show.toggle')
+                ->register('select', 'seviaflow-ui::fields.controls.select', 'seviaflow-ui::fields.show.select', $showView)
+                ->register('multiselect', 'seviaflow-ui::fields.controls.multiselect', $showView, $showView)
+                ->register('belongs-to', 'seviaflow-ui::fields.controls.belongs-to', $showView, $showView)
+                ->register('file', 'seviaflow-ui::fields.controls.file', $showView, $showView)
+                ->register('image', 'seviaflow-ui::fields.controls.file', $showView, $showView)
+                ->register('money', 'seviaflow-ui::fields.controls.money', 'seviaflow-ui::fields.show.money', 'seviaflow-ui::fields.show.money');
+
+            return $registry;
+        });
     }
 
     private function registerMiddlewareAliases(): void
