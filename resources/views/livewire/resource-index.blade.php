@@ -57,14 +57,33 @@
                             Create
                         </a>
                     @endif
-                    @if($canExport)
-                        <button type="button" wire:click="openExportModal" data-sf-modal-target="sf-resource-export" class="sf-button sf-button-secondary" aria-controls="sf-resource-export" aria-expanded="false">
-                            Export
-                        </button>
+                    @if($canExport || $canImport)
+                        <details class="sf-toolbar-menu">
+                            <summary class="sf-button sf-button-secondary">More actions</summary>
+                            <div class="sf-toolbar-menu-panel">
+                                @if($canExport)
+                                    <button type="button" wire:click="openExportModal" data-sf-modal-target="sf-resource-export" class="sf-button sf-button-secondary" aria-controls="sf-resource-export" aria-expanded="false">
+                                        Export
+                                    </button>
+                                @endif
+                                @if($canImport)
+                                    <button type="button" wire:click="openImportModal" data-sf-modal-target="sf-resource-import" class="sf-button sf-button-secondary" aria-controls="sf-resource-import" aria-expanded="false">
+                                        Import
+                                    </button>
+                                @endif
+                            </div>
+                        </details>
                     @endif
-                    @if($canImport)
-                        <button type="button" wire:click="openImportModal" data-sf-modal-target="sf-resource-import" class="sf-button sf-button-secondary" aria-controls="sf-resource-import" aria-expanded="false">
-                            Import
+
+                    @if(count($columnSettings) > 0)
+                        <button
+                            type="button"
+                            class="sf-button sf-button-secondary"
+                            data-sf-drawer-target="sf-resource-columns"
+                            aria-controls="sf-resource-columns"
+                            aria-expanded="false"
+                        >
+                            Table settings
                         </button>
                     @endif
 
@@ -113,6 +132,25 @@
                     </span>
                 @endif
             </div>
+
+            @if(count($activeFilterEntries) > 0)
+                <div class="sf-resource-summary mt-3" aria-label="Active filters">
+                    <span class="sf-help">Active filters:</span>
+                    @foreach($activeFilterEntries as $activeFilter)
+                        <button
+                            type="button"
+                            wire:click="clearFilter('{{ $activeFilter['name'] }}')"
+                            class="sf-summary-pill sf-summary-pill-strong"
+                            aria-label="Remove {{ $activeFilter['label'] }} filter"
+                        >
+                            {{ $activeFilter['label'] }}: {{ $activeFilter['value'] }} ×
+                        </button>
+                    @endforeach
+                    <button type="button" wire:click="resetFilters" class="sf-button sf-button-secondary !px-2 !py-1">
+                        Reset filters
+                    </button>
+                </div>
+            @endif
         </section>
 
         <section class="sf-saved-views" aria-label="Saved views">
@@ -125,6 +163,9 @@
                             <option value="{{ $savedView->id }}">{{ $savedView->name }}</option>
                         @endforeach
                     </select>
+                    @if($savedViewModified)
+                        <p class="sf-help mt-1" role="status">Current view modified</p>
+                    @endif
                     @if($savedViews->isEmpty())
                         <p class="sf-help mt-1">No saved views yet.</p>
                     @endif
@@ -178,10 +219,13 @@
         @if($selectedCount > 0 || count($bulkActions) > 0)
             <section class="sf-panel">
                 <div class="sf-resource-actions">
-                    <span class="sf-summary-pill sf-summary-pill-strong">
-                        {{ $selectedCount }} {{ $selectedCount === 1 ? 'record' : 'records' }} selected
-                    </span>
                     @if($selectedCount > 0)
+                        <span class="sf-summary-pill sf-summary-pill-strong">
+                            {{ $selectedCount }} {{ $selectedCount === 1 ? 'record' : 'records' }} selected
+                        </span>
+                        <span class="sf-help">
+                            {{ $selectedVisibleCount }} selected on this page; bulk actions never select the full result set automatically.
+                        </span>
                         <button
                             type="button"
                             wire:click="clearSelection"
@@ -189,6 +233,8 @@
                         >
                             Clear selection
                         </button>
+                    @else
+                        <span class="sf-help">Select records on this page to enable bulk actions.</span>
                     @endif
                     @if(count($bulkActions) > 0)
                         @foreach($bulkActions as $action)
@@ -228,6 +274,7 @@
                                         'sf-button-danger' => $action->isDanger(),
                                         'sf-button-secondary' => ! $action->isDanger(),
                                     ])
+                                    @disabled($selectedCount === 0)
                                 >
                                     {{ $action->getLabel() }}
                                 </button>
@@ -324,6 +371,12 @@
 
                     <div class="sf-inset-panel text-xs">
                         Allowed fields: {{ implode(', ', $importAllowedFields) }}
+                        @if(count($importRequiredFields) > 0)
+                            <br>Required fields: {{ implode(', ', $importRequiredFields) }}
+                        @endif
+                        <button type="button" wire:click="downloadImportTemplate" class="sf-button sf-button-secondary mt-3 !px-3 !py-1.5">
+                            Download CSV template
+                        </button>
                     </div>
 
                     <div class="sf-modal-footer">
@@ -403,13 +456,24 @@
                                 id="select-all-visible"
                                 type="checkbox"
                                 wire:model.live="selectPage"
+                                aria-checked="{{ $hasPartialSelection ? 'mixed' : ($selectPage ? 'true' : 'false') }}"
+                                data-sf-partial-selection="{{ $hasPartialSelection ? 'true' : 'false' }}"
                                 class="sf-checkbox"
                             >
                         </th>
                         @foreach($columns as $column)
-                            <th scope="col" class="sf-table-header">
+                            <th
+                                scope="col"
+                                class="sf-table-header"
+                                aria-sort="{{ $sortColumn === $column->name() ? ($sortDirection === 'asc' ? 'ascending' : 'descending') : 'none' }}"
+                            >
                                 @if($column->isSortable())
-                                    <button type="button" wire:click="sortBy('{{ $column->name() }}')" class="sf-table-sort">
+                                    <button
+                                        type="button"
+                                        wire:click="sortBy('{{ $column->name() }}')"
+                                        class="sf-table-sort"
+                                        aria-label="Sort by {{ $column->getLabel() }}"
+                                    >
                                         <span>{{ $column->getLabel() }}</span>
                                         @if($sortColumn === $column->name())
                                             <span aria-hidden="true">{{ $sortDirection === 'asc' ? '▲' : '▼' }}</span>
@@ -523,6 +587,11 @@
                         <tr>
                             <td colspan="{{ max(count($columns) + 2, 1) }}" class="sf-table-empty">
                                 {{ $emptyMessage }}
+                                @if($hasActiveQuery)
+                                    <button type="button" wire:click="resetTableState" class="sf-button sf-button-secondary mt-3 !px-3 !py-1.5">
+                                        Reset list view
+                                    </button>
+                                @endif
                             </td>
                         </tr>
                     @endforelse
@@ -534,6 +603,71 @@
             </div>
         </div>
     </div>
+
+    @if(count($columnSettings) > 0)
+        <aside
+            id="sf-resource-columns"
+            class="sf-drawer"
+            role="dialog"
+            aria-modal="true"
+            aria-hidden="true"
+            aria-labelledby="sf-resource-columns-title"
+            hidden
+            data-sf-drawer
+        >
+            <div class="sf-drawer-header">
+                <div>
+                    <h2 id="sf-resource-columns-title" class="sf-drawer-title">Table settings</h2>
+                    <p class="sf-drawer-description">Choose visible columns and their order. API and export fields are unchanged.</p>
+                </div>
+                <button type="button" class="sf-drawer-close" aria-label="Close table settings" data-sf-drawer-close>
+                    <x-seviaflow-ui::icon name="x-circle" class="sf-drawer-close-icon" />
+                </button>
+            </div>
+
+            <div class="sf-drawer-body grid gap-2">
+                @foreach($columnSettings as $columnSetting)
+                    <div class="sf-resource-toolbar">
+                        <label class="sf-checkbox-label">
+                            <input
+                                type="checkbox"
+                                class="sf-checkbox"
+                                wire:click="toggleColumn('{{ $columnSetting['name'] }}')"
+                                @checked($columnSetting['visible'])
+                            >
+                            <span>{{ $columnSetting['label'] }}</span>
+                        </label>
+                        @if($columnSetting['visible'])
+                            <div class="sf-resource-actions">
+                                <button
+                                    type="button"
+                                    wire:click="moveColumnUp('{{ $columnSetting['name'] }}')"
+                                    class="sf-button sf-button-secondary !px-2 !py-1"
+                                    @disabled(! $columnSetting['can_move_up'])
+                                    aria-label="Move {{ $columnSetting['label'] }} up"
+                                >
+                                    Up
+                                </button>
+                                <button
+                                    type="button"
+                                    wire:click="moveColumnDown('{{ $columnSetting['name'] }}')"
+                                    class="sf-button sf-button-secondary !px-2 !py-1"
+                                    @disabled(! $columnSetting['can_move_down'])
+                                    aria-label="Move {{ $columnSetting['label'] }} down"
+                                >
+                                    Down
+                                </button>
+                            </div>
+                        @endif
+                    </div>
+                @endforeach
+            </div>
+
+            <div class="sf-drawer-footer">
+                <button type="button" class="sf-button sf-button-primary" data-sf-drawer-close>Done</button>
+            </div>
+        </aside>
+    @endif
 
     @if(count($filters) > 0)
         <aside

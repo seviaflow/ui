@@ -100,6 +100,8 @@ it('workflow panel state exposes transitions and timeline', function (): void {
 
     expect($panel['visible'])->toBeTrue()
         ->and($panel['currentStateLabel'])->toBe('Pending')
+        ->and($panel['primaryTransition']?->name())->toBe('cancel')
+        ->and($panel['blockedTransitions'])->toBe([])
         ->and($panel['activities']->count())->toBeGreaterThan(0);
 });
 

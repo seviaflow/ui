@@ -40,6 +40,10 @@ final class TableValueFormatter
             return '—';
         }
 
+        if (is_array($value)) {
+            return $this->formatComplexValue($value);
+        }
+
         if ($column instanceof BadgeColumn) {
             return BadgeRenderer::render($column, $value);
         }
@@ -53,5 +57,53 @@ final class TableValueFormatter
         }
 
         return e((string) $value);
+    }
+
+    /**
+     * @param  array<array-key, mixed>  $value
+     */
+    private function formatComplexValue(array $value): string
+    {
+        if ($value === []) {
+            return '—';
+        }
+
+        if (array_is_list($value)) {
+            $parts = array_map(fn (mixed $item): string => $this->complexItemSummary($item), $value);
+
+            return e(implode(', ', $parts));
+        }
+
+        $parts = [];
+        foreach ($value as $key => $item) {
+            $parts[] = (string) $key.': '.$this->complexItemSummary($item);
+        }
+
+        return e(implode(', ', $parts));
+    }
+
+    private function complexItemSummary(mixed $value, int $depth = 0): string
+    {
+        if (is_scalar($value)) {
+            return (string) $value;
+        }
+
+        if (! is_array($value) || $depth >= 2) {
+            return '[complex]';
+        }
+
+        if (array_is_list($value)) {
+            return implode(', ', array_map(
+                fn (mixed $item): string => $this->complexItemSummary($item, $depth + 1),
+                $value
+            ));
+        }
+
+        $parts = [];
+        foreach ($value as $key => $item) {
+            $parts[] = (string) $key.': '.$this->complexItemSummary($item, $depth + 1);
+        }
+
+        return implode(', ', $parts);
     }
 }

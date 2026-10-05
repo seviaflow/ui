@@ -191,7 +191,7 @@ final class FormEnabledUserResource extends Resource
     public static function table(Table $table): Table
     {
         return $table->columns([
-            TextColumn::make('name')->label('Name'),
+            TextColumn::make('name')->label('Name')->sortable(),
             TextColumn::make('email')->label('Email'),
         ]);
     }

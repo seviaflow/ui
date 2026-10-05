@@ -27,6 +27,8 @@ final class WorkflowPanelState
      *   currentStateLabel: string|null,
      *   currentStateColor: string|null,
      *   availableTransitions: array<int, Transition>,
+     *   primaryTransition: Transition|null,
+     *   blockedTransitions: array<int, Transition>,
      *   activities: Collection<int, WorkflowActivity>,
      *   userLabel: (
      *      Closure(WorkflowActivity): string
@@ -43,6 +45,8 @@ final class WorkflowPanelState
                 'currentStateLabel' => null,
                 'currentStateColor' => null,
                 'availableTransitions' => [],
+                'primaryTransition' => null,
+                'blockedTransitions' => [],
                 'activities' => collect(),
                 'userLabel' => fn (WorkflowActivity $activity): string => 'System',
             ];
@@ -52,11 +56,15 @@ final class WorkflowPanelState
         $state = $currentStateName !== null ? $workflow->getState($currentStateName) : null;
         $currentStateLabel = $state?->getLabel() ?? ($currentStateName !== null ? ucfirst(str_replace('_', ' ', $currentStateName)) : 'Unknown');
 
+        $availableTransitions = $this->transitionResolver->availableTransitions($resourceClass, $record, $user);
+
         return [
             'visible' => true,
             'currentStateLabel' => $currentStateLabel,
             'currentStateColor' => $state?->getColor(),
-            'availableTransitions' => $this->transitionResolver->availableTransitions($resourceClass, $record, $user),
+            'availableTransitions' => $availableTransitions,
+            'primaryTransition' => $availableTransitions[0] ?? null,
+            'blockedTransitions' => $this->transitionResolver->blockedTransitions($resourceClass, $record, $user),
             'activities' => $this->timelineResolver->resolve($record),
             'userLabel' => fn (WorkflowActivity $activity): string => $this->timelineResolver->userLabel($activity),
         ];

@@ -6,11 +6,15 @@ namespace SeviaFlow\Ui\Dashboard\Widgets;
 
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Contracts\Cache\Repository as CacheRepository;
-use Illuminate\Database\Eloquent\Model;
+use SeviaFlow\Ui\Support\Cache\CacheContext;
 
 final class WidgetCache
 {
     private const INDEX_KEY = 'seviaflow.dashboard.widgets.index';
+
+    public function __construct(
+        private readonly CacheContext $context = new CacheContext
+    ) {}
 
     /**
      * @template T
@@ -65,28 +69,18 @@ final class WidgetCache
         ?Authenticatable $user,
         array $context
     ): string {
-        ksort($context);
-
-        $userPart = 'guest';
-        if ($user instanceof Model) {
-            $userPart = $user->getMorphClass().':'.$user->getKey();
-        }
-
-        $configFingerprint = sha1(json_encode([
-            'cache_store' => config('seviaflow.performance.cache.store'),
-            'cache_enabled' => config('seviaflow.performance.cache.enabled', false),
-            'dashboard_cache_enabled' => config('seviaflow-ui.cache.dashboard', false),
-            'app_env' => config('app.env'),
-        ], JSON_THROW_ON_ERROR));
+        $contextFingerprint = sha1(json_encode(
+            $this->context->forActor($user, $context),
+            JSON_THROW_ON_ERROR
+        ));
 
         return sprintf(
-            'seviaflow.dashboard.widget.%s.%s.%s.%s.%s.%s',
+            'seviaflow.dashboard.widget.%s.%s.%s.%s.%s',
             $widgetType,
             $dashboardSlug ?? 'default',
             $widgetName,
-            sha1($userPart),
-            sha1(json_encode($context, JSON_THROW_ON_ERROR)),
-            $configFingerprint
+            $contextFingerprint,
+            sha1((string) config('app.env'))
         );
     }
 

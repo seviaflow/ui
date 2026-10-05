@@ -54,14 +54,20 @@ final class ExportContext
      */
     public function headings(string $resourceClass, array $selectedFieldNames): array
     {
-        $labels = [];
+        $fields = [];
 
         foreach ($this->fields($resourceClass) as $field) {
-            if (! in_array($field->name(), $selectedFieldNames, true)) {
+            $fields[$field->name()] = $field;
+        }
+
+        $labels = [];
+
+        foreach ($selectedFieldNames as $fieldName) {
+            if (! isset($fields[$fieldName])) {
                 continue;
             }
 
-            $labels[] = $field->getLabel();
+            $labels[] = $fields[$fieldName]->getLabel();
         }
 
         return $labels;

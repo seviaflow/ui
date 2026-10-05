@@ -162,6 +162,7 @@ final class WorkflowQueueWidget extends Widget
         return [
             'rows' => $resolvedRows,
             'emptyMessage' => 'No records currently need workflow attention.',
+            'indexUrl' => $this->indexUrl($workflow),
         ];
     }
 
@@ -212,6 +213,14 @@ final class WorkflowQueueWidget extends Widget
 
     private function recordIdentifier(Model $record): string
     {
+        if (is_string($this->resourceClass)) {
+            $title = $this->resourceClass::recordTitle($record);
+
+            if ($title !== null) {
+                return $title;
+            }
+        }
+
         foreach (['name', 'title', 'email'] as $attribute) {
             $value = $record->getAttribute($attribute);
             if (is_string($value) && trim($value) !== '') {
@@ -257,6 +266,25 @@ final class WorkflowQueueWidget extends Widget
             'resource' => $slug,
             'record' => $record->getKey(),
         ]);
+    }
+
+    private function indexUrl(Workflow $workflow): ?string
+    {
+        $slug = $this->resourceSlug();
+        if ($slug === null) {
+            return null;
+        }
+
+        $routeName = (string) config('seviaflow-ui.route_name_prefix', 'seviaflow.').'resources.index';
+        if (! Route::has($routeName)) {
+            return null;
+        }
+
+        $query = count($this->states) === 1
+            ? ['filter' => [$workflow->getStateField() => $this->states[0]]]
+            : [];
+
+        return route($routeName, ['resource' => $slug]).($query === [] ? '' : '?'.http_build_query($query));
     }
 
     private function resourceSlug(): ?string

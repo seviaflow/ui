@@ -96,12 +96,26 @@ it('renders filters in the contextual drawer without duplicating livewire state'
         ->assertSee('wire:click="resetFilters"', false);
 });
 
-it('does not render fake index prototype controls', function (): void {
+it('renders removable active filter chips and distinguishes an empty filtered result', function (): void {
     Livewire::test(ResourceIndex::class, ['resource' => 'filter-users'])
-        ->assertDontSee('Columns')
-        ->assertDontSee('Notifications')
-        ->assertDontSee('system-health', false)
-        ->assertDontSee('data-sf-column-manager', false);
+        ->set('filterValues.status', 'published')
+        ->assertSee('Active filters:')
+        ->assertSee('Status: Published')
+        ->assertSee('wire:click="clearFilter(\'status\')"', false)
+        ->set('search', 'no-such-record')
+        ->assertSee('No matching records found.')
+        ->assertSee('wire:click="resetTableState"', false)
+        ->call('clearFilter', 'status')
+        ->assertSet('filterValues.status', '')
+        ->assertSee('0 filters active');
+});
+
+it('renders table settings without coupling them to API or export fields', function (): void {
+    Livewire::test(ResourceIndex::class, ['resource' => 'filter-users'])
+        ->assertSee('Table settings')
+        ->assertSee('API and export fields are unchanged.')
+        ->call('toggleColumn', 'status')
+        ->assertSet('visibleColumnNames', ['name', 'email', 'is_active']);
 });
 
 it('reset filters clears filter state and preserves search value', function (): void {

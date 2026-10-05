@@ -15,7 +15,7 @@ it('resolves export contract capabilities and headings', function (): void {
         ->and($context->canExport(ExportContextEnabledResource::class, false))->toBeFalse()
         ->and($context->canExport(ExportContextDisabledResource::class, true))->toBeFalse()
         ->and($context->formats(ExportContextEnabledResource::class))->toBe(['csv'])
-        ->and($context->headings(ExportContextEnabledResource::class, ['id', 'email']))->toBe(['ID', 'Email']);
+        ->and($context->headings(ExportContextEnabledResource::class, ['email', 'id']))->toBe(['Email', 'ID']);
 });
 
 final class ExportContextEnabledResource extends Resource

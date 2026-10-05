@@ -52,11 +52,12 @@ final class RelationModalFormHandler
     /**
      * @param  array<int, Field>  $fields
      * @param  array<string, mixed>  $currentValues
+     * @param  array<string, string>  $searchTerms
      * @return array<string, array<string, string>>
      */
-    public function belongsToOptions(array $fields, string $modelClass, array $currentValues): array
+    public function belongsToOptions(array $fields, string $modelClass, array $currentValues, array $searchTerms = []): array
     {
-        return (new BelongsToFieldOptions)->resolve($fields, $modelClass, [], $currentValues);
+        return (new BelongsToFieldOptions)->resolve($fields, $modelClass, $searchTerms, $currentValues);
     }
 
     /**

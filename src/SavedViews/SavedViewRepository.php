@@ -84,17 +84,24 @@ final class SavedViewRepository
     /**
      * @param  array<string, mixed>  $state
      * @return array{
+     *   state_version: int,
      *   search: string|null,
      *   filters: array<string, mixed>,
      *   sort: array{column: string, direction: 'asc'|'desc'}|null,
-     *   per_page: int|null
+     *   per_page: int|null,
+     *   columns: array<int, string>,
+     *   trash: string
      * }
      */
     private function sanitizeState(array $state): array
     {
+        $stateVersion = is_numeric($state['state_version'] ?? null)
+            ? (int) $state['state_version']
+            : 1;
+
         $normalizedSearch = null;
         if (array_key_exists('search', $state) && is_string($state['search'])) {
-            $trimmed = trim($state['search']);
+            $trimmed = mb_substr(trim($state['search']), 0, 200);
             $normalizedSearch = $trimmed === '' ? null : $trimmed;
         }
 
@@ -105,7 +112,7 @@ final class SavedViewRepository
                     continue;
                 }
 
-                $normalizedFilters[$key] = $value;
+                $normalizedFilters[$key] = $this->sanitizeValue($value);
             }
         }
 
@@ -130,11 +137,46 @@ final class SavedViewRepository
             $normalizedPerPage = $state['per_page'];
         }
 
+        $normalizedColumns = [];
+        if (is_array($state['columns'] ?? null)) {
+            foreach ($state['columns'] as $column) {
+                if (! is_string($column) || trim($column) === '') {
+                    continue;
+                }
+
+                $normalizedColumns[] = trim($column);
+            }
+        }
+
+        $trash = is_string($state['trash'] ?? null) && in_array(
+            $state['trash'],
+            ['active', 'trashed', 'with_trashed'],
+            true
+        ) ? $state['trash'] : 'active';
+
         return [
+            'state_version' => $stateVersion,
             'search' => $normalizedSearch,
             'filters' => $normalizedFilters,
             'sort' => $normalizedSort,
             'per_page' => $normalizedPerPage,
+            'columns' => array_values(array_unique($normalizedColumns)),
+            'trash' => $trash,
         ];
+    }
+
+    private function sanitizeValue(mixed $value): mixed
+    {
+        if (is_array($value)) {
+            $normalized = [];
+
+            foreach ($value as $key => $nestedValue) {
+                $normalized[$key] = $this->sanitizeValue($nestedValue);
+            }
+
+            return $normalized;
+        }
+
+        return is_scalar($value) || $value === null ? $value : null;
     }
 }

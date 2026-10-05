@@ -37,40 +37,44 @@
 
                 @if($canCustomizeLayout)
                     <div class="sf-resource-actions">
-                        <div class="sf-resource-actions">
-                            <label class="sf-label" for="sf-saved-layout-select">Saved layouts</label>
-                            <select id="sf-saved-layout-select" wire:model="selectedSavedLayoutId" class="sf-select sm:w-48">
-                                <option value="">Current layout</option>
-                                @foreach($savedLayouts as $savedLayout)
-                                    <option value="{{ $savedLayout['id'] }}">
-                                        {{ $savedLayout['name'] }}@if($savedLayout['is_default']) (Default) @endif
-                                    </option>
-                                @endforeach
-                            </select>
-                            <button type="button" wire:click="applySavedLayout" class="sf-button sf-button-secondary !px-3 !py-1.5">
-                                Apply
-                            </button>
-                            <button type="button" wire:click="setDefaultSavedLayout" class="sf-button sf-button-secondary !px-3 !py-1.5">
-                                Set default
-                            </button>
-                            <button type="button" wire:click="deleteSavedLayout" class="sf-button sf-button-secondary !px-3 !py-1.5">
-                                Delete
-                            </button>
-                        </div>
-                        <div class="sf-resource-actions">
-                            <input type="text" wire:model.defer="savedLayoutName" placeholder="Layout name" class="sf-input sm:w-48">
-                            <button type="button" wire:click="saveCurrentAsLayout" class="sf-button sf-button-secondary !px-3 !py-1.5">
-                                Save as new
-                            </button>
-                            <button type="button" wire:click="renameSavedLayout" class="sf-button sf-button-secondary !px-3 !py-1.5">
-                                Rename
-                            </button>
-                        </div>
                         @if(!$layoutEditing)
                             <button type="button" wire:click="startLayoutEditing" class="sf-button sf-button-secondary">
                                 Customize
                             </button>
-                        @else
+                        @endif
+                        <div
+                            class="sf-resource-actions"
+                            @if(!$layoutEditing) hidden aria-hidden="true" @endif
+                        >
+                            <div class="sf-resource-actions">
+                                <label class="sf-label" for="sf-saved-layout-select">Saved layouts</label>
+                                <select id="sf-saved-layout-select" wire:model="selectedSavedLayoutId" class="sf-select sm:w-48">
+                                    <option value="">Current layout</option>
+                                    @foreach($savedLayouts as $savedLayout)
+                                        <option value="{{ $savedLayout['id'] }}">
+                                            {{ $savedLayout['name'] }}@if($savedLayout['is_default']) (Default) @endif
+                                        </option>
+                                    @endforeach
+                                </select>
+                                <button type="button" wire:click="applySavedLayout" class="sf-button sf-button-secondary !px-3 !py-1.5">
+                                    Apply
+                                </button>
+                                <button type="button" wire:click="setDefaultSavedLayout" class="sf-button sf-button-secondary !px-3 !py-1.5">
+                                    Set default
+                                </button>
+                                <button type="button" wire:click="deleteSavedLayout" class="sf-button sf-button-secondary !px-3 !py-1.5">
+                                    Delete
+                                </button>
+                            </div>
+                            <div class="sf-resource-actions">
+                                <input type="text" wire:model.defer="savedLayoutName" placeholder="Layout name" class="sf-input sm:w-48">
+                                <button type="button" wire:click="saveCurrentAsLayout" class="sf-button sf-button-secondary !px-3 !py-1.5">
+                                    Save as new
+                                </button>
+                                <button type="button" wire:click="renameSavedLayout" class="sf-button sf-button-secondary !px-3 !py-1.5">
+                                    Rename
+                                </button>
+                            </div>
                             <button type="button" wire:click="saveLayout" class="sf-button sf-button-primary">
                                 Save layout
                             </button>
@@ -80,7 +84,7 @@
                             <button type="button" wire:click="resetLayout" class="sf-button sf-button-secondary">
                                 Reset to default
                             </button>
-                        @endif
+                        </div>
                     </div>
                 @endif
             </div>

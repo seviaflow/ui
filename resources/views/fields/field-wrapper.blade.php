@@ -6,13 +6,22 @@
     $helpId = $fieldId.'-help';
     $errorId = $fieldId.'-error';
     $hasError = $errors->has($errorPath);
-    $isRequired = $field->isRequired($context);
-    $isDisabled = $field->isDisabled($context);
+    $formState = $formState ?? null;
+    $fieldValue = data_get($modelValues ?? [], $field->name());
+    $inputValue = $field->formatForInput($fieldValue);
+    $isRequired = $field->isRequiredForState($context, $formState);
+    $isDisabled = $field->isDisabledForState($context, $formState);
     $isReadonly = $field->isReadonly($context);
-    $describedBy = trim(($field->getHelp() ? $helpId : '').($hasError ? ' '.$errorId : ''));
+    $help = $field->getHelp();
+    if ($help === null && $field instanceof \SeviaFlow\Core\Resources\Fields\PasswordField) {
+        $help = $context === \SeviaFlow\Core\Resources\ResourceContext::Edit
+            ? 'Leave blank to keep the current password.'
+            : 'Use a strong password.';
+    }
+    $describedBy = trim(($help ? $helpId : '').($hasError ? ' '.$errorId : ''));
 @endphp
 
-<div class="sf-field" data-field-type="{{ $field->type() }}" @if($isReadonly) aria-readonly="true" @endif>
+<div class="sf-field sf-field-span-{{ $field->getColumnSpan() ?? 1 }}" data-field-type="{{ $field->type() }}" @if($isReadonly) aria-readonly="true" @endif>
     <label for="{{ $fieldId }}" class="sf-label">
         {{ $field->getLabel() }}
         @if($isRequired)
@@ -26,14 +35,15 @@
         'modelPath' => $modelPath,
         'fieldPath' => $fieldPath,
         'fieldId' => $fieldId,
+        'inputValue' => $inputValue,
         'describedBy' => $describedBy,
         'hasError' => $hasError,
         'isDisabled' => $isDisabled,
         'isReadonly' => $isReadonly,
     ], $renderer->data(), $rendererData ?? []))
 
-    @if($field->getHelp())
-        <p id="{{ $helpId }}" class="sf-help">{{ $field->getHelp() }}</p>
+    @if($help)
+        <p id="{{ $helpId }}" class="sf-help">{{ $help }}</p>
     @endif
 
     @error($errorPath)

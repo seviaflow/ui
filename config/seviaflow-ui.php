@@ -51,6 +51,9 @@ return [
     'cache' => [
         'navigation' => true,
         'dashboard' => false,
+        'isolation_context' => env('SEVIAFLOW_CACHE_ISOLATION_CONTEXT'),
+        'permission_version' => env('SEVIAFLOW_CACHE_PERMISSION_VERSION', 'v1'),
+        'data_version' => env('SEVIAFLOW_CACHE_DATA_VERSION', 'v1'),
     ],
     'dashboards' => [],
     'bulk_actions' => [

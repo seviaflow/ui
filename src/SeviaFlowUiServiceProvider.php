@@ -9,7 +9,12 @@ use Illuminate\Routing\Router;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Livewire\Livewire;
+use SeviaFlow\Core\Resources\Fields\DateField;
+use SeviaFlow\Core\Resources\Fields\DateTimeField;
 use SeviaFlow\Core\Resources\Fields\NumberField;
+use SeviaFlow\Core\Resources\Fields\RepeaterField;
+use SeviaFlow\Core\Resources\Fields\RichTextField;
+use SeviaFlow\Core\Resources\Fields\TimeField;
 use SeviaFlow\Core\Resources\ResourceRegistry;
 use SeviaFlow\Core\Support\Cache\CacheParticipant;
 use SeviaFlow\Core\Support\Capabilities\CapabilityRegistry;
@@ -167,11 +172,27 @@ final class SeviaFlowUiServiceProvider extends ServiceProvider
                     'inputAttributes' => static fn (NumberField $field): array => array_filter([
                         'min' => $field->getMin(),
                         'max' => $field->getMax(),
+                        'step' => $field->getStep(),
                     ], static fn (mixed $value): bool => $value !== null),
                 ])
-                ->register('date', $inputView, 'seviaflow-ui::fields.show.date', $showView, ['inputType' => 'date'])
-                ->register('datetime', $inputView, $showView, $showView, ['inputType' => 'datetime-local'])
-                ->register('time', $inputView, $showView, $showView, ['inputType' => 'time'])
+                ->register('date', $inputView, 'seviaflow-ui::fields.show.date', $showView, [
+                    'inputType' => 'date',
+                    'inputAttributes' => static fn (DateField $field): array => ['data-input-format' => $field->getInputFormat()],
+                ])
+                ->register('datetime', $inputView, $showView, $showView, [
+                    'inputType' => 'datetime-local',
+                    'inputAttributes' => static fn (DateTimeField $field): array => [
+                        'data-input-format' => $field->getInputFormat(),
+                        'data-timezone' => $field->getTimezone(),
+                    ],
+                ])
+                ->register('time', $inputView, $showView, $showView, [
+                    'inputType' => 'time',
+                    'inputAttributes' => static fn (TimeField $field): array => [
+                        'data-input-format' => $field->getInputFormat(),
+                        'data-timezone' => $field->getTimezone(),
+                    ],
+                ])
                 ->register('password', $inputView, $showView, $showView, ['inputType' => 'password'])
                 ->register('textarea', 'seviaflow-ui::fields.controls.textarea', $showView, $showView)
                 ->register('toggle', 'seviaflow-ui::fields.controls.toggle', 'seviaflow-ui::fields.show.toggle', 'seviaflow-ui::fields.show.toggle')
@@ -180,7 +201,24 @@ final class SeviaFlowUiServiceProvider extends ServiceProvider
                 ->register('belongs-to', 'seviaflow-ui::fields.controls.belongs-to', $showView, $showView)
                 ->register('file', 'seviaflow-ui::fields.controls.file', $showView, $showView)
                 ->register('image', 'seviaflow-ui::fields.controls.file', $showView, $showView)
-                ->register('money', 'seviaflow-ui::fields.controls.money', 'seviaflow-ui::fields.show.money', 'seviaflow-ui::fields.show.money');
+                ->register('money', 'seviaflow-ui::fields.controls.money', 'seviaflow-ui::fields.show.money', 'seviaflow-ui::fields.show.money')
+                ->register('radio-group', 'seviaflow-ui::fields.controls.radio-group', 'seviaflow-ui::fields.show.radio-group', 'seviaflow-ui::fields.show.radio-group')
+                ->register('checkbox-group', 'seviaflow-ui::fields.controls.checkbox-group', 'seviaflow-ui::fields.show.checkbox-group', 'seviaflow-ui::fields.show.checkbox-group')
+                ->register('tags', 'seviaflow-ui::fields.controls.tags', 'seviaflow-ui::fields.show.tags', 'seviaflow-ui::fields.show.tags')
+                ->register('key-value', 'seviaflow-ui::fields.controls.key-value', 'seviaflow-ui::fields.show.key-value', 'seviaflow-ui::fields.show.key-value')
+                ->register('json', 'seviaflow-ui::fields.controls.json', 'seviaflow-ui::fields.show.json', 'seviaflow-ui::fields.show.json')
+                ->register('color', 'seviaflow-ui::fields.controls.color', 'seviaflow-ui::fields.show.color', 'seviaflow-ui::fields.show.color')
+                ->register('rich-text', 'seviaflow-ui::fields.controls.rich-text', 'seviaflow-ui::fields.show.rich-text', 'seviaflow-ui::fields.show.rich-text', [
+                    'inputType' => 'rich-text',
+                    'inputAttributes' => static fn (RichTextField $field): array => ['data-max-bytes' => $field->getMaxBytes()],
+                ])
+                ->register('repeater', 'seviaflow-ui::fields.controls.repeater', 'seviaflow-ui::fields.show.repeater', 'seviaflow-ui::fields.show.repeater', [
+                    'inputType' => 'repeater',
+                    'inputAttributes' => static fn (RepeaterField $field): array => [
+                        'data-max-items' => $field->getMaxItems(),
+                        'data-max-bytes' => $field->getMaxBytes(),
+                    ],
+                ]);
 
             return $registry;
         });

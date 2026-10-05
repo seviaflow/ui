@@ -21,6 +21,16 @@
                 <div>
                     <p class="sf-record-kicker">Record details</p>
                     <h1 class="sf-record-title">{{ $title }}</h1>
+                    @if(count($metadata) > 0)
+                        <dl class="sf-page-meta mt-2">
+                            @foreach($metadata as $label => $value)
+                                <div class="inline-flex items-center gap-1">
+                                    <dt class="sf-item-meta">{{ $label }}:</dt>
+                                    <dd class="sf-item-meta">{{ $value }}</dd>
+                                </div>
+                            @endforeach
+                        </dl>
+                    @endif
                     @if($workflowPanel['visible'])
                         <div class="sf-page-meta">
                             <span class="sf-badge {{ $workflowStateColorClasses($workflowPanel['currentStateColor']) }}">
@@ -130,22 +140,20 @@
                             <p class="sf-card-description">Related data available for this record.</p>
                         </div>
                         <div class="sf-card-body">
-                            <div class="sf-connection-list">
+                            <div class="sf-connection-list" role="tablist" aria-label="Related records">
                                 @foreach($relationManagers as $manager)
-                                    @php
-                                        $records = $manager['records'];
-                                        $safeCount = method_exists($records, 'total')
-                                            ? $records->total()
-                                            : (is_countable($records) ? count($records) : null);
-                                    @endphp
-                                    <a href="#{{ $relationAnchors[$manager['relationshipName']] }}" class="sf-connection-item">
+                                    <a
+                                        id="sf-relation-tab-{{ \Illuminate\Support\Str::slug((string) $manager['relationshipName']) }}"
+                                        href="#{{ $relationAnchors[$manager['relationshipName']] }}"
+                                        class="sf-connection-item"
+                                        role="tab"
+                                        aria-controls="{{ $relationAnchors[$manager['relationshipName']] }}"
+                                    >
                                         <span>
                                             <span class="block sf-item-title">{{ $manager['label'] }}</span>
                                             <span class="block sf-item-meta">{{ \Illuminate\Support\Str::headline($manager['type']) }}</span>
                                         </span>
-                                        @if($safeCount !== null)
-                                            <span class="sf-summary-pill">{{ $safeCount }}</span>
-                                        @endif
+                                        <span class="sf-summary-pill">{{ $manager['recordCount'] }}</span>
                                     </a>
                                 @endforeach
                             </div>
@@ -173,6 +181,9 @@
                                             <div>
                                                 <p class="sf-item-title">{{ $transition->getLabel() }}</p>
                                                 <p class="sf-item-meta">To: {{ ucfirst(str_replace('_', ' ', $transition->getToState())) }}</p>
+                                                @if($workflowPanel['primaryTransition']?->name() === $transition->name())
+                                                    <span class="sf-summary-pill sf-summary-pill-strong mt-1 inline-flex">Next action</span>
+                                                @endif
                                             </div>
                                             <div class="sf-resource-actions">
                                                 @if($pendingWorkflowTransitionName === $transition->name() && $transition->requiresConfirmation())
@@ -232,6 +243,19 @@
                             <p class="sf-muted mt-4">No transitions are currently available.</p>
                         @endif
 
+                        @if(count($workflowPanel['blockedTransitions']) > 0)
+                            <div class="sf-inset-panel mt-4">
+                                <p class="sf-item-title">Blocked next steps</p>
+                                <ul class="mt-2 space-y-1">
+                                    @foreach($workflowPanel['blockedTransitions'] as $transition)
+                                        <li class="sf-item-meta">
+                                            {{ $transition->getLabel() }} — unavailable while current record conditions are not met.
+                                        </li>
+                                    @endforeach
+                                </ul>
+                            </div>
+                        @endif
+
                         <div class="mt-5">
                             <h3 class="sf-card-title">Activity timeline</h3>
                             <div class="sf-timeline mt-3">
@@ -261,37 +285,55 @@
     </div>
 
     @foreach($relationManagers as $manager)
-        <section id="{{ $relationAnchors[$manager['relationshipName']] }}" class="sf-card">
+        <section
+            id="{{ $relationAnchors[$manager['relationshipName']] }}"
+            class="sf-card"
+            role="tabpanel"
+            aria-labelledby="sf-relation-tab-{{ \Illuminate\Support\Str::slug((string) $manager['relationshipName']) }}"
+        >
             <div class="sf-card-header">
                 <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                     <div>
                         <h2 class="sf-card-title">{{ $manager['label'] }}</h2>
-                        <p class="sf-card-description">{{ \Illuminate\Support\Str::headline($manager['type']) }} relation</p>
+                        <p class="sf-card-description">
+                            {{ \Illuminate\Support\Str::headline($manager['type']) }} relation · {{ $manager['recordCount'] }} record(s)
+                        </p>
                     </div>
-                    @if($manager['type'] === 'hasMany' && $manager['canCreate'])
-                        <button
-                            type="button"
-                            wire:click="openHasManyCreateModal('{{ $manager['relationshipName'] }}')"
-                            data-sf-modal-target="sf-relation-modal"
-                            aria-controls="sf-relation-modal"
-                            aria-expanded="false"
-                            class="sf-button sf-button-primary !px-3 !py-2"
-                        >
-                            {{ $manager['createLabel'] }}
-                        </button>
-                    @endif
-                    @if($manager['type'] === 'hasOne' && $manager['canCreate'])
-                        <button
-                            type="button"
-                            wire:click="openHasOneCreateModal('{{ $manager['relationshipName'] }}')"
-                            data-sf-modal-target="sf-relation-modal"
-                            aria-controls="sf-relation-modal"
-                            aria-expanded="false"
-                            class="sf-button sf-button-primary !px-3 !py-2"
-                        >
-                            {{ $manager['createLabel'] }}
-                        </button>
-                    @endif
+                    <div class="sf-resource-actions">
+                        @if($manager['lazy'])
+                            <button
+                                type="button"
+                                wire:click="toggleRelation('{{ $manager['relationshipName'] }}')"
+                                class="sf-button sf-button-secondary !px-3 !py-2"
+                                aria-expanded="{{ $manager['expanded'] ? 'true' : 'false' }}"
+                            >
+                                {{ $manager['expanded'] ? 'Close' : 'Open' }} related records
+                            </button>
+                        @endif
+                        @if($manager['type'] === 'hasMany' && $manager['canCreate'])
+                            <button
+                                type="button"
+                                wire:click="openHasManyCreateModal('{{ $manager['relationshipName'] }}')"
+                                data-sf-modal-target="sf-relation-modal"
+                                aria-controls="sf-relation-modal"
+                                aria-expanded="false"
+                                class="sf-button sf-button-primary !px-3 !py-2"
+                            >
+                                {{ $manager['createLabel'] }}
+                            </button>
+                        @endif
+                        @if($manager['type'] === 'hasOne' && $manager['canCreate'])
+                            <button
+                                type="button"
+                                wire:click="openHasOneCreateModal('{{ $manager['relationshipName'] }}')"
+                                data-sf-modal-target="sf-relation-modal"
+                                aria-controls="sf-relation-modal"
+                                aria-expanded="false"
+                                class="sf-button sf-button-primary !px-3 !py-2"
+                            >
+                                {{ $manager['createLabel'] }}
+                            </button>
+                        @endif
                     @if($manager['type'] === 'belongsToMany' && $manager['canAttach'])
                         <div class="sf-resource-actions">
                             <label for="attach-{{ $manager['relationshipName'] }}" class="sr-only">Attach related record</label>
@@ -331,6 +373,9 @@
             </div>
 
             <div class="sf-card-body">
+                @if(! $manager['expanded'])
+                    <p class="sf-muted">{{ $manager['loadLabel'] }}.</p>
+                @else
                 <div class="sf-table-wrapper">
                     <table class="sf-table">
                         <thead>
@@ -503,6 +548,7 @@
                         {{ $manager['records']->onEachSide(1)->links('seviaflow-ui::components.paginator') }}
                     </div>
                 @endif
+                @endif
             </div>
         </section>
     @endforeach
@@ -524,11 +570,54 @@
                             'context' => $relationModalMode === 'edit' ? \SeviaFlow\Core\Resources\ResourceContext::Edit : \SeviaFlow\Core\Resources\ResourceContext::Create,
                             'belongsToOptions' => $relationModalState['belongsToOptions'],
                             'belongsToPlaceholder' => [],
-                            'inlineCreateAllowed' => [],
+                            'inlineCreateAllowed' => $relationModalState['inlineCreateAllowed'],
+                            'belongsToSearchPath' => 'relationModalBelongsToSearch',
+                            'belongsToSelectAction' => 'selectRelationModalBelongsToOption',
+                            'belongsToClearAction' => 'clearRelationModalBelongsToOption',
+                            'multiSelectSearchPath' => 'relationModalMultiSelectSearch',
+                            'multiSelectToggleAction' => 'toggleRelationModalMultiSelectOption',
+                            'multiSelectRemoveAction' => 'removeRelationModalMultiSelectOption',
+                            'fileDownloadUrls' => $relationModalState['fileDownloadUrls'],
+                            'fileHasValues' => $relationModalState['fileHasValues'],
+                            'fileMetadata' => $relationModalState['fileMetadata'],
+                            'filePending' => $relationModalState['filePending'],
+                            'fileActions' => $relationModalState['fileActions'],
                             'modelPath' => 'relationModalValues',
+                            'formState' => new \SeviaFlow\Core\Forms\FormState(
+                                $relationModalValues,
+                                $relationModalMode === 'edit' ? \SeviaFlow\Core\Resources\ResourceContext::Edit : \SeviaFlow\Core\Resources\ResourceContext::Create,
+                                $relationModalState['record']
+                            ),
                         ])
                     @endforeach
                 </div>
+                @if(($relationModalState['inlineCreateState']['visible'] ?? false))
+                    <section class="sf-inline-create-panel" data-sf-inline-create>
+                        <h3 class="sf-card-title">{{ $relationModalState['inlineCreateState']['title'] }}</h3>
+                        <div class="sf-form-grid mt-3">
+                            @foreach($relationModalState['inlineCreateState']['fields'] as $field)
+                                @include('seviaflow-ui::livewire.partials.form-field', [
+                                    'field' => $field,
+                                    'context' => \SeviaFlow\Core\Resources\ResourceContext::Create,
+                                    'belongsToOptions' => $relationModalState['inlineCreateState']['belongsToOptions'],
+                                    'belongsToPlaceholder' => [],
+                                    'inlineCreateAllowed' => [],
+                                    'fileDownloadUrls' => [],
+                                    'fileHasValues' => [],
+                                    'fileMetadata' => [],
+                                    'filePending' => [],
+                                    'fileActions' => [],
+                                    'modelPath' => 'relationInlineCreateValues',
+                                    'formState' => new \SeviaFlow\Core\Forms\FormState($relationInlineCreateValues, \SeviaFlow\Core\Resources\ResourceContext::Create),
+                                ])
+                            @endforeach
+                        </div>
+                        <div class="sf-resource-actions mt-4">
+                            <button type="button" wire:click="saveRelationInlineCreate" class="sf-button sf-button-primary">Save related record</button>
+                            <button type="button" wire:click="cancelRelationInlineCreate" class="sf-button sf-button-secondary">Cancel</button>
+                        </div>
+                    </section>
+                @endif
                 <div class="sf-modal-footer">
                     <button type="button" wire:click="saveRelationModal" class="sf-button sf-button-primary">Save</button>
                     <button type="button" wire:click="cancelRelationModal" class="sf-button sf-button-secondary" data-sf-modal-close>Cancel</button>

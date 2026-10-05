@@ -80,6 +80,35 @@ it('resets to the first page when search filter or per-page changes', function (
         ->assertSet('paginators.page', 1);
 });
 
+it('hydrates and validates list state from the browser query string', function (): void {
+    Livewire::withQueryParams([
+        'search' => 'Published',
+        'sort' => 'name',
+        'direction' => 'desc',
+        'per_page' => '25',
+        'filter' => ['status' => 'published'],
+        'page' => '2',
+    ])->test(ResourceIndex::class, ['resource' => 'filter-users'])
+        ->assertSet('search', 'Published')
+        ->assertSet('sortColumn', 'name')
+        ->assertSet('sortDirection', 'desc')
+        ->assertSet('perPage', 25)
+        ->assertSet('filterValues.status', 'published')
+        ->assertSet('paginators.page', 2);
+
+    Livewire::withQueryParams([
+        'sort' => 'secret',
+        'direction' => 'wat',
+        'per_page' => '9999',
+        'filter' => ['secret' => 'value'],
+    ])->test(ResourceIndex::class, ['resource' => 'filter-users'])
+        ->assertSet('sortColumn', '')
+        ->assertSet('sortDirection', 'asc')
+        ->assertSet('perPage', 15)
+        ->assertSet('filterValues.status', '')
+        ->assertSet('filterValues.is_active', '');
+});
+
 function seedPaginationUsers(int $count): void
 {
     foreach (range(1, $count) as $index) {

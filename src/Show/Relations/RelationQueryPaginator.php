@@ -7,7 +7,9 @@ namespace SeviaFlow\Ui\Show\Relations;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
+use Illuminate\Database\Eloquent\Relations\MorphOne;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use Illuminate\Database\Eloquent\Relations\Pivot;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -17,12 +19,65 @@ use SeviaFlow\Core\Resources\Columns\Column;
 use SeviaFlow\Core\Resources\Fields\Field;
 use SeviaFlow\Core\Resources\Relations\BelongsToManyRelation;
 use SeviaFlow\Core\Resources\Relations\HasManyRelation;
+use SeviaFlow\Core\Resources\Relations\HasOneRelation;
 use SeviaFlow\Core\Resources\Relations\MorphManyRelation;
+use SeviaFlow\Core\Resources\Relations\MorphOneRelation;
 use SeviaFlow\Core\Resources\Relations\MorphToManyRelation;
 use SeviaFlow\Core\Resources\ResourceScopedQuery;
 
 final class RelationQueryPaginator
 {
+    /**
+     * Count a relation through the same resource scope used for its table.
+     *
+     * @param  class-string  $relatedResourceClass
+     */
+    public function count(
+        Model $parent,
+        HasOneRelation|HasManyRelation|BelongsToManyRelation|MorphOneRelation|MorphManyRelation|MorphToManyRelation $relation,
+        string $relatedResourceClass
+    ): int {
+        if (! method_exists($parent, $relation->getRelationshipName())) {
+            throw new InvalidArgumentException(sprintf(
+                'Relation [%s] on model [%s] is not defined.',
+                $relation->getRelationshipName(),
+                $parent::class
+            ));
+        }
+
+        $relationship = $parent->{$relation->getRelationshipName()}();
+
+        if (! $relationship instanceof HasOne
+            && ! $relationship instanceof HasMany
+            && ! $relationship instanceof BelongsToMany
+            && ! $relationship instanceof MorphOne
+            && ! $relationship instanceof MorphMany
+            && ! $relationship instanceof MorphToMany) {
+            throw new InvalidArgumentException(sprintf(
+                'Relation [%s] on model [%s] is not an Eloquent relation.',
+                $relation->getRelationshipName(),
+                $parent::class
+            ));
+        }
+
+        $softDeleteScope = ResourceScopedQuery::ACTIVE;
+
+        if (
+            ($relationship instanceof HasMany && $relation instanceof HasManyRelation)
+            || ($relationship instanceof MorphMany && $relation instanceof MorphManyRelation)
+        ) {
+            if ($relation->canRestore() && $relation->supportsSoftDeletes()) {
+                $softDeleteScope = ResourceScopedQuery::WITH_TRASHED;
+            }
+        }
+
+        return (int) ResourceScopedQuery::make(
+            $relatedResourceClass,
+            $relationship->getQuery(),
+            $softDeleteScope
+        )->count();
+    }
+
     /**
      * @param  class-string  $relatedResourceClass
      */

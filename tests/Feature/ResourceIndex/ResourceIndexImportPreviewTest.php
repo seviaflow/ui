@@ -5,6 +5,7 @@ declare(strict_types=1);
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Auth\User as AuthenticatableUser;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Schema;
 use Livewire\Livewire;
@@ -68,6 +69,16 @@ it('shows import button only when import is enabled', function (): void {
     pest_test_case()->get(route('seviaflow.resources.index', ['resource' => 'import-disabled-users']))
         ->assertOk()
         ->assertDontSee('wire:click="openImportModal"', false);
+});
+
+it('downloads an import template with allowed headings', function (): void {
+    Carbon::setTestNow('2026-09-15 14:30:00');
+
+    Livewire::test(ResourceIndex::class, ['resource' => 'import-enabled-users'])
+        ->call('downloadImportTemplate')
+        ->assertFileDownloaded('import-enabled-users-import-template-20260915-143000.csv');
+
+    Carbon::setTestNow();
 });
 
 it('parses csv headers and preview rows without writing records', function (): void {

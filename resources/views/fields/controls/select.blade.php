@@ -3,9 +3,8 @@
 @endphp
 <select
     id="{{ $fieldId }}"
-    wire:model="{{ $fieldPath }}"
-    @disabled($isDisabled)
-    @readonly($isReadonly)
+    wire:model.live="{{ $fieldPath }}"
+    @disabled($isDisabled || $isReadonly)
     @if($isRequired) aria-required="true" @endif
     @if($hasError) aria-invalid="true" @endif
     @if($describedBy !== '') aria-describedby="{{ $describedBy }}" @endif

@@ -144,6 +144,22 @@ it('table value formatter handles relation badge boolean and null values', funct
     expect($formatter->format($record, $text))->toBe('—');
 });
 
+it('table value formatter presents complex values without Array warnings', function (): void {
+    $record = new IndexCollaboratorModel([
+        'tags' => ['priority', 'eu'],
+        'metadata' => ['region' => 'EU', 'tier' => 'gold'],
+        'contact_methods' => [
+            ['label' => 'Support', 'channel' => 'email', 'enabled' => true],
+        ],
+    ]);
+    $formatter = new TableValueFormatter;
+
+    expect($formatter->format($record, TextColumn::make('tags')))->toBe('priority, eu')
+        ->and($formatter->format($record, TextColumn::make('metadata')))->toBe('region: EU, tier: gold');
+    expect($formatter->format($record, TextColumn::make('contact_methods')))
+        ->toBe('label: Support, channel: email, enabled: 1');
+});
+
 final class IndexCollaboratorModel extends Model
 {
     protected $guarded = [];

@@ -4,7 +4,7 @@
 <textarea
     id="{{ $fieldId }}"
     rows="{{ $field->getRows() }}"
-    wire:model="{{ $fieldPath }}"
+    wire:model.live="{{ $fieldPath }}"
     @disabled($isDisabled)
     @readonly($isReadonly)
     @if($isRequired) aria-required="true" @endif

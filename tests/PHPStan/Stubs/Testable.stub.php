@@ -40,4 +40,6 @@ class Testable
     public function call(string $method, mixed ...$parameters): static {}
 
     public function assertFileDownloaded(?string $filename = null): static {}
+
+    public function assertRedirect(?string $uri = null): static {}
 }

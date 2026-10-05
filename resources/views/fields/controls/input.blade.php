@@ -7,7 +7,8 @@
 <input
     id="{{ $fieldId }}"
     type="{{ $inputType }}"
-    wire:model="{{ $fieldPath }}"
+    wire:model.live="{{ $fieldPath }}"
+    value="{{ $inputValue }}"
     @disabled($isDisabled)
     @readonly($isReadonly)
     placeholder="{{ $field->getPlaceholder() }}"

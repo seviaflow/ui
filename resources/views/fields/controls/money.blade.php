@@ -7,7 +7,7 @@
         id="{{ $fieldId }}"
         type="number"
         step="{{ 1 / (10 ** $field->getScale()) }}"
-        wire:model="{{ $fieldPath }}"
+        wire:model.live="{{ $fieldPath }}"
         @disabled($isDisabled)
         @readonly($isReadonly)
         placeholder="{{ $field->getPlaceholder() }}"

@@ -9,7 +9,7 @@ use SeviaFlow\Ui\Fields\FieldRendererRegistry;
 it('resolves all default edit show and cell adapters by field type', function (): void {
     $registry = app(FieldRendererRegistry::class);
 
-    foreach (['text', 'email', 'url', 'phone', 'slug', 'number', 'date', 'datetime', 'time', 'password', 'textarea', 'toggle', 'select', 'multiselect', 'belongs-to', 'file', 'image', 'money'] as $type) {
+    foreach (['text', 'email', 'url', 'phone', 'slug', 'number', 'date', 'datetime', 'time', 'password', 'textarea', 'toggle', 'select', 'multiselect', 'belongs-to', 'file', 'image', 'money', 'radio-group', 'checkbox-group', 'tags', 'key-value', 'json', 'color', 'rich-text', 'repeater'] as $type) {
         $field = RegistryField::make('value');
         $field->setType($type);
 

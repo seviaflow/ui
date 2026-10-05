@@ -16,5 +16,9 @@
   },
   "engines": {
     "node": ">=22.12 <23"
+  },
+  "dependencies": {
+    "@tiptap/core": "3.31.3",
+    "@tiptap/starter-kit": "3.31.3"
   }
 }

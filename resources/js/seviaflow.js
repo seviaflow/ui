@@ -30,14 +30,242 @@ const escapeHtml = (value) => String(value)
   .replaceAll('"', '&quot;');
 
 const dashboardChartState = new WeakMap();
+const richTextInstances = new WeakMap();
+let richTextModulePromise = null;
 let livewireHooksRegistered = false;
 let dashboardChartObserverRegistered = false;
 let overlayControllerRegistered = false;
 let overlayLivewireHookRegistered = false;
+let tableSelectionLivewireHookRegistered = false;
+let formUiRegistered = false;
+let formLivewireHookRegistered = false;
+let formFocusEventRegistered = false;
+let focusedFormControlId = null;
 let activeDialogId = null;
 let activeDialogTrigger = null;
 let pendingDialogId = null;
 const inertBackgroundNodes = new Map();
+
+const isSafeRichTextUrl = (value) => {
+  const url = String(value ?? '').trim();
+  if (url === '' || /[\u0000-\u0020\u007f]/.test(url)) {
+    return false;
+  }
+
+  try {
+    const parsed = new URL(url, window.location.origin);
+    const protocol = parsed.protocol.toLowerCase();
+    if (['http:', 'https:', 'mailto:'].includes(protocol)) {
+      return true;
+    }
+  } catch {
+    return false;
+  }
+
+  return url.startsWith('#') || (url.startsWith('/') && !url.startsWith('//'));
+};
+
+const normalizeRichTextHtml = (value) => {
+  const html = String(value ?? '').trim();
+
+  return html === '<p></p>' ? '' : html;
+};
+
+const loadRichTextModules = () => {
+  if (richTextModulePromise === null) {
+    richTextModulePromise = Promise.all([
+      import('@tiptap/core'),
+      import('@tiptap/starter-kit'),
+    ]).then(([coreModule, starterKitModule]) => ({
+      Editor: coreModule.Editor,
+      StarterKit: starterKitModule.default,
+    }));
+  }
+
+  return richTextModulePromise;
+};
+
+const updateRichTextToolbar = (root, editor) => {
+  root.querySelectorAll('[data-sf-richtext-command]').forEach((button) => {
+    if (!(button instanceof HTMLElement)) {
+      return;
+    }
+
+    const command = button.dataset.sfRichtextCommand;
+    const active = command === 'bold'
+      ? editor.isActive('bold')
+      : command === 'italic'
+        ? editor.isActive('italic')
+        : command === 'heading-2'
+          ? editor.isActive('heading', { level: 2 })
+          : command === 'heading-3'
+            ? editor.isActive('heading', { level: 3 })
+            : command === 'bullet-list'
+              ? editor.isActive('bulletList')
+              : command === 'ordered-list'
+                ? editor.isActive('orderedList')
+                : false;
+
+    button.setAttribute('aria-pressed', active ? 'true' : 'false');
+  });
+};
+
+const destroyRichTextEditorsWithin = (element) => {
+  if (!(element instanceof Element)) {
+    return;
+  }
+
+  const roots = [];
+  if (element.matches('[data-sf-richtext]')) {
+    roots.push(element);
+  }
+  element.querySelectorAll('[data-sf-richtext]').forEach((root) => roots.push(root));
+
+  roots.forEach((root) => {
+    const instance = richTextInstances.get(root);
+    if (!instance) {
+      return;
+    }
+
+    instance.editor.destroy();
+    richTextInstances.delete(root);
+  });
+};
+
+const initRichTextEditor = async (root) => {
+  if (!(root instanceof HTMLElement) || root.dataset.sfRichtextReadonly === 'true') {
+    return;
+  }
+
+  const editorElement = root.querySelector('[data-sf-richtext-editor]');
+  const input = root.querySelector('[data-sf-richtext-input]');
+  if (!(editorElement instanceof HTMLElement) || !(input instanceof HTMLTextAreaElement)) {
+    return;
+  }
+
+  const existing = richTextInstances.get(root);
+  if (existing) {
+    if (!existing.editor.isFocused && normalizeRichTextHtml(input.value) !== existing.syncedValue) {
+      existing.editor.commands.setContent(input.value || '<p></p>', { emitUpdate: false });
+      existing.syncedValue = normalizeRichTextHtml(input.value);
+    }
+    updateRichTextToolbar(root, existing.editor);
+    return;
+  }
+
+  if (root.dataset.sfRichtextLoading === '1') {
+    return;
+  }
+
+  root.dataset.sfRichtextLoading = '1';
+  let modules;
+  try {
+    modules = await loadRichTextModules();
+  } catch {
+    delete root.dataset.sfRichtextLoading;
+    return;
+  }
+
+  if (!root.isConnected) {
+    delete root.dataset.sfRichtextLoading;
+    return;
+  }
+
+  delete root.dataset.sfRichtextLoading;
+  const { Editor, StarterKit } = modules;
+  const editor = new Editor({
+    element: editorElement,
+    extensions: [StarterKit.configure({
+      blockquote: false,
+      code: false,
+      codeBlock: false,
+      heading: { levels: [2, 3] },
+      horizontalRule: false,
+      link: {
+        autolink: false,
+        linkOnPaste: false,
+        openOnClick: false,
+      },
+      strike: false,
+      underline: false,
+    })],
+    content: input.value || '<p></p>',
+    editable: true,
+  });
+
+  const instance = { editor, input, syncedValue: normalizeRichTextHtml(input.value) };
+  richTextInstances.set(root, instance);
+
+  const syncInput = () => {
+    const html = normalizeRichTextHtml(editor.getHTML());
+    if (input.value !== html) {
+      input.value = html;
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+    instance.syncedValue = html;
+    updateRichTextToolbar(root, editor);
+  };
+
+  editor.on('update', syncInput);
+  editor.on('selectionUpdate', () => updateRichTextToolbar(root, editor));
+
+  root.querySelectorAll('[data-sf-richtext-command]').forEach((button) => {
+    if (!(button instanceof HTMLElement) || button.dataset.sfRichtextBound === '1') {
+      return;
+    }
+
+    button.addEventListener('mousedown', (event) => event.preventDefault());
+    button.addEventListener('click', () => {
+      const command = button.dataset.sfRichtextCommand;
+      const chain = editor.chain().focus();
+
+      switch (command) {
+        case 'paragraph':
+          chain.setParagraph().run();
+          break;
+        case 'heading-2':
+          chain.toggleHeading({ level: 2 }).run();
+          break;
+        case 'heading-3':
+          chain.toggleHeading({ level: 3 }).run();
+          break;
+        case 'bold':
+          chain.toggleBold().run();
+          break;
+        case 'italic':
+          chain.toggleItalic().run();
+          break;
+        case 'bullet-list':
+          chain.toggleBulletList().run();
+          break;
+        case 'ordered-list':
+          chain.toggleOrderedList().run();
+          break;
+        case 'link': {
+          if (editor.isActive('link')) {
+            chain.unsetLink().run();
+            break;
+          }
+
+          const url = window.prompt('Enter a safe link URL');
+          if (url && isSafeRichTextUrl(url)) {
+            chain.setLink({ href: url.trim() }).run();
+          }
+          break;
+        }
+        default:
+          break;
+      }
+    });
+    button.dataset.sfRichtextBound = '1';
+  });
+
+  updateRichTextToolbar(root, editor);
+};
+
+const initRichTextEditors = () => {
+  document.querySelectorAll('[data-sf-richtext]').forEach((root) => initRichTextEditor(root));
+};
 
 const focusableSelector = [
   'a[href]',
@@ -837,6 +1065,272 @@ const initTableDensity = () => {
   });
 };
 
+const syncPartialTableSelection = () => {
+  document.querySelectorAll('[data-sf-partial-selection]').forEach((input) => {
+    if (!(input instanceof HTMLInputElement) || input.type !== 'checkbox') {
+      return;
+    }
+
+    input.indeterminate = input.dataset.sfPartialSelection === 'true';
+  });
+
+  if (!tableSelectionLivewireHookRegistered
+    && typeof window.Livewire !== 'undefined'
+    && typeof window.Livewire.hook === 'function') {
+    window.Livewire.hook('morphed', syncPartialTableSelection);
+    tableSelectionLivewireHookRegistered = true;
+  }
+};
+
+const openFormValidationTarget = (target) => {
+  if (!(target instanceof HTMLElement)) {
+    return;
+  }
+
+  const panel = target.closest('[data-sf-tab-panel]');
+  if (panel instanceof HTMLElement) {
+    const tab = panel.dataset.sfTabPanel;
+    document.querySelectorAll('[data-sf-tab-panel]').forEach((candidate) => {
+      if (candidate instanceof HTMLElement) {
+        candidate.hidden = candidate !== panel;
+      }
+    });
+    document.querySelectorAll('[data-sf-tab-trigger]').forEach((trigger) => {
+      if (trigger instanceof HTMLElement) {
+        trigger.setAttribute('aria-selected', trigger.dataset.sfTabTrigger === tab ? 'true' : 'false');
+      }
+    });
+  }
+
+  window.requestAnimationFrame(() => {
+    target.focus({ preventScroll: false });
+  });
+};
+
+const initComboboxUi = () => {
+  document.querySelectorAll('[data-sf-combobox]').forEach((root) => {
+    if (!(root instanceof HTMLElement)) {
+      return;
+    }
+
+    const input = root.querySelector('[role="combobox"]');
+    const options = root.querySelector('[role="listbox"]');
+    if (!(input instanceof HTMLInputElement) || !(options instanceof HTMLElement)) {
+      return;
+    }
+
+    const syncSearchResponse = () => {
+      if (root.dataset.sfComboboxPending !== '1') {
+        return;
+      }
+
+      const serverQuery = root.dataset.sfComboboxQuery ?? '';
+      if (serverQuery === input.value) {
+        delete root.dataset.sfComboboxPending;
+        options.hidden = false;
+      } else {
+        options.hidden = true;
+      }
+    };
+
+    if (root.dataset.sfComboboxInitialized !== '1') {
+      input.addEventListener('input', () => {
+        root.dataset.sfComboboxPending = '1';
+        options.hidden = true;
+      });
+      input.addEventListener('keydown', (event) => {
+        const optionButtons = Array.from(options.querySelectorAll('button:not([disabled])'));
+        if (event.key === 'ArrowDown' && optionButtons[0] instanceof HTMLElement) {
+          event.preventDefault();
+          optionButtons[0].focus();
+        }
+      });
+      options.addEventListener('keydown', (event) => {
+        const optionButtons = Array.from(options.querySelectorAll('button:not([disabled])'));
+        const currentIndex = optionButtons.indexOf(document.activeElement);
+        if (event.key === 'ArrowDown' && currentIndex < optionButtons.length - 1) {
+          event.preventDefault();
+          optionButtons[currentIndex + 1].focus();
+        } else if (event.key === 'ArrowUp' && currentIndex > 0) {
+          event.preventDefault();
+          optionButtons[currentIndex - 1].focus();
+        } else if (event.key === 'Escape') {
+          event.preventDefault();
+          input.focus();
+        }
+      });
+      root.dataset.sfComboboxInitialized = '1';
+    }
+
+    syncSearchResponse();
+  });
+};
+
+const initUploadProgress = () => {
+  document.querySelectorAll('input[type="file"][data-sf-upload-initialized], input[type="file"]')
+    .forEach((input) => {
+      if (!(input instanceof HTMLInputElement) || input.dataset.sfUploadInitialized === '1') {
+        return;
+      }
+
+      const container = input.closest('.sf-field');
+      const progress = container?.querySelector('[data-sf-upload-progress]');
+      if (!(progress instanceof HTMLProgressElement)) {
+        return;
+      }
+
+      input.addEventListener('livewire-upload-start', () => {
+        progress.hidden = false;
+        progress.value = 0;
+      });
+      input.addEventListener('livewire-upload-progress', (event) => {
+        const value = Number(event.detail?.progress ?? 0);
+        progress.hidden = false;
+        progress.value = Number.isFinite(value) ? value : 0;
+      });
+      input.addEventListener('livewire-upload-finish', () => {
+        progress.value = 100;
+        window.setTimeout(() => { progress.hidden = true; }, 250);
+      });
+      input.addEventListener('livewire-upload-error', () => {
+        progress.hidden = true;
+      });
+      progress.hidden = true;
+      input.dataset.sfUploadInitialized = '1';
+    });
+};
+
+const initFormUi = () => {
+  initComboboxUi();
+  initUploadProgress();
+  initRichTextEditors();
+
+  document.querySelectorAll('[data-sf-resource-form]').forEach((formRoot) => {
+    if (!(formRoot instanceof HTMLElement) || formRoot.dataset.sfFormInitialized === '1') {
+      return;
+    }
+
+    formRoot.querySelectorAll('[data-sf-validation-target]').forEach((link) => {
+      link.addEventListener('click', (event) => {
+        event.preventDefault();
+        const targetId = link.dataset.sfValidationTarget;
+        const target = targetId ? document.getElementById(targetId) : null;
+        openFormValidationTarget(target);
+      });
+    });
+
+    formRoot.querySelector('form')?.addEventListener('submit', () => {
+      formRoot.dataset.sfFormSubmitting = 'true';
+    });
+
+    formRoot.dataset.sfFormInitialized = '1';
+  });
+
+  const summaryTarget = document.querySelector('[data-sf-validation-summary] [data-sf-validation-target]');
+  if (summaryTarget instanceof HTMLElement && summaryTarget.dataset.sfValidationHandled !== '1') {
+    summaryTarget.dataset.sfValidationHandled = '1';
+    const targetId = summaryTarget.dataset.sfValidationTarget;
+    const target = targetId ? document.getElementById(targetId) : null;
+    openFormValidationTarget(target);
+  }
+};
+
+const registerFormUi = () => {
+  if (!formUiRegistered) {
+    window.addEventListener('beforeunload', (event) => {
+      const formRoot = document.querySelector('[data-sf-resource-form][data-sf-form-dirty="true"]');
+      if (!(formRoot instanceof HTMLElement) || formRoot.dataset.sfFormSubmitting === 'true') {
+        return;
+      }
+
+      event.preventDefault();
+      event.returnValue = '';
+    });
+
+    document.addEventListener('click', (event) => {
+      if (!(event.target instanceof Element)) {
+        return;
+      }
+
+      const exit = event.target.closest('[data-sf-form-exit]');
+      const formRoot = exit?.closest('[data-sf-resource-form]');
+      if (!(exit instanceof HTMLElement) || !(formRoot instanceof HTMLElement)) {
+        return;
+      }
+
+      if (formRoot.dataset.sfFormDirty === 'true' && !window.confirm('Leave this form? Unsaved changes will be lost.')) {
+        event.preventDefault();
+      }
+    });
+
+    document.addEventListener('click', (event) => {
+      if (!(event.target instanceof Element)) {
+        return;
+      }
+
+      const trigger = event.target.closest('[data-sf-validation-target]');
+      if (!(trigger instanceof HTMLElement)) {
+        return;
+      }
+
+      const targetId = trigger.dataset.sfValidationTarget;
+      const target = targetId ? document.getElementById(targetId) : null;
+      if (target instanceof HTMLElement) {
+        event.preventDefault();
+        openFormValidationTarget(target);
+      }
+    });
+
+    formUiRegistered = true;
+  }
+
+  if (!formLivewireHookRegistered
+    && typeof window.Livewire !== 'undefined'
+    && typeof window.Livewire.hook === 'function') {
+    window.Livewire.hook('morph', () => {
+      const active = document.activeElement;
+      focusedFormControlId = active instanceof HTMLElement
+        && active.closest('[data-sf-resource-form]')
+        ? active.id
+        : null;
+    });
+    window.Livewire.hook('morph.removing', ({ el }) => {
+      destroyRichTextEditorsWithin(el);
+    });
+    window.Livewire.hook('morphed', () => {
+      initFormUi();
+      if (focusedFormControlId) {
+        const control = document.getElementById(focusedFormControlId);
+        if (control instanceof HTMLElement && !control.disabled && !control.hidden) {
+          window.requestAnimationFrame(() => control.focus());
+        }
+      }
+      focusedFormControlId = null;
+    });
+    formLivewireHookRegistered = true;
+  }
+
+  if (!formFocusEventRegistered
+    && typeof window.Livewire !== 'undefined'
+    && typeof window.Livewire.on === 'function') {
+    window.Livewire.on('seviaflow:focus-field', ({ fieldId }) => {
+      if (typeof fieldId !== 'string' || fieldId === '') {
+        return;
+      }
+
+      window.requestAnimationFrame(() => {
+        const control = document.getElementById(fieldId);
+        if (control instanceof HTMLElement && !control.disabled && !control.hidden) {
+          control.focus();
+        }
+      });
+    });
+    formFocusEventRegistered = true;
+  }
+
+  initFormUi();
+};
+
 const initSeviaFlowUi = () => {
   registerOverlayController();
   registerLivewireChartHooks();
@@ -846,6 +1340,8 @@ const initSeviaFlowUi = () => {
   initShell();
   initDrawers();
   initTableDensity();
+  syncPartialTableSelection();
+  registerFormUi();
 };
 
 document.addEventListener('DOMContentLoaded', initSeviaFlowUi);

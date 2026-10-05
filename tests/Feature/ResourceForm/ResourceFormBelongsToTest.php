@@ -187,7 +187,8 @@ it('inline create creates related record and selects it without saving parent', 
         ->set('inlineCreateValues.email', 'inline@example.com')
         ->call('saveInlineCreate')
         ->assertHasNoErrors()
-        ->assertSet('fieldValues.company_id', '1');
+        ->assertSet('fieldValues.company_id', '1')
+        ->assertDispatched('seviaflow:focus-field', static fn (string $event, array $params): bool => ($params['fieldId'] ?? null) === 'field-company_id');
 
     $created = BelongsToFormCompany::query()->where('name', 'Created Inline Co')->first();
 

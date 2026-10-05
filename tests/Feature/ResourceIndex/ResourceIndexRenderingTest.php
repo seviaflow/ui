@@ -138,6 +138,30 @@ it('shows edit action when form exists', function (): void {
         ->assertSee('Edit');
 });
 
+it('carries a validated list context into record links', function (): void {
+    $contextUser = TestUser::query()->create([
+        'name' => 'Context User 1',
+        'email' => 'context-1@example.com',
+        'status' => 'draft',
+        'is_active' => true,
+    ]);
+    foreach (range(2, 26) as $index) {
+        TestUser::query()->create([
+            'name' => 'Context User '.$index,
+            'email' => 'context-'.$index.'@example.com',
+            'status' => 'draft',
+            'is_active' => true,
+        ]);
+    }
+
+    pest_test_case()->get('/admin/resources/form-users?search=context&sort=name&direction=desc&per_page=25&page=2')
+        ->assertOk()
+        ->assertSee(
+            '/admin/resources/form-users/'.$contextUser->getKey().'?search=context&amp;sort=name&amp;direction=desc&amp;per_page=25&amp;trash=active&amp;page=2',
+            false
+        );
+});
+
 it('create button url uses configured prefix', function (): void {
     config()->set('seviaflow-ui.route_prefix', 'backoffice');
     config()->set('seviaflow-ui.route_name_prefix', 'backoffice-admin.');

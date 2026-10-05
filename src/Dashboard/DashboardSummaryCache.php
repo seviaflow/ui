@@ -7,10 +7,15 @@ namespace SeviaFlow\Ui\Dashboard;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Contracts\Cache\Repository as CacheRepository;
 use Illuminate\Database\Eloquent\Model;
+use SeviaFlow\Ui\Support\Cache\CacheContext;
 
 final class DashboardSummaryCache
 {
     private const INDEX_KEY = 'seviaflow.dashboard.index';
+
+    public function __construct(
+        private readonly CacheContext $context = new CacheContext
+    ) {}
 
     /**
      * @template T
@@ -70,14 +75,13 @@ final class DashboardSummaryCache
 
     private function cacheKey(string $section, Model $user, array $context): string
     {
-        ksort($context);
-
         return sprintf(
-            'seviaflow.dashboard.%s.%s.%s.%s',
+            'seviaflow.dashboard.%s.%s',
             $section,
-            md5($user->getMorphClass()),
-            (string) $user->getKey(),
-            sha1(json_encode($context, JSON_THROW_ON_ERROR))
+            sha1(json_encode(
+                $this->context->forActor($user, $context),
+                JSON_THROW_ON_ERROR
+            ))
         );
     }
 

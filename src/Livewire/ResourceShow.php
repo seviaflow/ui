@@ -13,17 +13,24 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\Relations\MorphOne;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Storage;
 use InvalidArgumentException;
 use Livewire\Attributes\Locked;
 use Livewire\Component;
+use Livewire\Features\SupportFileUploads\WithFileUploads;
 use Livewire\WithPagination;
 use SeviaFlow\Core\Exceptions\ResourceSlugNotRegisteredException;
+use SeviaFlow\Core\Forms\BelongsToFieldOptions;
 use SeviaFlow\Core\Forms\FormFields;
+use SeviaFlow\Core\Forms\FormState;
+use SeviaFlow\Core\Forms\FormStateInitializer;
 use SeviaFlow\Core\Forms\FormValidationRules;
 use SeviaFlow\Core\Operations\ResourceOperationContext;
+use SeviaFlow\Core\Operations\ResourceOperationService;
 use SeviaFlow\Core\Resources\Action;
 use SeviaFlow\Core\Resources\Columns\BadgeColumn;
 use SeviaFlow\Core\Resources\Columns\BelongsToColumn;
@@ -31,7 +38,11 @@ use SeviaFlow\Core\Resources\Columns\BooleanColumn;
 use SeviaFlow\Core\Resources\Columns\Column;
 use SeviaFlow\Core\Resources\Columns\MoneyColumn;
 use SeviaFlow\Core\Resources\Columns\Support\BadgeRenderer;
+use SeviaFlow\Core\Resources\Fields\BelongsToField;
 use SeviaFlow\Core\Resources\Fields\Field;
+use SeviaFlow\Core\Resources\Fields\FileField;
+use SeviaFlow\Core\Resources\Fields\ImageField;
+use SeviaFlow\Core\Resources\Fields\MultiSelectField;
 use SeviaFlow\Core\Resources\Form;
 use SeviaFlow\Core\Resources\Relations\BelongsToManyRelation;
 use SeviaFlow\Core\Resources\Relations\HasManyRelation;
@@ -48,6 +59,7 @@ use SeviaFlow\Core\Resources\Section;
 use SeviaFlow\Core\Resources\Table;
 use SeviaFlow\Core\Support\SensitiveDataPolicy;
 use SeviaFlow\Ui\Fields\FieldRendererRegistry;
+use SeviaFlow\Ui\Index\TableUrlFactory;
 use SeviaFlow\Ui\Show\Actions\ShowActionResolver;
 use SeviaFlow\Ui\Show\Actions\ShowActionRunner;
 use SeviaFlow\Ui\Show\Relations\BelongsToManyRelationManager;
@@ -67,6 +79,7 @@ use SeviaFlow\Ui\Support\MoneyFormatter;
 
 final class ResourceShow extends Component
 {
+    use WithFileUploads;
     use WithPagination;
 
     #[Locked]
@@ -137,6 +150,43 @@ final class ResourceShow extends Component
      */
     public array $relationModalValues = [];
 
+    /**
+     * @var array<string, string>
+     */
+    public array $relationModalBelongsToSearch = [];
+
+    /**
+     * @var array<string, string>
+     */
+    public array $relationModalMultiSelectSearch = [];
+
+    /**
+     * @var array<string, string>
+     */
+    public array $relationModalFileActions = [];
+
+    public ?string $relationInlineCreateFieldName = null;
+
+    /**
+     * @var array<int, string>
+     */
+    public array $expandedRelations = [];
+
+    /**
+     * @var array<string, mixed>
+     */
+    public array $relationInlineCreateValues = [];
+
+    /**
+     * @var array<string, string>
+     */
+    public array $relationInlineCreateBelongsToSearch = [];
+
+    /**
+     * @var array<string, string>
+     */
+    public array $relationInlineCreateMultiSelectSearch = [];
+
     public function mount(string $resource, int|string $record): void
     {
         try {
@@ -161,19 +211,18 @@ final class ResourceShow extends Component
 
     public function render(): View
     {
+        $tableUrlFactory = new TableUrlFactory;
+        $listContext = $tableUrlFactory->contextFromQuery(request()->query());
+
         return view('seviaflow-ui::livewire.resource-show', [
             'fields' => $this->visibleFields(),
             'sections' => $this->visibleSections(),
             'title' => $this->resourceLabel(),
+            'metadata' => $this->recordMetadata(),
             'actions' => $this->authorizedActions(),
             'canEdit' => $this->canEdit(),
-            'backUrl' => route(config('seviaflow-ui.route_name_prefix', 'seviaflow.').'resources.index', [
-                'resource' => $this->resourceSlug,
-            ]),
-            'editUrl' => route(config('seviaflow-ui.route_name_prefix', 'seviaflow.').'resources.edit', [
-                'resource' => $this->resourceSlug,
-                'record' => $this->record?->getKey(),
-            ]),
+            'backUrl' => $tableUrlFactory->indexUrl($this->resourceSlug, $listContext),
+            'editUrl' => $tableUrlFactory->editUrl($this->resourceSlug, $this->record, $listContext),
             'formatValue' => fn (Field $field): string => $this->formatFieldValue($field),
             'relationManagers' => $this->relationManagers(),
             'formatColumnValue' => fn (Model $record, Column $column): string => $this->formatColumnValue($record, $column),
@@ -185,6 +234,28 @@ final class ResourceShow extends Component
         ])->layout('seviaflow-ui::components.app.layout', [
             'contentWidth' => 'standard',
         ]);
+    }
+
+    public function toggleRelation(string $relationshipName): void
+    {
+        if (! $this->record instanceof Model) {
+            return;
+        }
+
+        $relation = collect($this->relationManagerResolver()->relations($this->resource))
+            ->first(static fn ($candidate): bool => $candidate->getRelationshipName() === $relationshipName);
+
+        if ($relation === null || ! ResourceAuthorization::for($relation->getResourceClass())->canViewAny()) {
+            return;
+        }
+
+        if (in_array($relationshipName, $this->expandedRelations, true)) {
+            $this->expandedRelations = array_values(array_diff($this->expandedRelations, [$relationshipName]));
+        } else {
+            $this->expandedRelations[] = $relationshipName;
+        }
+
+        $this->resetPage($this->relationPageName($relationshipName));
     }
 
     public function executeWorkflowTransition(string $transitionName, bool $confirmed = false): void
@@ -562,6 +633,7 @@ final class ResourceShow extends Component
         $this->relationModalMode = 'create';
         $this->relationModalRecordId = null;
         $this->relationModalValues = $this->relationModalFormHandler()->initializeValuesFromFields($fields, null);
+        $this->initializeRelationModalState($fields);
         $this->resetErrorBag();
     }
 
@@ -587,6 +659,7 @@ final class ResourceShow extends Component
         $this->relationModalMode = 'create';
         $this->relationModalRecordId = null;
         $this->relationModalValues = $this->relationModalFormHandler()->initializeValuesFromFields($fields, null);
+        $this->initializeRelationModalState($fields);
         $this->resetErrorBag();
     }
 
@@ -613,6 +686,7 @@ final class ResourceShow extends Component
         $this->relationModalMode = 'edit';
         $this->relationModalRecordId = (string) $recordId;
         $this->relationModalValues = $this->relationModalFormHandler()->initializeValuesFromFields($fields, $record);
+        $this->initializeRelationModalState($fields);
         $this->resetErrorBag();
     }
 
@@ -639,6 +713,7 @@ final class ResourceShow extends Component
         $this->relationModalMode = 'edit';
         $this->relationModalRecordId = (string) $recordId;
         $this->relationModalValues = $this->relationModalFormHandler()->initializeValuesFromFields($fields, $record);
+        $this->initializeRelationModalState($fields);
         $this->resetErrorBag();
     }
 
@@ -648,7 +723,282 @@ final class ResourceShow extends Component
         $this->relationModalMode = null;
         $this->relationModalRecordId = null;
         $this->relationModalValues = [];
+        $this->relationModalBelongsToSearch = [];
+        $this->relationModalMultiSelectSearch = [];
+        $this->relationModalFileActions = [];
+        $this->cancelRelationInlineCreate();
         $this->resetErrorBag();
+    }
+
+    public function updatedRelationModalValues(mixed $value, string $fieldPath): void
+    {
+        $changedField = str_starts_with($fieldPath, 'relationModalValues.')
+            ? substr($fieldPath, strlen('relationModalValues.'))
+            : $fieldPath;
+
+        if ($changedField === '') {
+            return;
+        }
+
+        foreach ($this->relationModalFieldsForCurrent() as $field) {
+            if (! $field instanceof BelongsToField || $field->getDependsOnField() !== $changedField) {
+                continue;
+            }
+
+            $currentValue = (string) ($this->relationModalValues[$field->name()] ?? '');
+            if ($currentValue === '') {
+                continue;
+            }
+
+            $candidateValues = $this->relationModalValues;
+            $options = (new BelongsToFieldOptions)->resolve(
+                [$field],
+                $this->relationModalModelClass(),
+                [$field->name() => (string) ($this->relationModalBelongsToSearch[$field->name()] ?? '')],
+                $candidateValues
+            );
+            if (! array_key_exists($currentValue, $options[$field->name()] ?? [])) {
+                $this->relationModalValues[$field->name()] = '';
+            }
+        }
+    }
+
+    public function selectRelationModalBelongsToOption(string $fieldName, int|string $value): void
+    {
+        $field = $this->findRelationModalField($fieldName);
+        if (! $field instanceof BelongsToField) {
+            return;
+        }
+
+        $candidateValues = $this->relationModalValues;
+        $candidateValues[$fieldName] = (string) $value;
+        $options = (new BelongsToFieldOptions)->resolve(
+            [$field],
+            $this->relationModalModelClass(),
+            [$fieldName => (string) ($this->relationModalBelongsToSearch[$fieldName] ?? '')],
+            $candidateValues
+        );
+        if (! array_key_exists((string) $value, $options[$fieldName] ?? [])) {
+            return;
+        }
+
+        $this->relationModalValues[$fieldName] = (string) $value;
+        $this->relationModalBelongsToSearch[$fieldName] = '';
+    }
+
+    public function clearRelationModalBelongsToOption(string $fieldName): void
+    {
+        if (! $this->findRelationModalField($fieldName) instanceof BelongsToField) {
+            return;
+        }
+
+        $this->relationModalValues[$fieldName] = '';
+        $this->relationModalBelongsToSearch[$fieldName] = '';
+    }
+
+    public function toggleRelationModalMultiSelectOption(string $fieldName, int|string $value): void
+    {
+        $field = $this->findRelationModalField($fieldName);
+        if (! $field instanceof MultiSelectField) {
+            return;
+        }
+
+        $value = (string) $value;
+        $allowed = array_map(static fn (int|string $option): string => (string) $option, array_keys($field->getOptions()));
+        if (! in_array($value, $allowed, true)) {
+            return;
+        }
+
+        $selected = is_array($this->relationModalValues[$fieldName] ?? null)
+            ? array_values(array_map(static fn (mixed $item): string => (string) $item, $this->relationModalValues[$fieldName]))
+            : [];
+        if (in_array($value, $selected, true)) {
+            $selected = array_values(array_filter($selected, static fn (string $item): bool => $item !== $value));
+        } elseif ($field->getMaxSelected() === null || count($selected) < $field->getMaxSelected()) {
+            $selected[] = $value;
+        }
+
+        $this->relationModalValues[$fieldName] = $selected;
+    }
+
+    public function removeRelationModalMultiSelectOption(string $fieldName, int|string $value): void
+    {
+        $field = $this->findRelationModalField($fieldName);
+        if (! $field instanceof MultiSelectField) {
+            return;
+        }
+
+        $value = (string) $value;
+        $selected = is_array($this->relationModalValues[$fieldName] ?? null) ? $this->relationModalValues[$fieldName] : [];
+        $this->relationModalValues[$fieldName] = array_values(array_filter(
+            array_map(static fn (mixed $item): string => (string) $item, $selected),
+            static fn (string $item): bool => $item !== $value
+        ));
+    }
+
+    public function beginRelationInlineCreate(string $fieldName): void
+    {
+        $field = $this->findRelationModalField($fieldName);
+        if (! $field instanceof BelongsToField) {
+            return;
+        }
+
+        $resourceClass = $field->getInlineCreateResourceClass();
+        if ($resourceClass === null) {
+            return;
+        }
+
+        if (! ResourceAuthorization::for($resourceClass)->canCreate()) {
+            abort(403);
+        }
+
+        $this->relationInlineCreateFieldName = $fieldName;
+        $this->relationInlineCreateBelongsToSearch = [];
+        $this->relationInlineCreateMultiSelectSearch = [];
+        $this->relationInlineCreateValues = (new FormStateInitializer)->initialize(
+            $this->relationInlineCreateState()['fields'],
+            null,
+            ResourceContext::Create
+        );
+        $this->resetErrorBag();
+    }
+
+    public function cancelRelationInlineCreate(): void
+    {
+        $this->relationInlineCreateFieldName = null;
+        $this->relationInlineCreateValues = [];
+        $this->relationInlineCreateBelongsToSearch = [];
+        $this->relationInlineCreateMultiSelectSearch = [];
+    }
+
+    public function selectRelationInlineCreateBelongsToOption(string $fieldName, int|string $value): void
+    {
+        $state = $this->relationInlineCreateState();
+        $field = $this->findFieldInList($state['fields'], $fieldName);
+        if (! $field instanceof BelongsToField || ! is_string($state['modelClass'])) {
+            return;
+        }
+
+        $candidateValues = $this->relationInlineCreateValues;
+        $candidateValues[$fieldName] = (string) $value;
+        $options = (new BelongsToFieldOptions)->resolve(
+            [$field],
+            $state['modelClass'],
+            [$fieldName => (string) ($this->relationInlineCreateBelongsToSearch[$fieldName] ?? '')],
+            $candidateValues
+        );
+        if (! array_key_exists((string) $value, $options[$fieldName] ?? [])) {
+            return;
+        }
+
+        $this->relationInlineCreateValues[$fieldName] = (string) $value;
+        $this->relationInlineCreateBelongsToSearch[$fieldName] = '';
+    }
+
+    public function clearRelationInlineCreateBelongsToOption(string $fieldName): void
+    {
+        if (! $this->findFieldInList($this->relationInlineCreateState()['fields'], $fieldName) instanceof BelongsToField) {
+            return;
+        }
+
+        $this->relationInlineCreateValues[$fieldName] = '';
+        $this->relationInlineCreateBelongsToSearch[$fieldName] = '';
+    }
+
+    public function toggleRelationInlineCreateMultiSelectOption(string $fieldName, int|string $value): void
+    {
+        $field = $this->findFieldInList($this->relationInlineCreateState()['fields'], $fieldName);
+        if (! $field instanceof MultiSelectField) {
+            return;
+        }
+
+        $value = (string) $value;
+        $allowed = array_map(static fn (int|string $option): string => (string) $option, array_keys($field->getOptions()));
+        if (! in_array($value, $allowed, true)) {
+            return;
+        }
+
+        $selected = is_array($this->relationInlineCreateValues[$fieldName] ?? null)
+            ? array_values(array_map(static fn (mixed $item): string => (string) $item, $this->relationInlineCreateValues[$fieldName]))
+            : [];
+        if (in_array($value, $selected, true)) {
+            $selected = array_values(array_filter($selected, static fn (string $item): bool => $item !== $value));
+        } elseif ($field->getMaxSelected() === null || count($selected) < $field->getMaxSelected()) {
+            $selected[] = $value;
+        }
+
+        $this->relationInlineCreateValues[$fieldName] = $selected;
+    }
+
+    public function removeRelationInlineCreateMultiSelectOption(string $fieldName, int|string $value): void
+    {
+        $field = $this->findFieldInList($this->relationInlineCreateState()['fields'], $fieldName);
+        if (! $field instanceof MultiSelectField) {
+            return;
+        }
+
+        $value = (string) $value;
+        $selected = is_array($this->relationInlineCreateValues[$fieldName] ?? null) ? $this->relationInlineCreateValues[$fieldName] : [];
+        $this->relationInlineCreateValues[$fieldName] = array_values(array_filter(
+            array_map(static fn (mixed $item): string => (string) $item, $selected),
+            static fn (string $item): bool => $item !== $value
+        ));
+    }
+
+    public function saveRelationInlineCreate(): void
+    {
+        $state = $this->relationInlineCreateState();
+        $field = $state['field'];
+        $resourceClass = $state['resourceClass'];
+        $modelClass = $state['modelClass'];
+        $fields = $state['fields'];
+
+        if (! $field instanceof BelongsToField || ! is_string($resourceClass) || ! is_string($modelClass)) {
+            return;
+        }
+
+        if (! ResourceAuthorization::for($resourceClass)->canCreate()) {
+            abort(403);
+        }
+
+        $formState = new FormState($this->relationInlineCreateValues, ResourceContext::Create);
+        $validated = $this->validate(
+            (new FormValidationRules)->build(
+                $fields,
+                ResourceContext::Create,
+                $modelClass,
+                'relationInlineCreateValues',
+                $this->relationInlineCreateValues,
+                null,
+                $formState
+            ),
+            messages: [],
+            attributes: (new FormValidationRules)->attributes(
+                $fields,
+                ResourceContext::Create,
+                'relationInlineCreateValues',
+                $formState
+            )
+        );
+
+        $created = $this->operationService()->execute(
+            resourceClass: $resourceClass,
+            resourceSlug: $this->resourceSlugForClass($resourceClass),
+            model: new $modelClass,
+            fields: $fields,
+            values: is_array($validated['relationInlineCreateValues'] ?? null) ? $validated['relationInlineCreateValues'] : [],
+            context: ResourceContext::Create,
+            operationContext: new ResourceOperationContext(
+                actor: auth()->user(),
+                source: ResourceEventContext::SOURCE_INLINE_CREATE,
+                request: request(),
+            )
+        );
+
+        $this->relationModalValues[$field->name()] = (string) $created->getKey();
+        $this->cancelRelationInlineCreate();
+        $this->statusMessage = 'Related record created successfully.';
+        $this->dispatch('seviaflow:focus-field', fieldId: $this->fieldDomId('relationModalValues', $field->name()));
     }
 
     public function saveRelationModal(): void
@@ -709,6 +1059,7 @@ final class ResourceShow extends Component
             );
             $values = is_array($validated['relationModalValues'] ?? null) ? $validated['relationModalValues'] : [];
         }
+        $values = $this->applyRelationModalFileActions($values, $fields);
 
         if ($this->relationModalMode === 'edit') {
             if (! $relation->canEdit()) {
@@ -957,11 +1308,32 @@ final class ResourceShow extends Component
             return 'Record details';
         }
 
+        $title = $this->resource::recordTitle($this->record);
+
+        if ($title !== null) {
+            return $title;
+        }
+
         return sprintf(
             '%s #%s',
             class_basename($this->modelClass),
             (string) $this->record->getKey()
         );
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function recordMetadata(): array
+    {
+        if (! $this->record instanceof Model) {
+            return [];
+        }
+
+        return [
+            'ID' => (string) $this->record->getKey(),
+            ...$this->resource::recordMetadata($this->record),
+        ];
     }
 
     private function formFields(): FormFields
@@ -1092,6 +1464,11 @@ final class ResourceShow extends Component
         return new RelationModalFormHandler;
     }
 
+    private function operationService(): ResourceOperationService
+    {
+        return new ResourceOperationService(new FormFields);
+    }
+
     private function canEdit(): bool
     {
         if (! $this->record instanceof Model) {
@@ -1128,6 +1505,10 @@ final class ResourceShow extends Component
      *   canEditPivot: bool,
      *   canEditPivotRecord: (\Closure(Model): bool),
      *   records: Collection<int, Model>|LengthAwarePaginator|Paginator,
+     *   expanded: bool,
+     *   lazy: bool,
+     *   recordCount: int,
+     *   loadLabel: string,
      *   attachOptions: array<string, string>,
      *   showUrl: (\Closure(Model): ?string),
      *   editUrl: (\Closure(Model): ?string)
@@ -1154,7 +1535,13 @@ final class ResourceShow extends Component
                 static fn (Column $column): bool => $column->isVisible(ResourceContext::Index)
             ));
 
-            $records = $this->paginateRelationRecords($relation);
+            $relationshipName = $relation->getRelationshipName();
+            $isLazy = $this->relationIsLazy($relationshipName);
+            $expanded = ! $isLazy || in_array($relationshipName, $this->expandedRelations, true);
+            $records = $expanded ? $this->paginateRelationRecords($relation) : Collection::make();
+            $recordCount = $expanded
+                ? (method_exists($records, 'total') ? (int) $records->total() : $records->count())
+                : $this->relationQueryPaginator()->count($this->record, $relation, $relatedResource);
             $relatedResourceSlug = $this->resourceSlugForClass($relatedResource);
             $allowsRelatedResourceEdit = (
                 $relation instanceof HasManyRelation
@@ -1167,7 +1554,7 @@ final class ResourceShow extends Component
                 'type' => $relation instanceof BelongsToManyRelation || $relation instanceof MorphToManyRelation
                     ? 'belongsToMany'
                     : ($relation instanceof HasOneRelation || $relation instanceof MorphOneRelation ? 'hasOne' : 'hasMany'),
-                'relationshipName' => $relation->getRelationshipName(),
+                'relationshipName' => $relationshipName,
                 'label' => $relation->getLabel(),
                 'canCreate' => $relation instanceof HasManyRelation || $relation instanceof MorphManyRelation
                     ? $relation->canCreate() && ResourceAuthorization::for($relatedResource)->canCreate()
@@ -1205,6 +1592,10 @@ final class ResourceShow extends Component
                         && ResourceAuthorization::for($relatedResource)->canUpdate(null, $relatedRecord)
                     : false,
                 'records' => $records,
+                'expanded' => $expanded,
+                'lazy' => $isLazy,
+                'recordCount' => $recordCount,
+                'loadLabel' => 'Open to load related records',
                 'attachOptions' => ($relation instanceof BelongsToManyRelation || $relation instanceof MorphToManyRelation) && $relation->canAttach()
                     ? $this->belongsToManyAttachOptions($relation)
                     : [],
@@ -1232,6 +1623,16 @@ final class ResourceShow extends Component
         }
 
         return $managers;
+    }
+
+    private function relationIsLazy(string $relationshipName): bool
+    {
+        return in_array($relationshipName, $this->resource::lazyRelations(), true);
+    }
+
+    private function relationPageName(string $relationshipName): string
+    {
+        return 'rel_'.preg_replace('/[^A-Za-z0-9_]/', '_', $relationshipName);
     }
 
     private function paginateRelationRecords(HasOneRelation|HasManyRelation|BelongsToManyRelation|MorphOneRelation|MorphManyRelation|MorphToManyRelation $relation): Collection|LengthAwarePaginator|Paginator
@@ -1450,6 +1851,14 @@ final class ResourceShow extends Component
      *   modelClass: class-string<Model>|null,
      *   fields: array<int, Field>,
      *   belongsToOptions: array<string, array<string, string>>,
+     *   inlineCreateAllowed: array<string, bool>,
+     *   inlineCreateState: array<string, mixed>,
+     *   record: Model|null,
+     *   fileDownloadUrls: array<string, string>,
+     *   fileHasValues: array<string, bool>,
+     *   fileMetadata: array<string, array{name:string, size:int|null, mime:string|null, image:bool}>,
+     *   filePending: array<string, bool>,
+     *   fileActions: array<string, string>,
      *   title: string|null,
      *   visible: bool
      * }
@@ -1465,6 +1874,14 @@ final class ResourceShow extends Component
                 'modelClass' => null,
                 'fields' => [],
                 'belongsToOptions' => [],
+                'inlineCreateAllowed' => [],
+                'inlineCreateState' => [],
+                'record' => null,
+                'fileDownloadUrls' => [],
+                'fileHasValues' => [],
+                'fileMetadata' => [],
+                'filePending' => [],
+                'fileActions' => [],
                 'title' => null,
                 'visible' => false,
             ];
@@ -1475,7 +1892,13 @@ final class ResourceShow extends Component
         $modelClass = $resourceClass::model();
         $context = $this->relationModalMode === 'edit' ? ResourceContext::Edit : ResourceContext::Create;
         $fields = $this->relationModalFields($relation, $context);
-        $belongsToOptions = $this->relationModalFormHandler()->belongsToOptions($fields, $modelClass, $this->relationModalValues);
+        $modalRecord = $this->relationModalRecord($relation);
+        $belongsToOptions = $this->relationModalFormHandler()->belongsToOptions(
+            $fields,
+            $modelClass,
+            $this->relationModalValues,
+            $this->relationModalBelongsToSearch
+        );
         $title = $this->relationModalMode === 'edit'
             ? $relation->getEditLabel().' '.$relation->getLabel()
             : $relation->getCreateLabel();
@@ -1486,9 +1909,320 @@ final class ResourceShow extends Component
             'modelClass' => $modelClass,
             'fields' => $fields,
             'belongsToOptions' => $belongsToOptions,
+            'inlineCreateAllowed' => $this->relationInlineCreateAllowedMap($fields),
+            'inlineCreateState' => $this->relationInlineCreateState(),
+            'record' => $modalRecord,
+            'fileDownloadUrls' => $this->relationFileDownloadUrls($resourceClass, $modalRecord, $fields),
+            'fileHasValues' => $this->relationFileHasValues($modalRecord, $fields),
+            'fileMetadata' => $this->relationFileMetadata($modalRecord, $fields),
+            'filePending' => $this->relationFilePending($fields),
+            'fileActions' => $this->relationModalFileActions,
             'title' => $title,
             'visible' => true,
         ];
+    }
+
+    /**
+     * @param  array<int, Field>  $fields
+     */
+    private function initializeRelationModalState(array $fields): void
+    {
+        $this->relationModalBelongsToSearch = [];
+        $this->relationModalMultiSelectSearch = [];
+        $this->relationModalFileActions = [];
+
+        foreach ($fields as $field) {
+            if ($field instanceof FileField) {
+                $this->relationModalFileActions[$field->name()] = 'retain';
+            }
+        }
+    }
+
+    /**
+     * @return array<int, Field>
+     */
+    private function relationModalFieldsForCurrent(): array
+    {
+        $relation = $this->relationModalRelation($this->relationModalRelationship ?? '');
+        if ($relation === null || $this->relationModalMode === null) {
+            return [];
+        }
+
+        return $this->relationModalFields(
+            $relation,
+            $this->relationModalMode === 'edit' ? ResourceContext::Edit : ResourceContext::Create
+        );
+    }
+
+    private function relationModalModelClass(): string
+    {
+        $relation = $this->relationModalRelation($this->relationModalRelationship ?? '');
+        if ($relation !== null) {
+            return $relation->getResourceClass()::model();
+        }
+
+        return $this->modelClass;
+    }
+
+    private function findRelationModalField(string $fieldName): ?Field
+    {
+        foreach ($this->relationModalFieldsForCurrent() as $field) {
+            if ($field->name() === $fieldName) {
+                return $field;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @param  array<int, Field>  $fields
+     */
+    private function findFieldInList(array $fields, string $fieldName): ?Field
+    {
+        foreach ($fields as $field) {
+            if ($field->name() === $fieldName) {
+                return $field;
+            }
+        }
+
+        return null;
+    }
+
+    private function relationModalRecord(HasOneRelation|HasManyRelation|MorphOneRelation|MorphManyRelation $relation): ?Model
+    {
+        if ($this->relationModalMode !== 'edit') {
+            return null;
+        }
+
+        return $relation instanceof HasManyRelation || $relation instanceof MorphManyRelation
+            ? $this->resolveHasManyRecord($relation, $this->relationModalRecordId)
+            : $this->resolveHasOneRecordById($relation, $this->relationModalRecordId);
+    }
+
+    /**
+     * @param  array<int, Field>  $fields
+     * @return array<string, bool>
+     */
+    private function relationInlineCreateAllowedMap(array $fields): array
+    {
+        $allowed = [];
+        foreach ($fields as $field) {
+            if (! $field instanceof BelongsToField) {
+                continue;
+            }
+
+            $resourceClass = $field->getInlineCreateResourceClass();
+            $allowed[$field->name()] = $resourceClass !== null
+                && ResourceAuthorization::for($resourceClass)->canCreate();
+        }
+
+        return $allowed;
+    }
+
+    /**
+     * @return array{
+     *   field: BelongsToField|null,
+     *   resourceClass: class-string<\SeviaFlow\Core\Resources\Resource>|null,
+     *   modelClass: class-string<Model>|null,
+     *   fields: array<int, Field>,
+     *   belongsToOptions: array<string, array<string, string>>,
+     *   visible: bool,
+     *   title: string|null
+     * }
+     */
+    private function relationInlineCreateState(): array
+    {
+        $field = $this->findRelationModalField($this->relationInlineCreateFieldName ?? '');
+        $resourceClass = $field instanceof BelongsToField
+            ? $field->getInlineCreateResourceClass()
+            : null;
+        $modelClass = null;
+        $fields = [];
+        $belongsToOptions = [];
+        $visible = false;
+
+        if ($field instanceof BelongsToField && $resourceClass !== null) {
+            $visible = ResourceAuthorization::for($resourceClass)->canCreate();
+            if ($visible) {
+                /** @var class-string<Model> $resolvedModelClass */
+                $resolvedModelClass = $resourceClass::model();
+                $modelClass = $resolvedModelClass;
+                $fields = (new FormFields)->visible(
+                    $resourceClass::form(new Form)->getAllFields(),
+                    ResourceContext::Create
+                );
+                $belongsToOptions = (new BelongsToFieldOptions)->resolve(
+                    $fields,
+                    $resolvedModelClass,
+                    [],
+                    $this->relationInlineCreateValues
+                );
+            }
+        }
+
+        return [
+            'field' => $field,
+            'resourceClass' => $resourceClass,
+            'modelClass' => $modelClass,
+            'fields' => $fields,
+            'belongsToOptions' => $belongsToOptions,
+            'visible' => $visible,
+            'title' => $field instanceof BelongsToField ? ($field->getInlineCreateLabel() ?? ('Create '.$field->getLabel())) : null,
+        ];
+    }
+
+    /**
+     * @param  array<int, Field>  $fields
+     * @param  array<string, mixed>  $values
+     * @return array<string, mixed>
+     */
+    private function applyRelationModalFileActions(array $values, array $fields): array
+    {
+        foreach ($this->relationModalFileActions as $fieldName => $action) {
+            if ($action !== 'remove' || ! array_key_exists($fieldName, $values) || $values[$fieldName] !== null) {
+                continue;
+            }
+
+            foreach ($fields as $field) {
+                if ($field instanceof FileField && $field->name() === $fieldName) {
+                    $values[$fieldName] = ['action' => 'remove'];
+                    break;
+                }
+            }
+        }
+
+        return $values;
+    }
+
+    public function removeRelationModalFile(string $fieldName): void
+    {
+        $field = $this->findRelationModalField($fieldName);
+        if (! $field instanceof FileField) {
+            return;
+        }
+
+        $this->relationModalFileActions[$fieldName] = 'remove';
+        $this->relationModalValues[$fieldName] = null;
+    }
+
+    public function retainRelationModalFile(string $fieldName): void
+    {
+        $field = $this->findRelationModalField($fieldName);
+        if (! $field instanceof FileField) {
+            return;
+        }
+
+        $this->relationModalFileActions[$fieldName] = 'retain';
+        $this->relationModalValues[$fieldName] = null;
+    }
+
+    /**
+     * @param  class-string<\SeviaFlow\Core\Resources\Resource>  $resourceClass
+     * @param  array<int, Field>  $fields
+     * @return array<string, string>
+     */
+    private function relationFileDownloadUrls(string $resourceClass, ?Model $record, array $fields): array
+    {
+        if (! $record instanceof Model) {
+            return [];
+        }
+
+        $urls = [];
+        foreach ($fields as $field) {
+            if (! $field instanceof FileField || ! $field->canRead(auth()->user(), $record)) {
+                continue;
+            }
+
+            $value = $record->getAttribute($field->name());
+            if (! is_string($value) || trim($value) === '') {
+                continue;
+            }
+
+            $urls[$field->name()] = route(
+                config('seviaflow-ui.route_name_prefix', 'seviaflow.').'resources.files.download',
+                ['resource' => $this->resourceSlugForClass($resourceClass), 'record' => $record->getKey(), 'field' => $field->name()]
+            );
+        }
+
+        return $urls;
+    }
+
+    /**
+     * @param  array<int, Field>  $fields
+     * @return array<string, bool>
+     */
+    private function relationFileHasValues(?Model $record, array $fields): array
+    {
+        $values = [];
+        foreach ($fields as $field) {
+            if ($field instanceof FileField) {
+                $value = $record?->getAttribute($field->name());
+                $values[$field->name()] = is_string($value) && trim($value) !== '';
+            }
+        }
+
+        return $values;
+    }
+
+    /**
+     * @param  array<int, Field>  $fields
+     * @return array<string, array{name:string, size:int|null, mime:string|null, image:bool}>
+     */
+    private function relationFileMetadata(?Model $record, array $fields): array
+    {
+        $metadata = [];
+        foreach ($fields as $field) {
+            if (! $field instanceof FileField) {
+                continue;
+            }
+
+            $path = $record?->getAttribute($field->name());
+            if (! is_string($path) || trim($path) === '') {
+                continue;
+            }
+
+            $size = null;
+            $mime = null;
+            try {
+                $disk = Storage::disk($field->getDisk());
+                if ($disk->exists($path)) {
+                    $size = $disk->size($path);
+                    $mime = $disk->mimeType($path);
+                }
+            } catch (\Throwable) {
+            }
+
+            $metadata[$field->name()] = [
+                'name' => basename($path),
+                'size' => is_int($size) ? $size : null,
+                'mime' => is_string($mime) ? $mime : null,
+                'image' => $field instanceof ImageField,
+            ];
+        }
+
+        return $metadata;
+    }
+
+    /**
+     * @param  array<int, Field>  $fields
+     * @return array<string, bool>
+     */
+    private function relationFilePending(array $fields): array
+    {
+        $pending = [];
+        foreach ($fields as $field) {
+            if ($field instanceof FileField) {
+                $pending[$field->name()] = ($this->relationModalValues[$field->name()] ?? null) instanceof UploadedFile;
+            }
+        }
+
+        return $pending;
+    }
+
+    private function fieldDomId(string $modelPath, string $fieldName): string
+    {
+        return 'field-'.preg_replace('/[^A-Za-z0-9_-]+/', '-', $modelPath.'.'.$fieldName);
     }
 
     private function relationModalRelation(string $relationshipName): HasOneRelation|HasManyRelation|MorphOneRelation|MorphManyRelation|null

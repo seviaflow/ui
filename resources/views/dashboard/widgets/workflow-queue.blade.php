@@ -6,6 +6,9 @@
                 <p class="sf-card-description mt-1">{{ $widget['description'] }}</p>
             @endif
         </div>
+        @if(is_string($indexUrl ?? null) && $indexUrl !== '')
+            <a href="{{ $indexUrl }}" class="sf-button sf-button-secondary !px-3 !py-1.5">Open matching list</a>
+        @endif
     </div>
 
     @if($rows === [])

@@ -71,10 +71,13 @@ it('stores only allowed state keys', function (): void {
     ]);
 
     expect($savedView->state)->toBe([
+        'state_version' => 1,
         'search' => 'paid',
         'filters' => ['status' => 'paid'],
         'sort' => ['column' => 'created_at', 'direction' => 'desc'],
         'per_page' => 50,
+        'columns' => [],
+        'trash' => 'active',
     ]);
 });
 

@@ -14,10 +14,12 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Locked;
+use Livewire\Attributes\Url;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 use Livewire\WithPagination;
 use SeviaFlow\Core\Exceptions\ResourceSlugNotRegisteredException;
+use SeviaFlow\Core\Export\CsvExporter;
 use SeviaFlow\Core\Resources\Action;
 use SeviaFlow\Core\Resources\BulkAction;
 use SeviaFlow\Core\Resources\Columns\Column;
@@ -71,14 +73,19 @@ final class ResourceIndex extends Component
     #[Locked]
     public string $resource;
 
+    #[Url(as: 'search', history: true, except: '')]
     public string $search = '';
 
+    #[Url(as: 'sort', history: true, except: '')]
     public string $sortColumn = '';
 
+    #[Url(as: 'direction', history: true, except: 'asc')]
     public string $sortDirection = 'asc';
 
+    #[Url(as: 'per_page', history: true, except: 15)]
     public int $perPage = 15;
 
+    #[Url(as: 'trash', history: true, except: 'active')]
     public string $trashedScope = 'active';
 
     /**
@@ -91,7 +98,13 @@ final class ResourceIndex extends Component
     /**
      * @var array<string, mixed>
      */
+    #[Url(as: 'filter', history: true, except: [])]
     public array $filterValues = [];
+
+    /**
+     * @var array<int, string>
+     */
+    public array $visibleColumnNames = [];
 
     public ?string $statusMessage = null;
 
@@ -155,15 +168,22 @@ final class ResourceIndex extends Component
         }
 
         $this->initializeFilterValues();
+        $this->initializeColumnState();
+        $this->normalizeIndexState();
     }
 
     public function render(): View
     {
+        $records = $this->records();
+        $selectionSummary = $this->selectionSummary($records);
+
         return view('seviaflow-ui::livewire.resource-index', [
             'columns' => $this->columns(),
+            'columnSettings' => $this->columnSettings(),
             'filters' => $this->filters(),
+            'activeFilterEntries' => $this->activeFilterEntries(),
             'activeFiltersCount' => $this->activeFiltersCount(),
-            'records' => $this->records(),
+            'records' => $records,
             'hasForm' => $this->hasForm(),
             'canCreate' => $this->canCreate(),
             'createUrl' => $this->createUrl(),
@@ -178,8 +198,12 @@ final class ResourceIndex extends Component
             'canExecuteAction' => fn (Action $action, Model $record): bool => $this->canExecuteAction($action, $record),
             'supportsSoftDeletes' => $this->supportsSoftDeletes(),
             'selectedCount' => $this->bulkSelectionState()->count($this->selectedRecords),
+            'selectedVisibleCount' => $selectionSummary['selectedVisibleCount'],
+            'hasPartialSelection' => $selectionSummary['hasPartialSelection'],
             'perPageOptions' => $this->perPageOptions(),
-            'emptyMessage' => $this->search === '' ? 'No records to display.' : 'No matching records found.',
+            'emptyMessage' => $this->emptyMessage(),
+            'hasActiveQuery' => $this->hasActiveQuery(),
+            'savedViewModified' => $this->savedViewModified(),
             'formatValue' => fn (Model $record, Column $column): string => $this->formatValue($record, $column),
             'savedViews' => $this->savedViews(),
             'canExport' => $this->canExport(),
@@ -187,6 +211,7 @@ final class ResourceIndex extends Component
             'exportFormats' => $this->exportFormats(),
             'canImport' => $this->canImport(),
             'importAllowedFields' => $this->importFields(),
+            'importRequiredFields' => $this->importRequiredFields(),
         ])->layout('seviaflow-ui::components.app.layout', [
             'contentWidth' => 'wide',
         ]);
@@ -198,10 +223,20 @@ final class ResourceIndex extends Component
         $this->resetPage();
     }
 
+    public function updatedSearch(): void
+    {
+        $this->search = mb_substr(trim($this->search), 0, 200);
+    }
+
     public function updatingPerPage(): void
     {
         $this->clearSelection();
         $this->resetPage();
+    }
+
+    public function updatedPerPage(): void
+    {
+        $this->perPage = $this->normalizedPerPage($this->perPage);
     }
 
     public function updatingFilterValues(): void
@@ -217,15 +252,33 @@ final class ResourceIndex extends Component
 
     public function resetFilters(): void
     {
-        $this->initializeFilterValues();
+        $this->filterValues = $this->defaultFilterValues();
         $this->clearSelection();
         $this->resetPage();
+    }
+
+    public function resetTableState(): void
+    {
+        $this->search = '';
+        $this->sortColumn = '';
+        $this->sortDirection = 'asc';
+        $this->perPage = $this->normalizedPerPage((int) config('seviaflow.performance.pagination.default_per_page', 15));
+        $this->trashedScope = 'active';
+        $this->filterValues = $this->defaultFilterValues();
+        $this->clearSelection();
+        $this->resetPage();
+        $this->normalizeIndexState();
     }
 
     public function updatingTrashedScope(): void
     {
         $this->clearSelection();
         $this->resetPage();
+    }
+
+    public function updatedTrashedScope(): void
+    {
+        $this->trashedScope = $this->normalizedTrashedScope($this->trashedScope);
     }
 
     public function updatingPage(): void
@@ -262,11 +315,64 @@ final class ResourceIndex extends Component
         if ($this->sortColumn === $column) {
             $this->sortDirection = $this->sortDirection === 'asc' ? 'desc' : 'asc';
 
+            $this->resetPage();
+
             return;
         }
 
         $this->sortColumn = $column;
         $this->sortDirection = 'asc';
+        $this->resetPage();
+    }
+
+    public function clearFilter(string $name): void
+    {
+        foreach ($this->filters() as $filter) {
+            if ($filter->name() !== $name) {
+                continue;
+            }
+
+            $this->filterValues[$name] = $filter->getDefault() ?? ($filter instanceof MultiSelectFilter ? [] : '');
+            $this->normalizeFilterValues();
+            $this->clearSelection();
+            $this->resetPage();
+
+            return;
+        }
+    }
+
+    public function toggleColumn(string $name): void
+    {
+        if (! in_array($name, $this->allowedColumnNames(), true)) {
+            return;
+        }
+
+        if (in_array($name, $this->visibleColumnNames, true)) {
+            if (count($this->visibleColumnNames) <= 1) {
+                $this->errorMessage = 'Keep at least one table column visible.';
+
+                return;
+            }
+
+            $this->visibleColumnNames = array_values(array_filter(
+                $this->visibleColumnNames,
+                static fn (string $column): bool => $column !== $name
+            ));
+        } else {
+            $this->visibleColumnNames[] = $name;
+        }
+
+        $this->normalizeColumnState();
+    }
+
+    public function moveColumnUp(string $name): void
+    {
+        $this->moveColumn($name, -1);
+    }
+
+    public function moveColumnDown(string $name): void
+    {
+        $this->moveColumn($name, 1);
     }
 
     public function openSaveViewForm(): void
@@ -317,7 +423,14 @@ final class ResourceIndex extends Component
         /** @var array<string, mixed> $state */
         $state = $savedView->state;
         $this->initializeFilterValues();
-        $applied = $this->savedViewStateManager()->applyState($state, $this->filterValues);
+        $applied = $this->savedViewStateManager()->applyState(
+            state: $state,
+            currentFilterValues: $this->filterValues,
+            allowedColumns: $this->allowedColumnNames(),
+            defaultColumns: $this->defaultColumnNames(),
+            sortableColumns: $this->sortableColumnNames(),
+            supportsTrash: $this->supportsSoftDeletes(),
+        );
         $this->search = $applied['search'];
         $this->filterValues = $applied['filter_values'];
         $this->sortColumn = $applied['sort_column'];
@@ -325,8 +438,11 @@ final class ResourceIndex extends Component
         if (is_int($applied['per_page'])) {
             $this->perPage = $this->normalizedPerPage($applied['per_page']);
         }
+        $this->visibleColumnNames = $applied['columns'];
+        $this->trashedScope = $applied['trashed_scope'];
 
         $this->normalizeFilterValues();
+        $this->normalizeIndexState();
         $this->clearSelection();
         $this->resetPage();
         $this->selectedSavedViewId = (string) $savedView->id;
@@ -442,6 +558,32 @@ final class ResourceIndex extends Component
         $this->importPreviewHeaders = $state['import_preview_headers'];
         $this->importPreviewRows = $state['import_preview_rows'];
         $this->importPreviewErrors = $state['import_preview_errors'];
+    }
+
+    public function downloadImportTemplate(): ?StreamedResponse
+    {
+        $this->clearMessages();
+
+        if (! $this->canImport()) {
+            $this->errorMessage = 'Import is not available for this resource.';
+
+            return null;
+        }
+
+        $headings = $this->importFields();
+
+        if ($headings === []) {
+            $this->errorMessage = 'This resource does not define import fields.';
+
+            return null;
+        }
+
+        return (new CsvExporter)->download(
+            resourceSlug: $this->resourceSlug,
+            headings: $headings,
+            rows: [],
+            kind: 'import-template'
+        );
     }
 
     public function previewImport(): void
@@ -686,9 +828,29 @@ final class ResourceIndex extends Component
      */
     private function columns(): array
     {
+        $columnsByName = [];
+        foreach ($this->allColumns() as $column) {
+            $columnsByName[$column->name()] = $column;
+        }
+
+        $columns = [];
+        foreach ($this->visibleColumnNames as $name) {
+            if (isset($columnsByName[$name])) {
+                $columns[] = $columnsByName[$name];
+            }
+        }
+
+        return $columns === [] ? $this->allColumns() : $columns;
+    }
+
+    /**
+     * @return array<int, Column>
+     */
+    private function allColumns(): array
+    {
         return array_values(array_filter(
             $this->table()->getColumns(),
-            fn (Column $column): bool => $column->isVisible(ResourceContext::Index)
+            static fn (Column $column): bool => $column->isVisible(ResourceContext::Index)
         ));
     }
 
@@ -729,7 +891,7 @@ final class ResourceIndex extends Component
             return false;
         }
 
-        foreach ($this->columns() as $configuredColumn) {
+        foreach ($this->allColumns() as $configuredColumn) {
             if ($configuredColumn->name() === $column && $configuredColumn->isSortable()) {
                 return true;
             }
@@ -740,17 +902,31 @@ final class ResourceIndex extends Component
 
     private function initializeFilterValues(): void
     {
-        foreach ($this->filters() as $filter) {
-            $default = $filter->getDefault();
+        $existing = $this->filterValues;
+        $this->filterValues = $this->defaultFilterValues();
 
-            if ($default !== null) {
-                $this->filterValues[$filter->name()] = $default;
-
-                continue;
+        foreach (array_keys($this->filterValues) as $name) {
+            if (array_key_exists($name, $existing)) {
+                $this->filterValues[$name] = $existing[$name];
             }
-
-            $this->filterValues[$filter->name()] = $filter instanceof MultiSelectFilter ? [] : '';
         }
+
+        $this->normalizeFilterValues();
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function defaultFilterValues(): array
+    {
+        $values = [];
+
+        foreach ($this->filters() as $filter) {
+            $values[$filter->name()] = $filter->getDefault()
+                ?? ($filter instanceof MultiSelectFilter ? [] : '');
+        }
+
+        return $values;
     }
 
     private function activeFiltersCount(): int
@@ -827,6 +1003,194 @@ final class ResourceIndex extends Component
         }
     }
 
+    /**
+     * @return array<int, array{name:string, label:string, value:string}>
+     */
+    private function activeFilterEntries(): array
+    {
+        $entries = [];
+
+        foreach ($this->filters() as $filter) {
+            $value = $this->filterValues[$filter->name()] ?? null;
+
+            if (! $filter->isActive($value)) {
+                continue;
+            }
+
+            $entries[] = [
+                'name' => $filter->name(),
+                'label' => $filter->getLabel(),
+                'value' => $this->filterDisplayValue($filter, $value),
+            ];
+        }
+
+        return $entries;
+    }
+
+    private function filterDisplayValue(Filter $filter, mixed $value): string
+    {
+        $values = is_array($value) ? $value : [$value];
+        $options = [];
+
+        if ($filter instanceof SelectFilter || $filter instanceof MultiSelectFilter) {
+            $options = $filter->getOptions();
+        } elseif ($filter instanceof BelongsToFilter) {
+            $options = $filter->getOptionsFor($this->resource::model());
+        }
+
+        $labels = [];
+        foreach ($values as $key => $item) {
+            if (is_array($item)) {
+                $parts = [];
+                foreach ($item as $nestedKey => $nestedValue) {
+                    if ($nestedValue !== null && $nestedValue !== '') {
+                        $parts[] = $nestedKey.': '.(string) $nestedValue;
+                    }
+                }
+                if ($parts !== []) {
+                    $labels[] = implode(', ', $parts);
+                }
+
+                continue;
+            }
+
+            if (is_scalar($item)) {
+                $labels[] = (string) ($options[(string) $item] ?? $item);
+            }
+        }
+
+        return implode(', ', $labels);
+    }
+
+    private function initializeColumnState(): void
+    {
+        $allowed = $this->allowedColumnNames();
+        $this->visibleColumnNames = $this->visibleColumnNames === []
+            ? $allowed
+            : $this->visibleColumnNames;
+        $this->normalizeColumnState();
+    }
+
+    private function normalizeColumnState(): void
+    {
+        $allowed = $this->allowedColumnNames();
+        $normalized = [];
+
+        foreach ($this->visibleColumnNames as $name) {
+            if (is_string($name) && in_array($name, $allowed, true) && ! in_array($name, $normalized, true)) {
+                $normalized[] = $name;
+            }
+        }
+
+        $this->visibleColumnNames = $normalized === [] ? $this->defaultColumnNames() : $normalized;
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function allowedColumnNames(): array
+    {
+        return array_values(array_map(
+            static fn (Column $column): string => $column->name(),
+            $this->allColumns()
+        ));
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function defaultColumnNames(): array
+    {
+        return $this->allowedColumnNames();
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function sortableColumnNames(): array
+    {
+        return array_values(array_map(
+            static fn (Column $column): string => $column->name(),
+            array_values(array_filter($this->allColumns(), static fn (Column $column): bool => $column->isSortable()))
+        ));
+    }
+
+    /**
+     * @return array<int, array{name:string, label:string, visible:bool, position:int, can_move_up:bool, can_move_down:bool}>
+     */
+    private function columnSettings(): array
+    {
+        $columns = [];
+        foreach ($this->allColumns() as $column) {
+            $position = array_search($column->name(), $this->visibleColumnNames, true);
+            $columns[] = [
+                'name' => $column->name(),
+                'label' => $column->getLabel(),
+                'visible' => $position !== false,
+                'position' => $position === false ? count($this->visibleColumnNames) : $position,
+                'can_move_up' => $position !== false && $position > 0,
+                'can_move_down' => $position !== false && $position < count($this->visibleColumnNames) - 1,
+            ];
+        }
+
+        usort($columns, static fn (array $left, array $right): int => $left['position'] <=> $right['position']);
+
+        return $columns;
+    }
+
+    private function moveColumn(string $name, int $offset): void
+    {
+        $position = array_search($name, $this->visibleColumnNames, true);
+        if ($position === false) {
+            return;
+        }
+
+        $target = $position + $offset;
+        if ($target < 0 || $target >= count($this->visibleColumnNames)) {
+            return;
+        }
+
+        [$this->visibleColumnNames[$position], $this->visibleColumnNames[$target]] = [
+            $this->visibleColumnNames[$target],
+            $this->visibleColumnNames[$position],
+        ];
+    }
+
+    private function normalizeIndexState(): void
+    {
+        $this->search = mb_substr(trim($this->search), 0, 200);
+        $this->sortDirection = in_array(strtolower($this->sortDirection), ['asc', 'desc'], true)
+            ? strtolower($this->sortDirection)
+            : 'asc';
+        $this->sortColumn = $this->isSortable($this->sortColumn) ? $this->sortColumn : '';
+        $this->perPage = $this->normalizedPerPage($this->perPage);
+        $this->trashedScope = $this->normalizedTrashedScope($this->trashedScope);
+        $this->normalizeColumnState();
+        $this->normalizeFilterValues();
+    }
+
+    private function normalizedTrashedScope(string $scope): string
+    {
+        if (! $this->supportsSoftDeletes()) {
+            return 'active';
+        }
+
+        return in_array($scope, ['active', 'trashed', 'with_trashed'], true) ? $scope : 'active';
+    }
+
+    private function emptyMessage(): string
+    {
+        return $this->hasActiveQuery() ? 'No matching records found.' : 'No records to display.';
+    }
+
+    private function hasActiveQuery(): bool
+    {
+        return trim($this->search) !== ''
+            || $this->activeFiltersCount() > 0
+            || $this->sortColumn !== ''
+            || $this->trashedScope !== 'active';
+    }
+
     private function formatValue(Model $record, Column $column): string
     {
         return $this->tableValueFormatter()->format($record, $column);
@@ -897,12 +1261,12 @@ final class ResourceIndex extends Component
 
     private function editUrl(Model $record): string
     {
-        return $this->tableUrlFactory()->editUrl($this->resourceSlug, $record);
+        return $this->tableUrlFactory()->editUrl($this->resourceSlug, $record, $this->currentListContext());
     }
 
     private function showUrl(Model $record): string
     {
-        return $this->tableUrlFactory()->showUrl($this->resourceSlug, $record);
+        return $this->tableUrlFactory()->showUrl($this->resourceSlug, $record, $this->currentListContext());
     }
 
     /**
@@ -1016,6 +1380,20 @@ final class ResourceIndex extends Component
     private function visibleRecordKeys(): array
     {
         return $this->bulkSelectionState()->visibleKeys($this->records()->getCollection()->all());
+    }
+
+    /**
+     * @return array{selectedVisibleCount:int, hasPartialSelection:bool}
+     */
+    private function selectionSummary(LengthAwarePaginator|Paginator $records): array
+    {
+        $visibleKeys = $this->bulkSelectionState()->visibleKeys($records->getCollection()->all());
+        $selectedVisibleCount = count(array_intersect($this->selectedRecords, $visibleKeys));
+
+        return [
+            'selectedVisibleCount' => $selectedVisibleCount,
+            'hasPartialSelection' => $selectedVisibleCount > 0 && $selectedVisibleCount < count($visibleKeys),
+        ];
     }
 
     private function removeSelectionForRecord(Model $record): void
@@ -1275,7 +1653,49 @@ final class ResourceIndex extends Component
             sortColumn: $this->sortColumn,
             sortDirection: $this->sortDirection,
             perPage: $this->normalizedPerPage($this->perPage),
+            columns: $this->visibleColumnNames,
+            trashedScope: $this->trashedScope,
         );
+    }
+
+    private function savedViewModified(): bool
+    {
+        if ($this->selectedSavedViewId === null || $this->selectedSavedViewId === '') {
+            return false;
+        }
+
+        $savedView = $this->findOwnedSavedView($this->selectedSavedViewId);
+        if (! $savedView instanceof SavedView) {
+            return false;
+        }
+
+        return $this->savedViewStateManager()->isModified(
+            currentState: $this->currentSavedViewState(),
+            savedState: $savedView->state,
+            defaultFilterValues: $this->defaultFilterValues(),
+            allowedColumns: $this->allowedColumnNames(),
+            defaultColumns: $this->defaultColumnNames(),
+            sortableColumns: $this->sortableColumnNames(),
+            supportsTrash: $this->supportsSoftDeletes(),
+        );
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function currentListContext(): array
+    {
+        $context = [
+            'search' => $this->search,
+            'filter' => $this->filterValues,
+            'sort' => $this->sortColumn,
+            'direction' => $this->sortColumn === '' ? null : $this->sortDirection,
+            'per_page' => $this->normalizedPerPage($this->perPage),
+            'trash' => $this->trashedScope,
+            'page' => $this->getPage(),
+        ];
+
+        return (new TableUrlFactory)->contextFromQuery($context);
     }
 
     private function authenticatedUser(): ?Model

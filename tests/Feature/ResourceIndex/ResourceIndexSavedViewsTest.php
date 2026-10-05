@@ -55,10 +55,13 @@ it('saves current view state for authenticated user', function (): void {
         ->and($savedView->visibility)->toBe('private')
         ->and($savedView->name)->toBe('Published Desc')
         ->and($savedView->state)->toBe([
+            'state_version' => 2,
             'search' => 'acme',
             'filters' => ['is_active' => '', 'status' => 'published'],
             'sort' => ['column' => 'name', 'direction' => 'desc'],
             'per_page' => 25,
+            'columns' => ['name', 'email', 'status', 'is_active'],
+            'trash' => 'active',
         ]);
 });
 
