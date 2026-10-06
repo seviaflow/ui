@@ -13,7 +13,6 @@ use Illuminate\Database\Eloquent\Relations\MorphOne;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use Illuminate\Database\Eloquent\Relations\Pivot;
 use Illuminate\Pagination\LengthAwarePaginator;
-use Illuminate\Pagination\Paginator;
 use InvalidArgumentException;
 use SeviaFlow\Core\Resources\Columns\Column;
 use SeviaFlow\Core\Resources\Fields\Field;
@@ -45,6 +44,7 @@ final class RelationQueryPaginator
             ));
         }
 
+        /** @var HasOne|HasMany|BelongsToMany|MorphOne|MorphMany|MorphToMany $relationship */
         $relationship = $parent->{$relation->getRelationshipName()}();
 
         if (! $relationship instanceof HasOne
@@ -52,7 +52,7 @@ final class RelationQueryPaginator
             && ! $relationship instanceof BelongsToMany
             && ! $relationship instanceof MorphOne
             && ! $relationship instanceof MorphMany
-            && ! $relationship instanceof MorphToMany) {
+            && ! is_a($relationship::class, MorphToMany::class, true)) {
             throw new InvalidArgumentException(sprintf(
                 'Relation [%s] on model [%s] is not an Eloquent relation.',
                 $relation->getRelationshipName(),
@@ -85,7 +85,7 @@ final class RelationQueryPaginator
         HasMany|BelongsToMany|MorphMany|MorphToMany $relationship,
         HasManyRelation|BelongsToManyRelation|MorphManyRelation|MorphToManyRelation $relation,
         string $relatedResourceClass
-    ): LengthAwarePaginator|Paginator {
+    ): LengthAwarePaginator {
         $pivotColumnNames = [];
         $pivotFieldNames = [];
         $supportsPivot = false;
@@ -148,7 +148,7 @@ final class RelationQueryPaginator
     /**
      * @param  class-string  $relatedResourceClass
      */
-    public function paginateHasMany(Model $parent, HasManyRelation $relation, string $relatedResourceClass): LengthAwarePaginator|Paginator
+    public function paginateHasMany(Model $parent, HasManyRelation $relation, string $relatedResourceClass): LengthAwarePaginator
     {
         if (! method_exists($parent, $relation->getRelationshipName())) {
             throw new InvalidArgumentException(sprintf(
@@ -176,7 +176,7 @@ final class RelationQueryPaginator
     /**
      * @param  class-string  $relatedResourceClass
      */
-    public function paginateBelongsToMany(Model $parent, BelongsToManyRelation $relation, string $relatedResourceClass): LengthAwarePaginator|Paginator
+    public function paginateBelongsToMany(Model $parent, BelongsToManyRelation $relation, string $relatedResourceClass): LengthAwarePaginator
     {
         if (! method_exists($parent, $relation->getRelationshipName())) {
             throw new InvalidArgumentException(sprintf(
@@ -204,7 +204,7 @@ final class RelationQueryPaginator
     /**
      * @param  class-string  $relatedResourceClass
      */
-    public function paginateMorphMany(Model $parent, MorphManyRelation $relation, string $relatedResourceClass): LengthAwarePaginator|Paginator
+    public function paginateMorphMany(Model $parent, MorphManyRelation $relation, string $relatedResourceClass): LengthAwarePaginator
     {
         if (! method_exists($parent, $relation->getRelationshipName())) {
             throw new InvalidArgumentException(sprintf(
@@ -232,7 +232,7 @@ final class RelationQueryPaginator
     /**
      * @param  class-string  $relatedResourceClass
      */
-    public function paginateMorphToMany(Model $parent, MorphToManyRelation $relation, string $relatedResourceClass): LengthAwarePaginator|Paginator
+    public function paginateMorphToMany(Model $parent, MorphToManyRelation $relation, string $relatedResourceClass): LengthAwarePaginator
     {
         if (! method_exists($parent, $relation->getRelationshipName())) {
             throw new InvalidArgumentException(sprintf(

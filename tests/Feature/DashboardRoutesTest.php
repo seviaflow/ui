@@ -668,7 +668,7 @@ it('rejects unknown widget keys from layout payload safely', function (): void {
         ->where('user_id', (string) $user->getKey())
         ->first();
 
-    $layout = json_decode((string) ($stored?->layout ?? '[]'), true);
+    $layout = json_decode($stored === null ? '[]' : (string) $stored->layout, true);
     $widgets = is_array($layout) ? array_column($layout, 'widget') : [];
 
     expect($widgets)->not->toContain('unknown_widget')
@@ -740,7 +740,7 @@ it('user cannot update another user layout', function (): void {
         ->where('user_id', (string) $owner->getKey())
         ->first();
 
-    $layout = json_decode((string) ($ownerStored?->layout ?? '[]'), true);
+    $layout = json_decode($ownerStored === null ? '[]' : (string) $ownerStored->layout, true);
 
     expect($layout[0]['widget'] ?? null)->toBe('beta_widget');
 });
@@ -1940,7 +1940,7 @@ final class OperationsFeatureDashboard extends DashboardDefinition
         return 'Operations Dashboard';
     }
 
-    public static function description(): ?string
+    public static function description(): string
     {
         return 'Operations queue and daily workload';
     }
@@ -1958,7 +1958,7 @@ final class SalesFeatureDashboard extends DashboardDefinition
         return 'Sales Dashboard';
     }
 
-    public static function description(): ?string
+    public static function description(): string
     {
         return 'Sales operations overview';
     }

@@ -182,6 +182,9 @@ final class AuthRedirectUser extends AuthenticatableUser
     protected $guarded = [];
 }
 
+/**
+ * @property string $email
+ */
 final class TwoFactorLoginUser extends AuthenticatableUser
 {
     protected $table = 'users';

@@ -49,16 +49,9 @@ final class FieldRendererRegistry
 
     public function resolve(Field $field, string $mode = 'edit'): FieldRendererDefinition
     {
-        if (! method_exists($field, 'type')) {
-            throw new LogicException(sprintf(
-                'Field [%s] does not expose the SeviaFlow field type contract.',
-                $field->name()
-            ));
-        }
+        $type = $field->type();
 
-        $type = call_user_func([$field, 'type']);
-
-        if (! is_string($type) || $type === '') {
+        if ($type === '') {
             throw new LogicException(sprintf(
                 'Field [%s] exposes an invalid field type contract.',
                 $field->name()

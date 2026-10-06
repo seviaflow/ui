@@ -42,4 +42,6 @@ class Testable
     public function assertFileDownloaded(?string $filename = null): static {}
 
     public function assertRedirect(?string $uri = null): static {}
+
+    public function assertDispatched(string $event, ?callable $callback = null): static {}
 }

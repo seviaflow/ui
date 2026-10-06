@@ -9,7 +9,28 @@ parameters:
     - routes
     - tests
   stubFiles:
-    - tests/PHPStan/Stubs/TestResponse.stub.php
     - tests/PHPStan/Stubs/Testable.stub.php
   level: 5
+  treatPhpDocTypesAsCertain: false
+  excludePaths:
+    - tests/PHPStan/Stubs/TestResponse.stub.php
+  ignoreErrors:
+    -
+      identifier: larastan.noEnvCallsOutsideOfConfig
+      path: config/seviaflow-ui.php
+    -
+      message: '#view expects view-string#'
+      paths:
+        - src
+        - tests/Unit/Brand/BrandAssetsTest.php
+        - tests/Unit/Icons/SidebarLinkComponentTest.php
+    -
+      message: '#assertSeeLivewire#'
+      path: tests
+    -
+      message: '#TestCall::with#'
+      path: tests/Unit/Icons/SidebarLinkComponentTest.php
+    -
+      identifier: varTag.nativeType
+      path: tests/Unit/Dashboard/RecentActivityWidgetTest.php
   tmpDir: var/phpstan

@@ -16,7 +16,7 @@ final class AnalyticsMetricWidget extends Widget
     /**
      * @var array<int, string>
      */
-    private const array ALLOWED_COLORS = ['gray', 'indigo', 'blue', 'sky', 'emerald', 'amber', 'red', 'purple'];
+    private const ALLOWED_COLORS = ['gray', 'indigo', 'blue', 'sky', 'emerald', 'amber', 'red', 'purple'];
 
     private ?AnalyticsQuery $query = null;
 

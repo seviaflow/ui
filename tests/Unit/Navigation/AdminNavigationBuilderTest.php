@@ -605,22 +605,22 @@ final class NavMetadataResource extends Resource
 {
     protected static string $model = NavMetadataRecord::class;
 
-    public static function navigationLabel(): ?string
+    public static function navigationLabel(): string
     {
         return 'Customers';
     }
 
-    public static function navigationGroup(): ?string
+    public static function navigationGroup(): string
     {
         return 'Sales';
     }
 
-    public static function navigationIcon(): ?string
+    public static function navigationIcon(): string
     {
         return 'users';
     }
 
-    public static function navigationSort(): ?int
+    public static function navigationSort(): int
     {
         return 5;
     }

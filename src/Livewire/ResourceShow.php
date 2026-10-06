@@ -281,7 +281,7 @@ final class ResourceShow extends Component
             user: auth()->user()
         );
 
-        if ($result['refreshRecord'] && $this->record instanceof Model) {
+        if ($result['refreshRecord']) {
             $this->record->refresh();
         }
 
@@ -1635,7 +1635,7 @@ final class ResourceShow extends Component
         return 'rel_'.preg_replace('/[^A-Za-z0-9_]/', '_', $relationshipName);
     }
 
-    private function paginateRelationRecords(HasOneRelation|HasManyRelation|BelongsToManyRelation|MorphOneRelation|MorphManyRelation|MorphToManyRelation $relation): Collection|LengthAwarePaginator|Paginator
+    private function paginateRelationRecords(HasOneRelation|HasManyRelation|BelongsToManyRelation|MorphOneRelation|MorphManyRelation|MorphToManyRelation $relation): Collection|LengthAwarePaginator
     {
         if (! $this->record instanceof Model) {
             throw new InvalidArgumentException('Cannot resolve relation records without a parent record.');
@@ -2022,7 +2022,7 @@ final class ResourceShow extends Component
 
     /**
      * @return array{
-     *   field: BelongsToField|null,
+     *   field: Field|null,
      *   resourceClass: class-string<\SeviaFlow\Core\Resources\Resource>|null,
      *   modelClass: class-string<Model>|null,
      *   fields: array<int, Field>,

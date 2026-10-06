@@ -1379,7 +1379,10 @@ final class ResourceIndex extends Component
      */
     private function visibleRecordKeys(): array
     {
-        return $this->bulkSelectionState()->visibleKeys($this->records()->getCollection()->all());
+        /** @var array<int, Model> $records */
+        $records = $this->records()->getCollection()->all();
+
+        return $this->bulkSelectionState()->visibleKeys($records);
     }
 
     /**
@@ -1387,7 +1390,9 @@ final class ResourceIndex extends Component
      */
     private function selectionSummary(LengthAwarePaginator|Paginator $records): array
     {
-        $visibleKeys = $this->bulkSelectionState()->visibleKeys($records->getCollection()->all());
+        /** @var array<int, Model> $visibleRecords */
+        $visibleRecords = $records->getCollection()->all();
+        $visibleKeys = $this->bulkSelectionState()->visibleKeys($visibleRecords);
         $selectedVisibleCount = count(array_intersect($this->selectedRecords, $visibleKeys));
 
         return [

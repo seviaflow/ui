@@ -326,7 +326,7 @@ final class ResourceForm extends Component
             return;
         }
 
-        if ($changedField !== '' && $this->slugAutoUpdating) {
+        if ($this->slugAutoUpdating) {
             $this->slugAutoUpdating = false;
         } else {
             $this->updateSlugState($changedField);

@@ -78,7 +78,11 @@ final class RoleForm extends Component
 
     public function updatedName(string $value): void
     {
-        if ($this->slug === '' || $this->slug === Str::slug($this->editingRole?->name ?? '')) {
+        $editingSlug = $this->editingRole instanceof Role
+            ? Str::slug($this->editingRole->name)
+            : '';
+
+        if ($this->slug === '' || $this->slug === $editingSlug) {
             $this->slug = Str::slug($value);
         }
     }

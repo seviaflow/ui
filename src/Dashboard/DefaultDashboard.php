@@ -16,7 +16,7 @@ final class DefaultDashboard extends Dashboard
         return 'Dashboard';
     }
 
-    public static function description(): ?string
+    public static function description(): string
     {
         return 'Welcome to SeviaFlow';
     }
