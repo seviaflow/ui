@@ -49,7 +49,8 @@ it('renders simple field edit and display adapters without unsafe interpolation'
             default => '#AABBCC',
         };
         if ($field instanceof RichTextField) {
-            $inputValue = '<p>Zażółć <strong>gęślą</strong></p><a href="https://example.test">Link</a>';
+            $inputValue = '<div data-wrapper="unsafe"><span onclick="alert(1)"><p onmouseover="alert(2)">'
+                .'Zażółć <strong>gęślą</strong></p><script>alert(3)</script></span></div>';
         }
         if ($field instanceof RepeaterField) {
             $inputValue = [[
@@ -79,6 +80,8 @@ it('renders simple field edit and display adapters without unsafe interpolation'
         $showHtml = view($registry->view($field, 'show'), $data + ['value' => $inputValue])->render();
 
         expect($editHtml)->not->toContain('Array')
-            ->and($showHtml)->not->toContain('<script>');
+            ->and($showHtml)->not->toContain('<script>')
+            ->and($showHtml)->not->toContain('onclick')
+            ->and($showHtml)->not->toContain('onmouseover');
     }
 });
