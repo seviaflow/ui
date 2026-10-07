@@ -109,6 +109,16 @@ final class ResourceForm extends Component
     public array $fieldValues = [];
 
     /**
+     * @var array<string, bool>
+     */
+    public array $fieldPresence = [];
+
+    /**
+     * @var array<string, bool>
+     */
+    public array $originalFieldPresence = [];
+
+    /**
      * UI-only identity for repeater rows, keyed by model path and field name.
      *
      * @var array<string, array<string, array<int, string>>>
@@ -150,6 +160,11 @@ final class ResourceForm extends Component
      * @var array<string, mixed>
      */
     public array $inlineCreateValues = [];
+
+    /**
+     * @var array<string, bool>
+     */
+    public array $inlineCreatePresence = [];
 
     public function mount(string $resource, int|string|null $record = null): void
     {
@@ -284,6 +299,7 @@ final class ResourceForm extends Component
             $this->assertRecordIsCurrent();
             $model = $this->record ?? new $this->modelClass;
             $fieldValues = is_array($validated['fieldValues'] ?? null) ? $validated['fieldValues'] : [];
+            $fieldValues = $this->presentValues($fieldValues, $this->fieldPresence);
             $fieldValues = $this->applyFileActions($fieldValues);
             $state = $this->formState();
 
@@ -326,6 +342,8 @@ final class ResourceForm extends Component
             return;
         }
 
+        $this->markFieldPresent($changedField);
+
         if ($this->slugAutoUpdating) {
             $this->slugAutoUpdating = false;
         } else {
@@ -358,6 +376,12 @@ final class ResourceForm extends Component
         $this->refreshDirtyState();
     }
 
+    public function updatedInlineCreateValues(mixed $value, string $fieldPath): void
+    {
+        $this->markInlineCreateFieldPresent($fieldPath);
+        $this->refreshDirtyState();
+    }
+
     public function selectBelongsToOption(string $fieldName, int|string $value): void
     {
         $field = $this->findVisibleField($fieldName);
@@ -379,6 +403,7 @@ final class ResourceForm extends Component
         }
 
         $this->fieldValues[$fieldName] = (string) $value;
+        $this->markFieldPresent($fieldName);
         $this->belongsToSearch[$fieldName] = '';
         $this->refreshDirtyState();
     }
@@ -390,6 +415,7 @@ final class ResourceForm extends Component
         }
 
         $this->fieldValues[$fieldName] = '';
+        $this->markFieldPresent($fieldName);
         $this->belongsToSearch[$fieldName] = '';
         $this->refreshDirtyState();
     }
@@ -418,6 +444,7 @@ final class ResourceForm extends Component
         }
 
         $this->fieldValues[$fieldName] = $selected;
+        $this->markFieldPresent($fieldName);
         $this->refreshDirtyState();
     }
 
@@ -434,6 +461,7 @@ final class ResourceForm extends Component
             array_map(static fn (mixed $item): string => (string) $item, $selected),
             static fn (string $item): bool => $item !== $value
         ));
+        $this->markFieldPresent($fieldName);
         $this->refreshDirtyState();
     }
 
@@ -456,6 +484,7 @@ final class ResourceForm extends Component
         $values[$fieldName] = $items;
         $keys[$fieldName] ??= [];
         $keys[$fieldName][] = $uiKey;
+        $this->markModelPathFieldPresent($modelPath, $fieldName);
 
         $this->resetRepeaterValidation($fieldName, $modelPath);
         $this->refreshDirtyState();
@@ -482,6 +511,7 @@ final class ResourceForm extends Component
         array_splice($itemKeys, $index, 1);
         $values[$fieldName] = $items;
         $keys[$fieldName] = $itemKeys;
+        $this->markModelPathFieldPresent($modelPath, $fieldName);
         $this->resetRepeaterValidation($fieldName, $modelPath);
         $this->refreshDirtyState();
     }
@@ -517,6 +547,7 @@ final class ResourceForm extends Component
         [$itemKeys[$index], $itemKeys[$target]] = [$itemKeys[$target], $itemKeys[$index]];
         $values[$fieldName] = $items;
         $keys[$fieldName] = $itemKeys;
+        $this->markModelPathFieldPresent($modelPath, $fieldName);
         $this->resetRepeaterValidation($fieldName, $modelPath);
         $this->refreshDirtyState();
     }
@@ -542,6 +573,7 @@ final class ResourceForm extends Component
         }
 
         $this->inlineCreateValues[$fieldName] = (string) $value;
+        $this->markInlineCreateFieldPresent($fieldName);
         $this->inlineCreateBelongsToSearch[$fieldName] = '';
         $this->refreshDirtyState();
     }
@@ -553,6 +585,7 @@ final class ResourceForm extends Component
         }
 
         $this->inlineCreateValues[$fieldName] = '';
+        $this->markInlineCreateFieldPresent($fieldName);
         $this->inlineCreateBelongsToSearch[$fieldName] = '';
         $this->refreshDirtyState();
     }
@@ -580,6 +613,7 @@ final class ResourceForm extends Component
         }
 
         $this->inlineCreateValues[$fieldName] = $selected;
+        $this->markInlineCreateFieldPresent($fieldName);
         $this->refreshDirtyState();
     }
 
@@ -596,6 +630,7 @@ final class ResourceForm extends Component
             array_map(static fn (mixed $item): string => (string) $item, $selected),
             static fn (string $item): bool => $item !== $value
         ));
+        $this->markInlineCreateFieldPresent($fieldName);
         $this->refreshDirtyState();
     }
 
@@ -611,6 +646,7 @@ final class ResourceForm extends Component
 
         $this->fileActions[$fieldName] = 'remove';
         $this->fieldValues[$fieldName] = null;
+        $this->markFieldPresent($fieldName);
         $this->refreshDirtyState();
     }
 
@@ -626,6 +662,7 @@ final class ResourceForm extends Component
 
         $this->fileActions[$fieldName] = 'retain';
         $this->fieldValues[$fieldName] = null;
+        $this->markFieldPresent($fieldName);
         $this->refreshDirtyState();
     }
 
@@ -650,6 +687,7 @@ final class ResourceForm extends Component
         $this->inlineCreateMultiSelectSearch = [];
         $fields = $this->inlineCreateState()['fields'];
         $this->inlineCreateValues = $this->formStateInitializer()->initialize($fields, null, ResourceContext::Create);
+        $this->inlineCreatePresence = $this->formStateInitializer()->initialPresence($fields, null);
         $this->initializeRepeaterUiKeysFor('inlineCreateValues', $fields, $this->inlineCreateValues);
         $this->resetErrorBag();
     }
@@ -658,6 +696,7 @@ final class ResourceForm extends Component
     {
         $this->inlineCreateFieldName = null;
         $this->inlineCreateValues = [];
+        $this->inlineCreatePresence = [];
         unset($this->repeaterUiKeys['inlineCreateValues']);
         $this->inlineCreateBelongsToSearch = [];
         $this->inlineCreateMultiSelectSearch = [];
@@ -705,6 +744,7 @@ final class ResourceForm extends Component
         );
 
         $values = is_array($validated['inlineCreateValues'] ?? null) ? $validated['inlineCreateValues'] : [];
+        $values = $this->presentValues($values, $this->inlineCreatePresence);
         $model = new $modelClass;
 
         $created = $this->operationService()->execute(
@@ -771,8 +811,10 @@ final class ResourceForm extends Component
     private function initializeFieldValues(): void
     {
         $this->fieldValues = $this->formStateInitializer()->initialize($this->fields(), $this->record, $this->context());
+        $this->fieldPresence = $this->formStateInitializer()->initialPresence($this->fields(), $this->record);
         $this->initializeRepeaterUiKeys();
         $this->originalFieldValues = $this->fieldValues;
+        $this->originalFieldPresence = $this->fieldPresence;
         $this->fileActions = [];
         foreach ($this->fields() as $field) {
             if ($field instanceof FileField) {
@@ -786,6 +828,7 @@ final class ResourceForm extends Component
         $this->inlineCreateMultiSelectSearch = [];
         $this->inlineCreateFieldName = null;
         $this->inlineCreateValues = [];
+        $this->inlineCreatePresence = [];
         $this->initializeSlugState();
         $this->recordVersion = $this->record instanceof Model ? $this->recordVersion($this->record) : null;
         $this->isDirty = false;
@@ -1076,6 +1119,7 @@ final class ResourceForm extends Component
 
             $generated = Str::slug((string) ($this->fieldValues[$changedField] ?? ''));
             $this->fieldValues[$field->name()] = $generated;
+            $this->markFieldPresent($field->name());
             $this->slugGeneratedValues[$field->name()] = $generated;
         }
     }
@@ -1083,9 +1127,64 @@ final class ResourceForm extends Component
     private function refreshDirtyState(): void
     {
         $this->isDirty = $this->signature($this->fieldValues) !== $this->signature($this->originalFieldValues)
+            || $this->fieldPresence !== $this->originalFieldPresence
             || $this->fileActions !== $this->originalFileActions
             || $this->inlineCreateFieldName !== null
             || $this->inlineCreateValues !== [];
+    }
+
+    /**
+     * @param  array<string, mixed>  $values
+     * @param  array<string, bool>  $presence
+     * @return array<string, mixed>
+     */
+    private function presentValues(array $values, array $presence): array
+    {
+        $present = [];
+
+        foreach ($values as $name => $value) {
+            if (is_string($name) && ($presence[$name] ?? false)) {
+                $present[$name] = $value;
+            }
+        }
+
+        return $present;
+    }
+
+    private function markFieldPresent(string $fieldPath): void
+    {
+        $fieldName = $this->topLevelFieldName($fieldPath);
+        if ($fieldName !== '') {
+            $this->fieldPresence[$fieldName] = true;
+        }
+    }
+
+    private function markInlineCreateFieldPresent(string $fieldPath): void
+    {
+        $fieldName = $this->topLevelFieldName($fieldPath);
+        if ($fieldName !== '') {
+            $this->inlineCreatePresence[$fieldName] = true;
+        }
+    }
+
+    private function markModelPathFieldPresent(string $modelPath, string $fieldName): void
+    {
+        if ($modelPath === 'fieldValues') {
+            $this->markFieldPresent($fieldName);
+
+            return;
+        }
+
+        if ($modelPath === 'inlineCreateValues') {
+            $this->markInlineCreateFieldPresent($fieldName);
+        }
+    }
+
+    private function topLevelFieldName(string $fieldPath): string
+    {
+        $fieldPath = preg_replace('/^(fieldValues|inlineCreateValues)\./', '', $fieldPath) ?? $fieldPath;
+
+        return explode('.', $fieldPath, 2)[0];
     }
 
     private function signature(mixed $value): string

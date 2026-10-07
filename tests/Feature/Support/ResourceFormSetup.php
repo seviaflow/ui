@@ -18,6 +18,7 @@ if (! function_exists('resourceFormBootstrap')) {
         config()->set('seviaflow.resources', [
             'form-users' => FormUserResource::class,
             'flat-form-users' => FlatFormUserResource::class,
+            'presence-form-users' => PresenceFormUserResource::class,
             'context-form-users' => ContextFormUserResource::class,
             'belongs-to-users' => BelongsToFormUserResource::class,
             'belongs-to-context-users' => BelongsToContextFormUserResource::class,
@@ -59,6 +60,7 @@ if (! function_exists('resourceFormBootstrap')) {
                 $table->text('bio')->nullable();
                 $table->boolean('is_active')->default(false);
                 $table->string('status')->nullable();
+                $table->string('default_status')->nullable()->default('database-default');
                 $table->date('published_at')->nullable();
                 $table->string('password')->nullable();
                 $table->string('slug')->nullable();

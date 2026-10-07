@@ -128,6 +128,39 @@ it('normal visible editable field still persists', function (): void {
     expect($user->name)->toBe('Normal Updated');
 });
 
+it('distinguishes untouched create placeholders from explicit null and preserves omitted update fields', function (): void {
+    Livewire::test(ResourceForm::class, ['resource' => 'presence-form-users'])
+        ->set('fieldValues.name', 'Database default')
+        ->call('save')
+        ->assertHasNoErrors();
+
+    $created = FormUser::query()->where('name', 'Database default')->firstOrFail();
+
+    expect($created->default_status)->toBe('database-default');
+
+    Livewire::test(ResourceForm::class, ['resource' => 'presence-form-users'])
+        ->set('fieldValues.name', 'Explicit null')
+        ->set('fieldValues.default_status', null)
+        ->call('save')
+        ->assertHasNoErrors();
+
+    $cleared = FormUser::query()->where('name', 'Explicit null')->firstOrFail();
+
+    expect($cleared->default_status)->toBeNull();
+
+    $existing = FormUser::query()->create([
+        'name' => 'Partial update',
+        'default_status' => 'keep-me',
+    ]);
+
+    Livewire::test(ResourceForm::class, ['resource' => 'presence-form-users', 'record' => $existing->getKey()])
+        ->set('fieldValues.name', 'Partial update changed')
+        ->call('save')
+        ->assertHasNoErrors();
+
+    expect($existing->fresh()?->default_status)->toBe('keep-me');
+});
+
 it('empty optional password on edit does not overwrite existing password', function (): void {
     $user = FormUser::query()->create([
         'name' => 'Optional Edit Password',

@@ -151,6 +151,11 @@ final class ResourceShow extends Component
     public array $relationModalValues = [];
 
     /**
+     * @var array<string, bool>
+     */
+    public array $relationModalPresence = [];
+
+    /**
      * @var array<string, string>
      */
     public array $relationModalBelongsToSearch = [];
@@ -176,6 +181,11 @@ final class ResourceShow extends Component
      * @var array<string, mixed>
      */
     public array $relationInlineCreateValues = [];
+
+    /**
+     * @var array<string, bool>
+     */
+    public array $relationInlineCreatePresence = [];
 
     /**
      * @var array<string, string>
@@ -686,7 +696,7 @@ final class ResourceShow extends Component
         $this->relationModalMode = 'edit';
         $this->relationModalRecordId = (string) $recordId;
         $this->relationModalValues = $this->relationModalFormHandler()->initializeValuesFromFields($fields, $record);
-        $this->initializeRelationModalState($fields);
+        $this->initializeRelationModalState($fields, $record);
         $this->resetErrorBag();
     }
 
@@ -713,7 +723,7 @@ final class ResourceShow extends Component
         $this->relationModalMode = 'edit';
         $this->relationModalRecordId = (string) $recordId;
         $this->relationModalValues = $this->relationModalFormHandler()->initializeValuesFromFields($fields, $record);
-        $this->initializeRelationModalState($fields);
+        $this->initializeRelationModalState($fields, $record);
         $this->resetErrorBag();
     }
 
@@ -723,6 +733,7 @@ final class ResourceShow extends Component
         $this->relationModalMode = null;
         $this->relationModalRecordId = null;
         $this->relationModalValues = [];
+        $this->relationModalPresence = [];
         $this->relationModalBelongsToSearch = [];
         $this->relationModalMultiSelectSearch = [];
         $this->relationModalFileActions = [];
@@ -739,6 +750,8 @@ final class ResourceShow extends Component
         if ($changedField === '') {
             return;
         }
+
+        $this->markRelationModalFieldPresent($changedField);
 
         foreach ($this->relationModalFieldsForCurrent() as $field) {
             if (! $field instanceof BelongsToField || $field->getDependsOnField() !== $changedField) {
@@ -759,8 +772,14 @@ final class ResourceShow extends Component
             );
             if (! array_key_exists($currentValue, $options[$field->name()] ?? [])) {
                 $this->relationModalValues[$field->name()] = '';
+                $this->markRelationModalFieldPresent($field->name());
             }
         }
+    }
+
+    public function updatedRelationInlineCreateValues(mixed $value, string $fieldPath): void
+    {
+        $this->markRelationInlineCreateFieldPresent($fieldPath);
     }
 
     public function selectRelationModalBelongsToOption(string $fieldName, int|string $value): void
@@ -783,6 +802,7 @@ final class ResourceShow extends Component
         }
 
         $this->relationModalValues[$fieldName] = (string) $value;
+        $this->markRelationModalFieldPresent($fieldName);
         $this->relationModalBelongsToSearch[$fieldName] = '';
     }
 
@@ -793,6 +813,7 @@ final class ResourceShow extends Component
         }
 
         $this->relationModalValues[$fieldName] = '';
+        $this->markRelationModalFieldPresent($fieldName);
         $this->relationModalBelongsToSearch[$fieldName] = '';
     }
 
@@ -819,6 +840,7 @@ final class ResourceShow extends Component
         }
 
         $this->relationModalValues[$fieldName] = $selected;
+        $this->markRelationModalFieldPresent($fieldName);
     }
 
     public function removeRelationModalMultiSelectOption(string $fieldName, int|string $value): void
@@ -834,6 +856,7 @@ final class ResourceShow extends Component
             array_map(static fn (mixed $item): string => (string) $item, $selected),
             static fn (string $item): bool => $item !== $value
         ));
+        $this->markRelationModalFieldPresent($fieldName);
     }
 
     public function beginRelationInlineCreate(string $fieldName): void
@@ -860,6 +883,10 @@ final class ResourceShow extends Component
             null,
             ResourceContext::Create
         );
+        $this->relationInlineCreatePresence = (new FormStateInitializer)->initialPresence(
+            $this->relationInlineCreateState()['fields'],
+            null
+        );
         $this->resetErrorBag();
     }
 
@@ -867,6 +894,7 @@ final class ResourceShow extends Component
     {
         $this->relationInlineCreateFieldName = null;
         $this->relationInlineCreateValues = [];
+        $this->relationInlineCreatePresence = [];
         $this->relationInlineCreateBelongsToSearch = [];
         $this->relationInlineCreateMultiSelectSearch = [];
     }
@@ -892,6 +920,7 @@ final class ResourceShow extends Component
         }
 
         $this->relationInlineCreateValues[$fieldName] = (string) $value;
+        $this->markRelationInlineCreateFieldPresent($fieldName);
         $this->relationInlineCreateBelongsToSearch[$fieldName] = '';
     }
 
@@ -902,6 +931,7 @@ final class ResourceShow extends Component
         }
 
         $this->relationInlineCreateValues[$fieldName] = '';
+        $this->markRelationInlineCreateFieldPresent($fieldName);
         $this->relationInlineCreateBelongsToSearch[$fieldName] = '';
     }
 
@@ -928,6 +958,7 @@ final class ResourceShow extends Component
         }
 
         $this->relationInlineCreateValues[$fieldName] = $selected;
+        $this->markRelationInlineCreateFieldPresent($fieldName);
     }
 
     public function removeRelationInlineCreateMultiSelectOption(string $fieldName, int|string $value): void
@@ -943,6 +974,7 @@ final class ResourceShow extends Component
             array_map(static fn (mixed $item): string => (string) $item, $selected),
             static fn (string $item): bool => $item !== $value
         ));
+        $this->markRelationInlineCreateFieldPresent($fieldName);
     }
 
     public function saveRelationInlineCreate(): void
@@ -981,12 +1013,15 @@ final class ResourceShow extends Component
             )
         );
 
+        $values = is_array($validated['relationInlineCreateValues'] ?? null) ? $validated['relationInlineCreateValues'] : [];
+        $values = $this->presentValues($values, $this->relationInlineCreatePresence);
+
         $created = $this->operationService()->execute(
             resourceClass: $resourceClass,
             resourceSlug: $this->resourceSlugForClass($resourceClass),
             model: new $modelClass,
             fields: $fields,
-            values: is_array($validated['relationInlineCreateValues'] ?? null) ? $validated['relationInlineCreateValues'] : [],
+            values: $values,
             context: ResourceContext::Create,
             operationContext: new ResourceOperationContext(
                 actor: auth()->user(),
@@ -1059,6 +1094,7 @@ final class ResourceShow extends Component
             );
             $values = is_array($validated['relationModalValues'] ?? null) ? $validated['relationModalValues'] : [];
         }
+        $values = $this->presentValues($values, $this->relationModalPresence);
         $values = $this->applyRelationModalFileActions($values, $fields);
 
         if ($this->relationModalMode === 'edit') {
@@ -1923,10 +1959,55 @@ final class ResourceShow extends Component
     }
 
     /**
+     * @param  array<string, mixed>  $values
+     * @param  array<string, bool>  $presence
+     * @return array<string, mixed>
+     */
+    private function presentValues(array $values, array $presence): array
+    {
+        $present = [];
+
+        foreach ($values as $name => $value) {
+            if (is_string($name) && ($presence[$name] ?? false)) {
+                $present[$name] = $value;
+            }
+        }
+
+        return $present;
+    }
+
+    private function markRelationModalFieldPresent(string $fieldPath): void
+    {
+        $fieldName = $this->topLevelRelationFieldName($fieldPath, 'relationModalValues');
+        if ($fieldName !== '') {
+            $this->relationModalPresence[$fieldName] = true;
+        }
+    }
+
+    private function markRelationInlineCreateFieldPresent(string $fieldPath): void
+    {
+        $fieldName = $this->topLevelRelationFieldName($fieldPath, 'relationInlineCreateValues');
+        if ($fieldName !== '') {
+            $this->relationInlineCreatePresence[$fieldName] = true;
+        }
+    }
+
+    private function topLevelRelationFieldName(string $fieldPath, string $modelPath): string
+    {
+        $prefix = $modelPath.'.';
+        if (str_starts_with($fieldPath, $prefix)) {
+            $fieldPath = substr($fieldPath, strlen($prefix));
+        }
+
+        return explode('.', $fieldPath, 2)[0];
+    }
+
+    /**
      * @param  array<int, Field>  $fields
      */
-    private function initializeRelationModalState(array $fields): void
+    private function initializeRelationModalState(array $fields, ?Model $record = null): void
     {
+        $this->relationModalPresence = (new FormStateInitializer)->initialPresence($fields, $record);
         $this->relationModalBelongsToSearch = [];
         $this->relationModalMultiSelectSearch = [];
         $this->relationModalFileActions = [];
@@ -2104,6 +2185,7 @@ final class ResourceShow extends Component
 
         $this->relationModalFileActions[$fieldName] = 'remove';
         $this->relationModalValues[$fieldName] = null;
+        $this->markRelationModalFieldPresent($fieldName);
     }
 
     public function retainRelationModalFile(string $fieldName): void
@@ -2115,6 +2197,7 @@ final class ResourceShow extends Component
 
         $this->relationModalFileActions[$fieldName] = 'retain';
         $this->relationModalValues[$fieldName] = null;
+        $this->markRelationModalFieldPresent($fieldName);
     }
 
     /**

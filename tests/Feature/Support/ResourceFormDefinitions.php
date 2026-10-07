@@ -71,6 +71,19 @@ final class FlatFormUserResource extends Resource
     }
 }
 
+final class PresenceFormUserResource extends Resource
+{
+    protected static string $model = FormUser::class;
+
+    public static function form(Form $form): Form
+    {
+        return $form->fields([
+            TextField::make('name')->label('Name')->required(),
+            TextField::make('default_status')->label('Database default status'),
+        ]);
+    }
+}
+
 final class ContextFormUserResource extends Resource
 {
     protected static string $model = FormUser::class;
@@ -127,6 +140,7 @@ final class PasswordContextFormUserResource extends Resource
  * @property string|null $bio
  * @property bool $is_active
  * @property string|null $status
+ * @property string|null $default_status
  * @property Carbon|null $published_at
  * @property string|null $password
  * @property string|null $slug
