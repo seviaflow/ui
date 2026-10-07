@@ -19,6 +19,11 @@
     @if($errorMessage)
         <div class="sf-alert sf-alert-danger" role="alert">
             {{ $errorMessage }}
+            @if($hasConflict)
+                <button type="button" wire:click="reloadRecord" class="sf-button sf-button-secondary mt-3">
+                    Refresh record and discard local changes
+                </button>
+            @endif
         </div>
     @endif
     @if($errors->any())

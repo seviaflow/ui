@@ -14,6 +14,8 @@ use Livewire\Attributes\Locked;
 use Livewire\Component;
 use Livewire\Features\SupportFileUploads\WithFileUploads;
 use ReflectionMethod;
+use SeviaFlow\Core\Exceptions\ResourceOperationAuthorizationException;
+use SeviaFlow\Core\Exceptions\ResourceOperationConflictException;
 use SeviaFlow\Core\Exceptions\ResourceSlugNotRegisteredException;
 use SeviaFlow\Core\Forms\BelongsToFieldOptions;
 use SeviaFlow\Core\Forms\FormFields;
@@ -23,6 +25,7 @@ use SeviaFlow\Core\Forms\FormStateInitializer;
 use SeviaFlow\Core\Forms\FormValidationRules;
 use SeviaFlow\Core\Operations\ResourceOperationContext;
 use SeviaFlow\Core\Operations\ResourceOperationService;
+use SeviaFlow\Core\Operations\ResourceRevision;
 use SeviaFlow\Core\Resources\Fields\BelongsToField;
 use SeviaFlow\Core\Resources\Fields\Field;
 use SeviaFlow\Core\Resources\Fields\FileField;
@@ -154,6 +157,8 @@ final class ResourceForm extends Component
 
     public ?string $errorMessage = null;
 
+    public bool $hasConflict = false;
+
     public ?string $inlineCreateFieldName = null;
 
     /**
@@ -279,6 +284,7 @@ final class ResourceForm extends Component
     {
         $this->errorMessage = null;
         $this->statusMessage = null;
+        $this->hasConflict = false;
 
         $this->fieldValues = $this->operationService()->prepareForValidation(
             $this->fields(),
@@ -296,7 +302,6 @@ final class ResourceForm extends Component
         $validated = $this->validate($this->rules(), messages: [], attributes: $this->validationAttributes());
 
         try {
-            $this->assertRecordIsCurrent();
             $model = $this->record ?? new $this->modelClass;
             $fieldValues = is_array($validated['fieldValues'] ?? null) ? $validated['fieldValues'] : [];
             $fieldValues = $this->presentValues($fieldValues, $this->fieldPresence);
@@ -313,6 +318,7 @@ final class ResourceForm extends Component
                 user: auth()->user(),
                 request: request(),
                 state: $state,
+                expectedRevision: $this->recordVersion,
             );
             $this->isEditMode = true;
             $this->initializeFieldValues();
@@ -320,6 +326,11 @@ final class ResourceForm extends Component
             $this->refreshDirtyState();
 
             return true;
+        } catch (ResourceOperationAuthorizationException) {
+            abort(403);
+        } catch (ResourceOperationConflictException $exception) {
+            $this->hasConflict = true;
+            $this->errorMessage = $exception->getMessage();
         } catch (\InvalidArgumentException|\LogicException $exception) {
             $this->errorMessage = $exception->getMessage();
         } catch (\Throwable $exception) {
@@ -330,6 +341,28 @@ final class ResourceForm extends Component
         $this->refreshDirtyState();
 
         return false;
+    }
+
+    public function reloadRecord(): void
+    {
+        if (! $this->record instanceof Model) {
+            return;
+        }
+
+        if (! $this->authorization()->canView(null, $this->record)) {
+            abort(403);
+        }
+
+        $fresh = $this->query()->find($this->record->getKey());
+        if (! $fresh instanceof Model) {
+            abort(404);
+        }
+
+        $this->record = $fresh;
+        $this->initializeFieldValues();
+        $this->hasConflict = false;
+        $this->errorMessage = null;
+        $this->statusMessage = 'Record refreshed. Local changes were discarded.';
     }
 
     public function updatedFieldValues(mixed $value, string $fieldPath): void
@@ -1049,30 +1082,9 @@ final class ResourceForm extends Component
         return $tableUrlFactory->editUrl($this->resourceSlug, $record, $this->listContext);
     }
 
-    private function assertRecordIsCurrent(): void
-    {
-        if (! $this->record instanceof Model || $this->recordVersion === null) {
-            return;
-        }
-
-        $fresh = $this->query()->find($this->record->getKey());
-        if (! $fresh instanceof Model) {
-            throw new \LogicException('This record is no longer available.');
-        }
-
-        if ($this->recordVersion($fresh) !== $this->recordVersion) {
-            throw new \LogicException('This record changed elsewhere. Your values were kept; reload before saving.');
-        }
-
-        $this->record = $fresh;
-    }
-
     private function recordVersion(Model $record): string
     {
-        $attributes = $record->getRawOriginal();
-        ksort($attributes);
-
-        return hash('sha256', serialize($attributes));
+        return ResourceRevision::for($record);
     }
 
     private function initializeSlugState(): void

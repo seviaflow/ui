@@ -161,6 +161,41 @@ it('distinguishes untouched create placeholders from explicit null and preserves
     expect($existing->fresh()?->default_status)->toBe('keep-me');
 });
 
+it('keeps local values after a stale edit and offers an explicit refresh', function (): void {
+    $user = FormUser::query()->create([
+        'name' => 'Concurrent form record',
+        'email' => 'concurrent-form@example.com',
+    ]);
+
+    $firstEditor = Livewire::test(ResourceForm::class, [
+        'resource' => 'context-form-users',
+        'record' => $user->getKey(),
+    ]);
+    $secondEditor = Livewire::test(ResourceForm::class, [
+        'resource' => 'context-form-users',
+        'record' => $user->getKey(),
+    ]);
+
+    $firstEditor
+        ->set('fieldValues.name', 'First editor')
+        ->call('save')
+        ->assertHasNoErrors();
+
+    $secondEditor
+        ->set('fieldValues.name', 'Stale editor')
+        ->call('save')
+        ->assertSet('hasConflict', true)
+        ->assertSet('fieldValues.name', 'Stale editor')
+        ->assertSee('Refresh record and discard local changes');
+
+    expect($user->fresh()?->name)->toBe('First editor');
+
+    $secondEditor
+        ->call('reloadRecord')
+        ->assertSet('hasConflict', false)
+        ->assertSet('fieldValues.name', 'First editor');
+});
+
 it('empty optional password on edit does not overwrite existing password', function (): void {
     $user = FormUser::query()->create([
         'name' => 'Optional Edit Password',
