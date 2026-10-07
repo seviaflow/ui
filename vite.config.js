@@ -12,6 +12,7 @@ export default defineConfig({
       output: {
         entryFileNames: () => 'seviaflow.js',
         chunkFileNames: 'chunks/[name].js',
+        inlineDynamicImports: true,
         assetFileNames: (assetInfo) => {
           const name = assetInfo.name ?? '';
 
