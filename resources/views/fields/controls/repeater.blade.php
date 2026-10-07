@@ -34,7 +34,7 @@
                     $itemLabel = $labelField !== null ? ($item[$labelField] ?? null) : null;
                     $itemLabel = is_scalar($itemLabel) && (string) $itemLabel !== '' ? (string) $itemLabel : 'Item '.($index + 1);
                 @endphp
-                <div class="sf-repeater-item" wire:key="{{ $uiKey }}" data-repeater-ui-key="{{ $uiKey }}">
+                <div id="{{ $fieldId.'-'.$uiKey }}" tabindex="-1" class="sf-repeater-item" wire:key="{{ $uiKey }}" data-repeater-ui-key="{{ $uiKey }}" data-repeater-row-index="{{ $index }}">
                     <div class="sf-repeater-item-header">
                         @if($field->isCollapsible())
                             <span class="sf-repeater-item-title">{{ $itemLabel }}</span>
@@ -96,6 +96,7 @@
                                 @if($itemField instanceof \SeviaFlow\Core\Resources\Fields\SelectField)
                                     <select
                                         id="{{ $itemId }}"
+                                        wire:key="{{ $itemPath }}"
                                         wire:model.live="{{ $itemPath }}"
                                         class="sf-select {{ $itemError ? 'sf-input-error' : '' }}"
                                         @disabled($itemDisabled || $itemReadonly)
@@ -112,6 +113,7 @@
                                         <input
                                             id="{{ $itemId }}"
                                             type="checkbox"
+                                            wire:key="{{ $itemPath }}"
                                             wire:model.live="{{ $itemPath }}"
                                             class="sf-toggle-input"
                                             @checked((bool) $itemValue)
@@ -123,6 +125,7 @@
                                     <input
                                         id="{{ $itemId }}"
                                         type="{{ $itemField instanceof \SeviaFlow\Core\Resources\Fields\NumberField || $itemField instanceof \SeviaFlow\Core\Resources\Fields\MoneyField ? 'number' : 'text' }}"
+                                        wire:key="{{ $itemPath }}"
                                         wire:model.live="{{ $itemPath }}"
                                         value="{{ $safeItemValue }}"
                                         class="sf-input {{ $itemError ? 'sf-input-error' : '' }}"

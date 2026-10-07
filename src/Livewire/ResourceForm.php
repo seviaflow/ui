@@ -508,6 +508,7 @@ final class ResourceForm extends Component
         $values = &$this->repeaterValues($modelPath);
         $keys = &$this->repeaterKeys($modelPath);
         $items = is_array($values[$fieldName] ?? null) ? array_values($values[$fieldName]) : [];
+        $itemKeys = array_values($keys[$fieldName] ?? []);
         if ($field->getMaxItems() !== null && count($items) >= $field->getMaxItems()) {
             return;
         }
@@ -519,9 +520,9 @@ final class ResourceForm extends Component
         $keys[$fieldName][] = $uiKey;
         $this->markModelPathFieldPresent($modelPath, $fieldName);
 
-        $this->resetRepeaterValidation($fieldName, $modelPath);
+        $this->remapRepeaterValidation($fieldName, $modelPath, $itemKeys, $keys[$fieldName]);
         $this->refreshDirtyState();
-        $this->dispatch('seviaflow:focus-field', fieldId: $this->repeaterItemFocusId($field, $fieldName, $uiKey));
+        $this->dispatch('seviaflow:focus-field', fieldId: $this->repeaterItemFocusId($field, $fieldName, $uiKey, $modelPath));
     }
 
     public function removeRepeaterItem(string $fieldName, string $uiKey, string $modelPath = 'fieldValues'): void
@@ -535,6 +536,7 @@ final class ResourceForm extends Component
         $keys = &$this->repeaterKeys($modelPath);
         $items = is_array($values[$fieldName] ?? null) ? array_values($values[$fieldName]) : [];
         $itemKeys = array_values($keys[$fieldName] ?? []);
+        $originalItemKeys = $itemKeys;
         $index = array_search($uiKey, $itemKeys, true);
         if ($index === false || ($field->getMinItems() !== null && count($items) <= $field->getMinItems())) {
             return;
@@ -545,8 +547,13 @@ final class ResourceForm extends Component
         $values[$fieldName] = $items;
         $keys[$fieldName] = $itemKeys;
         $this->markModelPathFieldPresent($modelPath, $fieldName);
-        $this->resetRepeaterValidation($fieldName, $modelPath);
+        $this->remapRepeaterValidation($fieldName, $modelPath, $originalItemKeys, $itemKeys);
         $this->refreshDirtyState();
+
+        $focusKey = $itemKeys[$index] ?? ($itemKeys[$index - 1] ?? null);
+        $this->dispatch('seviaflow:focus-field', fieldId: $focusKey === null
+            ? $this->repeaterFieldFocusId($fieldName, $modelPath)
+            : $this->repeaterItemFocusId($field, $fieldName, $focusKey, $modelPath));
     }
 
     public function moveRepeaterItemUp(string $fieldName, string $uiKey, string $modelPath = 'fieldValues'): void
@@ -570,6 +577,7 @@ final class ResourceForm extends Component
         $keys = &$this->repeaterKeys($modelPath);
         $items = is_array($values[$fieldName] ?? null) ? array_values($values[$fieldName]) : [];
         $itemKeys = array_values($keys[$fieldName] ?? []);
+        $originalItemKeys = $itemKeys;
         $index = array_search($uiKey, $itemKeys, true);
         $target = is_int($index) ? $index + $direction : -1;
         if ($index === false || ! isset($itemKeys[$target])) {
@@ -581,8 +589,9 @@ final class ResourceForm extends Component
         $values[$fieldName] = $items;
         $keys[$fieldName] = $itemKeys;
         $this->markModelPathFieldPresent($modelPath, $fieldName);
-        $this->resetRepeaterValidation($fieldName, $modelPath);
+        $this->remapRepeaterValidation($fieldName, $modelPath, $originalItemKeys, $itemKeys);
         $this->refreshDirtyState();
+        $this->dispatch('seviaflow:focus-field', fieldId: $this->repeaterItemFocusId($field, $fieldName, $uiKey, $modelPath));
     }
 
     public function selectInlineCreateBelongsToOption(string $fieldName, int|string $value): void
@@ -957,22 +966,66 @@ final class ResourceForm extends Component
         return 'repeater-'.str_replace('-', '', (string) Str::uuid());
     }
 
-    private function repeaterItemFocusId(RepeaterField $field, string $fieldName, string $uiKey): string
+    private function repeaterItemFocusId(RepeaterField $field, string $fieldName, string $uiKey, string $modelPath): string
     {
         $itemField = $field->getItemFields()[0] ?? null;
+        $fieldPath = $modelPath === 'fieldValues' ? $fieldName : $modelPath.'-'.$fieldName;
 
-        return 'field-'.$fieldName.'-'.$uiKey.($itemField instanceof Field ? '-'.$itemField->name() : '');
+        return 'field-'.$fieldPath.'-'.$uiKey.($itemField instanceof Field ? '-'.$itemField->name() : '');
     }
 
-    private function resetRepeaterValidation(string $fieldName, string $modelPath): void
+    private function repeaterFieldFocusId(string $fieldName, string $modelPath): string
     {
-        $prefix = $modelPath.'.'.$fieldName;
+        $fieldPath = $modelPath === 'fieldValues' ? $fieldName : $modelPath.'.'.$fieldName;
 
-        foreach ($this->getErrorBag()->keys() as $errorKey) {
-            if ($errorKey === $prefix || str_starts_with($errorKey, $prefix.'.')) {
-                $this->resetValidation($errorKey);
-            }
+        return 'field-'.preg_replace('/[^A-Za-z0-9_-]+/', '-', $fieldPath);
+    }
+
+    /**
+     * Preserve all current validation errors while changing only the numeric
+     * indexes belonging to this repeater.
+     *
+     * @param  array<int, string>  $oldKeys
+     * @param  array<int, string>  $newKeys
+     */
+    private function remapRepeaterValidation(string $fieldName, string $modelPath, array $oldKeys, array $newKeys): void
+    {
+        if ($oldKeys === [] || $this->getErrorBag()->isEmpty()) {
+            return;
         }
+
+        $prefix = $modelPath.'.'.$fieldName;
+        $newIndexes = array_flip($newKeys);
+        $remapped = [];
+
+        foreach ($this->getErrorBag()->getMessages() as $errorKey => $messages) {
+            if ($errorKey === $prefix || ! str_starts_with($errorKey, $prefix.'.')) {
+                $remapped[$errorKey] = $messages;
+
+                continue;
+            }
+
+            $relative = substr($errorKey, strlen($prefix) + 1);
+            [$index, $suffix] = array_pad(explode('.', $relative, 2), 2, null);
+            if ($index === null || ! ctype_digit($index) || ! array_key_exists((int) $index, $oldKeys)) {
+                $remapped[$errorKey] = $messages;
+
+                continue;
+            }
+
+            $rowKey = $oldKeys[(int) $index];
+            if (! array_key_exists($rowKey, $newIndexes)) {
+                continue;
+            }
+
+            $newErrorKey = $prefix.'.'.$newIndexes[$rowKey];
+            if ($suffix !== null && $suffix !== '') {
+                $newErrorKey .= '.'.$suffix;
+            }
+            $remapped[$newErrorKey] = $messages;
+        }
+
+        $this->setErrorBag($remapped);
     }
 
     private function repeaterField(string $fieldName, string $modelPath): ?RepeaterField

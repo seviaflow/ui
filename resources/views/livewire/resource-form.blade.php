@@ -38,6 +38,13 @@
                             $errorParts = explode('.', $errorField);
                             $errorTarget = $errorParts[0] ?? $errorField;
                             $errorId = 'field-'.preg_replace('/[^A-Za-z0-9_-]+/', '-', $errorTarget);
+                            $errorRowIndex = isset($errorParts[1]) && ctype_digit($errorParts[1]) ? (int) $errorParts[1] : null;
+                            $errorUiKey = $errorRowIndex !== null
+                                ? ($repeaterUiKeys['fieldValues'][$errorTarget][$errorRowIndex] ?? null)
+                                : null;
+                            if (is_string($errorUiKey) && $errorUiKey !== '') {
+                                $errorId .= '-'.$errorUiKey;
+                            }
                             $errorLabel = count($errorParts) > 1
                                 ? str_replace('_', ' ', $errorTarget).' row '.((int) ($errorParts[1] ?? 0) + 1)
                                 : str_replace('_', ' ', $errorField);

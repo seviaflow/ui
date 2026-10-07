@@ -39,6 +39,7 @@ if (! function_exists('resourceFormBootstrap')) {
             'upload-form-users' => UploadFormUserResource::class,
             'upload-context-form-users' => UploadContextFormUserResource::class,
             'resource-event-form-users' => ResourceEventFormUserResource::class,
+            'repeater-form-users' => RepeaterFormUserResource::class,
         ]);
 
         if (! Schema::hasTable('users')) {
@@ -112,6 +113,14 @@ if (! function_exists('resourceFormBootstrap')) {
                 $table->id();
                 $table->foreignId('country_id');
                 $table->string('name');
+                $table->timestamps();
+            });
+        }
+
+        if (! Schema::hasTable('repeater_form_users')) {
+            Schema::create('repeater_form_users', function (Blueprint $table): void {
+                $table->id();
+                $table->json('items')->nullable();
                 $table->timestamps();
             });
         }

@@ -16,6 +16,7 @@ use SeviaFlow\Core\Resources\Fields\MultiSelectField;
 use SeviaFlow\Core\Resources\Fields\NumberField;
 use SeviaFlow\Core\Resources\Fields\PasswordField;
 use SeviaFlow\Core\Resources\Fields\PhoneField;
+use SeviaFlow\Core\Resources\Fields\RepeaterField;
 use SeviaFlow\Core\Resources\Fields\SelectField;
 use SeviaFlow\Core\Resources\Fields\SlugField;
 use SeviaFlow\Core\Resources\Fields\TextareaField;
@@ -860,4 +861,33 @@ final class ResourceEventFormUserResource extends Resource
                 ];
             });
     }
+}
+
+final class RepeaterFormUserResource extends Resource
+{
+    protected static string $model = RepeaterFormUser::class;
+
+    public static function form(Form $form): Form
+    {
+        return $form->fields([
+            RepeaterField::make('items')
+                ->fields([
+                    TextField::make('label')->label('Label')->required(),
+                    NumberField::make('quantity')->label('Quantity')->min(1),
+                ])
+                ->minItems(1)
+                ->maxItems(3),
+        ]);
+    }
+}
+
+final class RepeaterFormUser extends Model
+{
+    protected $table = 'repeater_form_users';
+
+    protected $guarded = [];
+
+    protected $casts = [
+        'items' => 'array',
+    ];
 }
