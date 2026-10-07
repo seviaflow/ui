@@ -105,7 +105,13 @@
                                 @foreach($section->getFields() as $field)
                                     <div class="sf-description-row">
                                         <dt class="sf-description-label">{{ $field->getLabel() }}</dt>
-                                        <dd class="sf-description-value">{{ $formatValue($field) }}</dd>
+                                        <dd class="sf-description-value">
+                                            @if($field instanceof \SeviaFlow\Core\Resources\Fields\RichTextField)
+                                                {!! $formatValue($field) !!}
+                                            @else
+                                                {{ $formatValue($field) }}
+                                            @endif
+                                        </dd>
                                     </div>
                                 @endforeach
                             </dl>
@@ -122,7 +128,13 @@
                             @foreach($fields as $field)
                                 <div class="sf-description-row">
                                     <dt class="sf-description-label">{{ $field->getLabel() }}</dt>
-                                    <dd class="sf-description-value">{{ $formatValue($field) }}</dd>
+                                    <dd class="sf-description-value">
+                                        @if($field instanceof \SeviaFlow\Core\Resources\Fields\RichTextField)
+                                            {!! $formatValue($field) !!}
+                                        @else
+                                            {{ $formatValue($field) }}
+                                        @endif
+                                    </dd>
                                 </div>
                             @endforeach
                         </dl>

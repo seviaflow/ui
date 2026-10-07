@@ -2930,6 +2930,25 @@ body {
   background: var(--sf-color-surface);
 }
 
+.sf-richtext-tool:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.sf-richtext-status {
+  margin: 0.55rem 0 0;
+  color: var(--sf-color-text-muted);
+  font-size: 0.875rem;
+}
+
+.sf-richtext-status[data-state="error"] {
+  color: var(--sf-color-danger);
+}
+
+.sf-richtext-retry {
+  margin-top: 0.45rem;
+}
+
 .sf-richtext-editor {
   min-height: 11rem;
   border: 1px solid var(--sf-color-border);
@@ -2943,6 +2962,12 @@ body {
 .sf-richtext-editor.sf-input-error {
   border-color: var(--sf-focus-color);
   box-shadow: var(--sf-focus-ring);
+}
+
+.sf-richtext-editor[aria-disabled="true"] {
+  cursor: not-allowed;
+  background: var(--sf-color-surface-soft);
+  opacity: 0.75;
 }
 
 .sf-richtext-editor .ProseMirror {
@@ -3011,6 +3036,22 @@ body {
   clip: rect(0 0 0 0);
   clip-path: inset(50%);
   white-space: nowrap;
+}
+
+.sf-richtext-storage[data-sf-richtext-fallback="true"] {
+  position: static;
+  width: 100%;
+  height: auto;
+  min-height: 9rem;
+  clip: auto;
+  clip-path: none;
+  overflow: auto;
+  padding: 0.8rem 0.9rem;
+  border: 1px solid var(--sf-color-border);
+  border-radius: var(--sf-radius-md);
+  background: var(--sf-color-surface);
+  color: var(--sf-color-text);
+  white-space: pre-wrap;
 }
 
 .sf-repeater {

@@ -22,7 +22,7 @@
 @endphp
 
 <div class="sf-field sf-field-span-{{ $field->getColumnSpan() ?? 1 }}" data-field-type="{{ $field->type() }}" @if($isReadonly) aria-readonly="true" @endif>
-    <label for="{{ $fieldId }}" class="sf-label">
+    <label id="{{ $fieldId }}-label" for="{{ $fieldId }}" class="sf-label">
         {{ $field->getLabel() }}
         @if($isRequired)
             <span class="sf-required" aria-label="{{ __('seviaflow-ui::ui.fields.required') }}">*</span>

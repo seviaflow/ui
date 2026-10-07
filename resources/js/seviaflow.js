@@ -31,6 +31,7 @@ const escapeHtml = (value) => String(value)
 
 const dashboardChartState = new WeakMap();
 const richTextInstances = new WeakMap();
+const richTextRetryControllers = new WeakMap();
 let richTextModulePromise = null;
 let livewireHooksRegistered = false;
 let dashboardChartObserverRegistered = false;
@@ -79,17 +80,55 @@ const loadRichTextModules = () => {
     ]).then(([coreModule, starterKitModule]) => ({
       Editor: coreModule.Editor,
       StarterKit: starterKitModule.default,
-    }));
+    })).catch((error) => {
+      richTextModulePromise = null;
+      throw error;
+    });
   }
 
   return richTextModulePromise;
 };
 
+const setRichTextStatus = (root, state, message = '') => {
+  root.dataset.sfRichtextState = state;
+  const status = root.querySelector('[data-sf-richtext-status]');
+  const retry = root.querySelector('[data-sf-richtext-retry]');
+  const editorElement = root.querySelector('[data-sf-richtext-editor]');
+  const input = root.querySelector('[data-sf-richtext-input]');
+  const ready = state === 'ready';
+  const fallback = state === 'error';
+
+  if (status instanceof HTMLElement) {
+    status.dataset.state = state;
+    status.textContent = message;
+    status.hidden = ready;
+  }
+  if (retry instanceof HTMLButtonElement) {
+    retry.hidden = !fallback;
+  }
+  if (editorElement instanceof HTMLElement) {
+    editorElement.hidden = !ready;
+    editorElement.setAttribute('aria-hidden', ready ? 'false' : 'true');
+  }
+  if (input instanceof HTMLTextAreaElement) {
+    input.dataset.sfRichtextFallback = fallback ? 'true' : 'false';
+    input.setAttribute('aria-hidden', fallback ? 'false' : 'true');
+    input.tabIndex = fallback ? 0 : -1;
+  }
+};
+
 const updateRichTextToolbar = (root, editor) => {
+  const disabled = root.dataset.sfRichtextDisabled === 'true'
+    || root.dataset.sfRichtextState !== 'ready';
   root.querySelectorAll('[data-sf-richtext-command]').forEach((button) => {
     if (!(button instanceof HTMLElement)) {
       return;
     }
+
+    if (button instanceof HTMLButtonElement) {
+      button.disabled = disabled;
+    }
+    button.setAttribute('aria-disabled', disabled ? 'true' : 'false');
 
     const command = button.dataset.sfRichtextCommand;
     const active = command === 'bold'
@@ -110,6 +149,51 @@ const updateRichTextToolbar = (root, editor) => {
   });
 };
 
+const updateRichTextInteractivity = (root, editor) => {
+  const disabled = root.dataset.sfRichtextDisabled === 'true';
+  const ready = root.dataset.sfRichtextState === 'ready';
+  const toolbar = root.querySelector('[role="toolbar"]');
+  const editorElement = root.querySelector('[data-sf-richtext-editor]');
+  const input = root.querySelector('[data-sf-richtext-input]');
+
+  if (toolbar instanceof HTMLElement) {
+    toolbar.setAttribute('aria-disabled', disabled ? 'true' : 'false');
+  }
+  if (input instanceof HTMLTextAreaElement) {
+    input.disabled = disabled;
+  }
+  if (editorElement instanceof HTMLElement) {
+    editorElement.setAttribute('aria-disabled', disabled ? 'true' : 'false');
+    editorElement.tabIndex = disabled || !ready ? -1 : 0;
+  }
+  if (editor && editor.isEditable !== !disabled) {
+    editor.setEditable(!disabled);
+  }
+
+  if (editor) {
+    updateRichTextToolbar(root, editor);
+  }
+};
+
+const bindRichTextRetry = (root) => {
+  const retry = root.querySelector('[data-sf-richtext-retry]');
+  if (!(retry instanceof HTMLButtonElement) || richTextRetryControllers.has(root)) {
+    return;
+  }
+
+  const controller = new AbortController();
+  retry.addEventListener('click', async () => {
+    retry.disabled = true;
+    richTextModulePromise = null;
+    try {
+      await initRichTextEditor(root, { forceReload: true });
+    } finally {
+      retry.disabled = false;
+    }
+  }, { signal: controller.signal });
+  richTextRetryControllers.set(root, controller);
+};
+
 const destroyRichTextEditorsWithin = (element) => {
   if (!(element instanceof Element)) {
     return;
@@ -123,16 +207,21 @@ const destroyRichTextEditorsWithin = (element) => {
 
   roots.forEach((root) => {
     const instance = richTextInstances.get(root);
-    if (!instance) {
-      return;
+    if (instance) {
+      instance.editor.off('update', instance.syncInput);
+      instance.editor.off('selectionUpdate', instance.syncSelection);
+      instance.controller.abort();
+      instance.editor.destroy();
+      richTextInstances.delete(root);
     }
-
-    instance.editor.destroy();
-    richTextInstances.delete(root);
+    const retryController = richTextRetryControllers.get(root);
+    retryController?.abort();
+    richTextRetryControllers.delete(root);
+    delete root.dataset.sfRichtextLoading;
   });
 };
 
-const initRichTextEditor = async (root) => {
+const initRichTextEditor = async (root, { forceReload = false } = {}) => {
   if (!(root instanceof HTMLElement) || root.dataset.sfRichtextReadonly === 'true') {
     return;
   }
@@ -145,11 +234,21 @@ const initRichTextEditor = async (root) => {
 
   const existing = richTextInstances.get(root);
   if (existing) {
-    if (!existing.editor.isFocused && normalizeRichTextHtml(input.value) !== existing.syncedValue) {
-      existing.editor.commands.setContent(input.value || '<p></p>', { emitUpdate: false });
-      existing.syncedValue = normalizeRichTextHtml(input.value);
+    if (forceReload) {
+      destroyRichTextEditorsWithin(root);
+    } else {
+      if (!existing.editor.isFocused && normalizeRichTextHtml(input.value) !== existing.syncedValue) {
+        existing.editor.commands.setContent(input.value || '<p></p>', { emitUpdate: false });
+        existing.syncedValue = normalizeRichTextHtml(input.value);
+      }
+      setRichTextStatus(root, 'ready');
+      updateRichTextInteractivity(root, existing.editor);
+      return;
     }
-    updateRichTextToolbar(root, existing.editor);
+  }
+
+  if (!forceReload && root.dataset.sfRichtextState === 'error') {
+    bindRichTextRetry(root);
     return;
   }
 
@@ -157,12 +256,17 @@ const initRichTextEditor = async (root) => {
     return;
   }
 
+  bindRichTextRetry(root);
   root.dataset.sfRichtextLoading = '1';
+  setRichTextStatus(root, 'loading', 'Loading rich text editor…');
+  updateRichTextInteractivity(root);
   let modules;
   try {
     modules = await loadRichTextModules();
   } catch {
     delete root.dataset.sfRichtextLoading;
+    setRichTextStatus(root, 'error', 'The rich text editor could not be loaded. You can use the text area or retry.');
+    updateRichTextInteractivity(root);
     return;
   }
 
@@ -173,27 +277,35 @@ const initRichTextEditor = async (root) => {
 
   delete root.dataset.sfRichtextLoading;
   const { Editor, StarterKit } = modules;
-  const editor = new Editor({
-    element: editorElement,
-    extensions: [StarterKit.configure({
-      blockquote: false,
-      code: false,
-      codeBlock: false,
-      heading: { levels: [2, 3] },
-      horizontalRule: false,
-      link: {
-        autolink: false,
-        linkOnPaste: false,
-        openOnClick: false,
-      },
-      strike: false,
-      underline: false,
-    })],
-    content: input.value || '<p></p>',
-    editable: true,
-  });
+  let editor;
+  try {
+    editor = new Editor({
+      element: editorElement,
+      extensions: [StarterKit.configure({
+        blockquote: false,
+        code: false,
+        codeBlock: false,
+        heading: { levels: [2, 3] },
+        horizontalRule: false,
+        link: {
+          autolink: false,
+          linkOnPaste: false,
+          openOnClick: false,
+        },
+        strike: false,
+        underline: false,
+      })],
+      content: input.value || '<p></p>',
+      editable: root.dataset.sfRichtextDisabled !== 'true',
+    });
+  } catch {
+    setRichTextStatus(root, 'error', 'The rich text editor could not be started. You can use the text area or retry.');
+    updateRichTextInteractivity(root);
+    return;
+  }
 
-  const instance = { editor, input, syncedValue: normalizeRichTextHtml(input.value) };
+  const controller = new AbortController();
+  const instance = { editor, input, controller, syncedValue: normalizeRichTextHtml(input.value) };
   richTextInstances.set(root, instance);
 
   const syncInput = () => {
@@ -205,17 +317,26 @@ const initRichTextEditor = async (root) => {
     instance.syncedValue = html;
     updateRichTextToolbar(root, editor);
   };
+  const syncSelection = () => updateRichTextToolbar(root, editor);
+  instance.syncInput = syncInput;
+  instance.syncSelection = syncSelection;
 
   editor.on('update', syncInput);
-  editor.on('selectionUpdate', () => updateRichTextToolbar(root, editor));
+  editor.on('selectionUpdate', syncSelection);
+
+  const form = root.closest('form');
+  form?.addEventListener('submit', syncInput, { capture: true, signal: controller.signal });
 
   root.querySelectorAll('[data-sf-richtext-command]').forEach((button) => {
-    if (!(button instanceof HTMLElement) || button.dataset.sfRichtextBound === '1') {
+    if (!(button instanceof HTMLButtonElement)) {
       return;
     }
 
-    button.addEventListener('mousedown', (event) => event.preventDefault());
+    button.addEventListener('mousedown', (event) => event.preventDefault(), { signal: controller.signal });
     button.addEventListener('click', () => {
+      if (button.disabled) {
+        return;
+      }
       const command = button.dataset.sfRichtextCommand;
       const chain = editor.chain().focus();
 
@@ -256,11 +377,11 @@ const initRichTextEditor = async (root) => {
         default:
           break;
       }
-    });
-    button.dataset.sfRichtextBound = '1';
+    }, { signal: controller.signal });
   });
 
-  updateRichTextToolbar(root, editor);
+  setRichTextStatus(root, 'ready');
+  updateRichTextInteractivity(root, editor);
 };
 
 const initRichTextEditors = () => {
@@ -1087,7 +1208,23 @@ const openFormValidationTarget = (target) => {
     return;
   }
 
-  const panel = target.closest('[data-sf-tab-panel]');
+  let focusTarget = target;
+  const richTextRoot = target.closest('[data-sf-richtext]');
+  if (richTextRoot instanceof HTMLElement) {
+    const fallback = richTextRoot.querySelector('[data-sf-richtext-input]');
+    const editor = richTextRoot.querySelector('[data-sf-richtext-editor]');
+    if (richTextRoot.dataset.sfRichtextState === 'error'
+      && fallback instanceof HTMLTextAreaElement
+      && !fallback.disabled) {
+      focusTarget = fallback;
+    } else if (editor instanceof HTMLElement
+      && !editor.hidden
+      && editor.getAttribute('aria-disabled') !== 'true') {
+      focusTarget = editor;
+    }
+  }
+
+  const panel = focusTarget.closest('[data-sf-tab-panel]');
   if (panel instanceof HTMLElement) {
     const tab = panel.dataset.sfTabPanel;
     document.querySelectorAll('[data-sf-tab-panel]').forEach((candidate) => {
@@ -1103,7 +1240,7 @@ const openFormValidationTarget = (target) => {
   }
 
   window.requestAnimationFrame(() => {
-    target.focus({ preventScroll: false });
+    focusTarget.focus({ preventScroll: false });
   });
 };
 
@@ -1289,10 +1426,18 @@ const registerFormUi = () => {
     && typeof window.Livewire.hook === 'function') {
     window.Livewire.hook('morph', () => {
       const active = document.activeElement;
-      focusedFormControlId = active instanceof HTMLElement
-        && active.closest('[data-sf-resource-form]')
-        ? active.id
+      const richTextRoot = active instanceof HTMLElement
+        ? active.closest('[data-sf-richtext]')
         : null;
+      if (richTextRoot instanceof HTMLElement) {
+        const editor = richTextRoot.querySelector('[data-sf-richtext-editor]');
+        focusedFormControlId = editor instanceof HTMLElement ? editor.id : null;
+      } else {
+        focusedFormControlId = active instanceof HTMLElement
+          && active.closest('[data-sf-resource-form]')
+          ? active.id
+          : null;
+      }
     });
     window.Livewire.hook('morph.removing', ({ el }) => {
       destroyRichTextEditorsWithin(el);
@@ -1300,8 +1445,11 @@ const registerFormUi = () => {
     window.Livewire.hook('morphed', () => {
       initFormUi();
       if (focusedFormControlId) {
-        const control = document.getElementById(focusedFormControlId);
-        if (control instanceof HTMLElement && !control.disabled && !control.hidden) {
+      const control = document.getElementById(focusedFormControlId);
+        if (control instanceof HTMLElement
+          && !control.disabled
+          && !control.hidden
+          && control.getAttribute('aria-disabled') !== 'true') {
           window.requestAnimationFrame(() => control.focus());
         }
       }
@@ -1320,7 +1468,10 @@ const registerFormUi = () => {
 
       window.requestAnimationFrame(() => {
         const control = document.getElementById(fieldId);
-        if (control instanceof HTMLElement && !control.disabled && !control.hidden) {
+        if (control instanceof HTMLElement
+          && !control.disabled
+          && !control.hidden
+          && control.getAttribute('aria-disabled') !== 'true') {
           control.focus();
         }
       });
