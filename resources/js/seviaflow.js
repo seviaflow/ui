@@ -1376,7 +1376,9 @@ const registerFormUi = () => {
   if (!formUiRegistered) {
     window.addEventListener('beforeunload', (event) => {
       const formRoot = document.querySelector('[data-sf-resource-form][data-sf-form-dirty="true"]');
-      if (!(formRoot instanceof HTMLElement) || formRoot.dataset.sfFormSubmitting === 'true') {
+      if (!(formRoot instanceof HTMLElement)
+        || formRoot.dataset.sfFormSubmitting === 'true'
+        || formRoot.dataset.sfFormExiting === 'true') {
         return;
       }
 
@@ -1395,9 +1397,63 @@ const registerFormUi = () => {
         return;
       }
 
-      if (formRoot.dataset.sfFormDirty === 'true' && !window.confirm('Leave this form? Unsaved changes will be lost.')) {
-        event.preventDefault();
+      if (formRoot.dataset.sfFormDirty !== 'true') {
+        return;
       }
+
+      if (!window.confirm('Leave this form? Unsaved changes will be lost.')) {
+        event.preventDefault();
+
+        return;
+      }
+
+      formRoot.dataset.sfFormExiting = 'true';
+    });
+
+    document.addEventListener('click', (event) => {
+      if (!(event.target instanceof Element)
+        || event.defaultPrevented
+        || event.button !== 0
+        || event.metaKey
+        || event.ctrlKey
+        || event.shiftKey
+        || event.altKey) {
+        return;
+      }
+
+      const link = event.target.closest('a[href]');
+      const formRoot = document.querySelector('[data-sf-resource-form][data-sf-form-dirty="true"]');
+      if (!(link instanceof HTMLAnchorElement) || !(formRoot instanceof HTMLElement)
+        || link.matches('[data-sf-form-exit], [data-sf-validation-target]')
+        || link.hasAttribute('download')
+        || (link.target !== '' && link.target !== '_self')
+        || link.href === window.location.href
+        || formRoot.dataset.sfFormDirty !== 'true') {
+        return;
+      }
+
+      if (!window.confirm('Leave this form? Unsaved changes will be lost.')) {
+        event.preventDefault();
+
+        return;
+      }
+
+      formRoot.dataset.sfFormExiting = 'true';
+    });
+
+    document.addEventListener('livewire:navigating', (event) => {
+      const formRoot = document.querySelector('[data-sf-resource-form][data-sf-form-dirty="true"]');
+      if (!(formRoot instanceof HTMLElement)) {
+        return;
+      }
+
+      if (!window.confirm('Leave this form? Unsaved changes will be lost.')) {
+        event.preventDefault();
+
+        return;
+      }
+
+      formRoot.dataset.sfFormExiting = 'true';
     });
 
     document.addEventListener('click', (event) => {

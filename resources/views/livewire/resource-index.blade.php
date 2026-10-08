@@ -33,6 +33,7 @@
                         <button
                             type="button"
                             class="sf-button sf-button-secondary"
+                            id="sf-resource-filters-trigger"
                             data-sf-drawer-target="sf-resource-filters"
                             aria-controls="sf-resource-filters"
                             aria-expanded="false"
