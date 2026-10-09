@@ -69,8 +69,7 @@ it('keeps repeater rows bounded and dispatches focus after keyboard actions', fu
         ->assertNotDispatched('seviaflow:focus-field');
 
     $component->call('moveRepeaterItemUp', 'items', $lastKey)
-        ->assertDispatched('seviaflow:focus-field', static fn (string $event, array $params): bool =>
-            $event === 'seviaflow:focus-field'
+        ->assertDispatched('seviaflow:focus-field', static fn (string $event, array $params): bool => $event === 'seviaflow:focus-field'
             && str_contains((string) ($params['fieldId'] ?? ''), $lastKey)
         );
 });
