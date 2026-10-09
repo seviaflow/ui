@@ -9,6 +9,11 @@ use Illuminate\Routing\Router;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Livewire\Livewire;
+use SeviaFlow\Core\Events\Auth\RoleAssignmentsChanged;
+use SeviaFlow\Core\Events\Resources\ResourceCreated;
+use SeviaFlow\Core\Events\Resources\ResourceDeleted;
+use SeviaFlow\Core\Events\Resources\ResourceRestored;
+use SeviaFlow\Core\Events\Resources\ResourceUpdated;
 use SeviaFlow\Core\Resources\Fields\DateField;
 use SeviaFlow\Core\Resources\Fields\DateTimeField;
 use SeviaFlow\Core\Resources\Fields\NumberField;
@@ -32,6 +37,8 @@ use SeviaFlow\Ui\Http\Middleware\AdminRedirectIfAuthenticated;
 use SeviaFlow\Ui\Navigation\NavigationContributor;
 use SeviaFlow\Ui\Navigation\NavigationMetadataCache;
 use SeviaFlow\Ui\Navigation\NavigationMetadataResolver;
+use SeviaFlow\Ui\Support\Cache\CacheInvalidator;
+use SeviaFlow\Ui\Support\Cache\CacheVersionStore;
 use SeviaFlow\Ui\Support\Cache\DashboardSummaryCacheParticipant;
 use SeviaFlow\Ui\Support\Cache\DashboardWidgetCacheParticipant;
 use SeviaFlow\Ui\Support\Cache\NavigationMetadataCacheParticipant;
@@ -45,11 +52,13 @@ final class SeviaFlowUiServiceProvider extends ServiceProvider
         $this->registerDashboardBindings();
         $this->registerNavigationBindings();
         $this->registerCacheParticipants();
+        $this->registerCacheInvalidation();
         $this->registerFieldRendererBindings();
     }
 
     public function boot(CapabilityRegistry $capabilities): void
     {
+        $this->registerCacheListeners();
         RateLimiter::for('seviaflow.login', function ($request): Limit {
             $limit = max(1, (int) config('seviaflow-ui.auth.login_throttle.max_attempts', 5));
             $decay = max(1, (int) config('seviaflow-ui.auth.login_throttle.decay_minutes', 1));
@@ -152,6 +161,21 @@ final class SeviaFlowUiServiceProvider extends ServiceProvider
             DashboardSummaryCacheParticipant::class,
             DashboardWidgetCacheParticipant::class,
         ], CacheParticipant::class);
+    }
+
+    private function registerCacheInvalidation(): void
+    {
+        $this->app->singleton(CacheVersionStore::class);
+        $this->app->singleton(CacheInvalidator::class);
+    }
+
+    private function registerCacheListeners(): void
+    {
+        $events = $this->app['events'];
+        foreach ([ResourceCreated::class, ResourceUpdated::class, ResourceDeleted::class, ResourceRestored::class] as $event) {
+            $events->listen($event, [CacheInvalidator::class, 'resourceChanged']);
+        }
+        $events->listen(RoleAssignmentsChanged::class, [CacheInvalidator::class, 'roleAssignmentsChanged']);
     }
 
     private function registerFieldRendererBindings(): void

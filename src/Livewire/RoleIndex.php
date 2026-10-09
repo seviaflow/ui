@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace SeviaFlow\Ui\Livewire;
 
 use Illuminate\Contracts\View\View;
+use Illuminate\Support\Facades\DB;
 use Livewire\Component;
 use SeviaFlow\Core\Auth\Roles\Role;
 use SeviaFlow\Ui\Livewire\Concerns\AuthorizesRoleManagement;
+use SeviaFlow\Ui\Support\Cache\CacheInvalidator;
 
 final class RoleIndex extends Component
 {
@@ -54,8 +56,11 @@ final class RoleIndex extends Component
             return;
         }
 
-        $role->permissions()->delete();
-        $role->delete();
+        DB::transaction(function () use ($role): void {
+            $role->permissions()->delete();
+            $role->delete();
+        });
+        app(CacheInvalidator::class)->permissionsChanged();
         $this->statusMessage = 'Role deleted successfully.';
     }
 }

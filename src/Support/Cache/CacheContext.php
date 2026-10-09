@@ -10,24 +10,47 @@ use Illuminate\Http\Request;
 
 final class CacheContext
 {
+    public function __construct(
+        private readonly CacheVersionStore $versions = new CacheVersionStore,
+    ) {}
+
     /**
      * @param  array<string, mixed>  $context
      * @return array<string, mixed>
      */
     public function forActor(Authenticatable|Model|null $actor, array $context = []): array
     {
+        $scope = $this->scope($context);
         $cacheContext = [
             'actor' => $this->actor($actor),
-            'host' => $this->host(),
-            'connection' => $this->connection($context),
-            'permission_version' => $this->version('permission_version'),
-            'data_version' => $this->version('data_version'),
+            'host' => $scope['host'],
+            'connection' => $scope['connection'],
+            'tenant' => $scope['tenant'],
+            'permission_version' => $this->versions->permissionVersion($actor, $scope),
+            'data_version' => $this->versions->dataVersion($scope),
             'payload' => $context,
         ];
 
         $this->sortRecursively($cacheContext);
 
         return $cacheContext;
+    }
+
+    /**
+     * @param  array<string, mixed>  $context
+     * @return array{host:string, connection:string, tenant:mixed}
+     */
+    public function scope(array $context = [], ?string $connection = null): array
+    {
+        $scope = [
+            'host' => $this->host(),
+            'connection' => $this->connection($context, $connection),
+            'tenant' => $this->tenant($context),
+        ];
+
+        $this->sortRecursively($scope);
+
+        return $scope;
     }
 
     /**
@@ -79,22 +102,41 @@ final class CacheContext
     /**
      * @param  array<string, mixed>  $context
      */
-    private function connection(array $context): string
+    private function connection(array $context, ?string $connection = null): string
     {
-        $connection = $context['connection'] ?? config('database.default', 'default');
+        $connection = $connection ?? $context['connection'] ?? config('database.default', 'default');
 
         return is_scalar($connection) && trim((string) $connection) !== ''
             ? (string) $connection
             : 'default';
     }
 
-    private function version(string $key): string
+    private function tenant(array $context): mixed
     {
-        $version = config('seviaflow-ui.cache.'.$key, 'v1');
+        if (! array_key_exists('tenant', $context)) {
+            return 'unscoped';
+        }
 
-        return is_scalar($version) && trim((string) $version) !== ''
-            ? (string) $version
-            : 'v1';
+        return $this->normalize($context['tenant']);
+    }
+
+    private function normalize(mixed $value): mixed
+    {
+        if (is_scalar($value) || $value === null) {
+            return $value;
+        }
+
+        if (is_array($value)) {
+            $normalized = [];
+            foreach ($value as $key => $item) {
+                $normalized[(string) $key] = $this->normalize($item);
+            }
+            ksort($normalized);
+
+            return $normalized;
+        }
+
+        return get_debug_type($value);
     }
 
     /**

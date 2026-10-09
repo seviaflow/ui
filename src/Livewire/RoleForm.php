@@ -7,6 +7,7 @@ namespace SeviaFlow\Ui\Livewire;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Livewire\Component;
@@ -15,6 +16,7 @@ use SeviaFlow\Core\Auth\Roles\Permission;
 use SeviaFlow\Core\Auth\Roles\Role;
 use SeviaFlow\Core\Resources\Resource;
 use SeviaFlow\Ui\Livewire\Concerns\AuthorizesRoleManagement;
+use SeviaFlow\Ui\Support\Cache\CacheInvalidator;
 
 final class RoleForm extends Component
 {
@@ -103,28 +105,34 @@ final class RoleForm extends Component
             ],
         ]);
 
-        $role = $this->editingRole ?? new Role;
-        $role->fill([
-            'name' => $validated['name'],
-            'slug' => $validated['slug'],
-        ]);
-        $role->save();
+        $role = DB::transaction(function () use ($validated): Role {
+            $role = $this->editingRole ?? new Role;
+            $role->fill([
+                'name' => $validated['name'],
+                'slug' => $validated['slug'],
+            ]);
+            $role->save();
 
-        $role->permissions()->delete();
+            $role->permissions()->delete();
 
-        foreach ($this->permissions as $resource => $abilities) {
-            foreach ($abilities as $ability => $allowed) {
-                if (! $allowed) {
-                    continue;
+            foreach ($this->permissions as $resource => $abilities) {
+                foreach ($abilities as $ability => $allowed) {
+                    if (! $allowed) {
+                        continue;
+                    }
+
+                    $role->permissions()->create([
+                        'resource' => $resource,
+                        'ability' => $ability,
+                        'allowed' => true,
+                    ]);
                 }
-
-                $role->permissions()->create([
-                    'resource' => $resource,
-                    'ability' => $ability,
-                    'allowed' => true,
-                ]);
             }
-        }
+
+            return $role;
+        });
+
+        app(CacheInvalidator::class)->permissionsChanged();
 
         $this->editingRole = $role->fresh('permissions');
         $this->statusMessage = 'Role saved successfully.';
