@@ -24,7 +24,9 @@ browser-session security operations require a fresh `current_password` check.
 
 ## Installation Status
 
-SeviaFlow is pre-release. The `main` branch is aliased as `0.1.x-dev`; the first stable tag is expected to start at `0.1.0`.
+SeviaFlow is pre-release and this repository currently declares `license: proprietary`. UI + Core does not require a Hub token, paid API or licensing adapter, but that technical profile is not an open-source grant or proof that public distribution is already authorized. Use an authorized Composer source until the owner publishes the applicable terms.
+
+The intended operator profile is Core + UI without API or Hub. Public availability, no-cost rights, support scope and the first stable tag remain owner decisions.
 
 ```bash
 composer require seviaflow/ui:^0.1@dev
