@@ -6,6 +6,8 @@ namespace Livewire\Features\SupportTesting;
 
 class Testable
 {
+    public function instance(): mixed {}
+
     public function assertForbidden(): static {}
 
     public function assertSet(string $name, mixed $value = null): static {}
@@ -44,4 +46,6 @@ class Testable
     public function assertRedirect(?string $uri = null): static {}
 
     public function assertDispatched(string $event, ?callable $callback = null): static {}
+
+    public function assertNotDispatched(string $event, mixed ...$parameters): static {}
 }
