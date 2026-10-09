@@ -3,6 +3,9 @@ import path from 'node:path';
 
 export default defineConfig({
   publicDir: 'resources/public',
+  define: {
+    __SEVIAFLOW_TEST_RICH_TEXT_FAILURE__: JSON.stringify(process.env.SEVIAFLOW_TEST_RICH_TEXT_FAILURE === '1'),
+  },
   build: {
     outDir: 'public/dist',
     emptyOutDir: true,

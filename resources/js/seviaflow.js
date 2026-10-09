@@ -73,6 +73,10 @@ const normalizeRichTextHtml = (value) => {
 };
 
 const loadRichTextModules = () => {
+  if (__SEVIAFLOW_TEST_RICH_TEXT_FAILURE__ && window.__seviaflowTestRichTextFailure === true) {
+    return Promise.reject(new Error('Controlled Rich Text initialization failure.'));
+  }
+
   if (richTextModulePromise === null) {
     richTextModulePromise = Promise.all([
       import('@tiptap/core'),
