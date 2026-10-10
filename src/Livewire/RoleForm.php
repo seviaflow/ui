@@ -7,7 +7,6 @@ namespace SeviaFlow\Ui\Livewire;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Livewire\Component;
@@ -105,8 +104,10 @@ final class RoleForm extends Component
             ],
         ]);
 
-        $role = DB::transaction(function () use ($validated): Role {
-            $role = $this->editingRole ?? new Role;
+        $role = $this->editingRole ?? new Role;
+        $connection = $role->getConnection();
+
+        $role = $connection->transaction(function () use ($validated, $role): Role {
             $role->fill([
                 'name' => $validated['name'],
                 'slug' => $validated['slug'],
@@ -132,7 +133,7 @@ final class RoleForm extends Component
             return $role;
         });
 
-        app(CacheInvalidator::class)->permissionsChanged();
+        app(CacheInvalidator::class)->permissionsChanged(connection: $connection);
 
         $this->editingRole = $role->fresh('permissions');
         $this->statusMessage = 'Role saved successfully.';

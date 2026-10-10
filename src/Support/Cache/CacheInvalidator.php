@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SeviaFlow\Ui\Support\Cache;
 
+use Illuminate\Database\Connection;
 use SeviaFlow\Core\Events\Auth\RoleAssignmentsChanged;
 use SeviaFlow\Core\Events\Resources\ResourceLifecycleEvent;
 
@@ -39,14 +40,24 @@ final class CacheInvalidator
      *
      * @param  array<string, mixed>  $context
      */
-    public function permissionsChanged(array $context = []): void
+    public function permissionsChanged(array $context = [], ?Connection $connection = null): void
     {
-        $this->versions->bumpPermissionScope($this->context->scope(
-            $context,
-            isset($context['connection']) && is_scalar($context['connection'])
-                ? (string) $context['connection']
-                : null,
-        ));
+        $invalidate = function () use ($context): void {
+            $this->versions->bumpPermissionScope($this->context->scope(
+                $context,
+                isset($context['connection']) && is_scalar($context['connection'])
+                    ? (string) $context['connection']
+                    : null,
+            ));
+        };
+
+        if ($connection === null || $connection->transactionLevel() === 0) {
+            $invalidate();
+
+            return;
+        }
+
+        $connection->afterCommit($invalidate);
     }
 
     /**
