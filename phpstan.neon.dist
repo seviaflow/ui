@@ -10,6 +10,7 @@ parameters:
     - tests
   stubFiles:
     - tests/PHPStan/Stubs/Testable.stub.php
+    - tests/PHPStan/Stubs/LivewireView.stub
   level: 5
   treatPhpDocTypesAsCertain: false
   excludePaths:
