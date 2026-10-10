@@ -16,7 +16,9 @@ use SeviaFlow\Core\Auth\Roles\RoleAssignment;
 use SeviaFlow\Core\Resources\Columns\TextColumn;
 use SeviaFlow\Core\Resources\Resource;
 use SeviaFlow\Core\Resources\Table;
+use SeviaFlow\Ui\Dashboard\Widgets\WidgetCache;
 use SeviaFlow\Ui\Livewire\RoleForm;
+use SeviaFlow\Ui\Livewire\RoleIndex;
 
 uses(RefreshDatabase::class);
 
@@ -167,6 +169,73 @@ it('unchecked permissions are removed consistently', function (): void {
 
     expect($role->fresh()?->permissions()->where('resource', 'test-users')->where('ability', PermissionAbilities::DELETE)->exists())
         ->toBeFalse();
+});
+
+it('defers role permission invalidation until the outer transaction commits', function (): void {
+    config()->set('seviaflow.performance.cache.enabled', true);
+    config()->set('seviaflow.performance.cache.store', 'array');
+    config()->set('seviaflow-ui.cache.dashboard', true);
+    config()->set('seviaflow-ui.cache.isolation_context', 'c03-test-host');
+
+    $user = RoleManagementUser::query()->create(['name' => 'Admin']);
+    $role = Role::query()->create(['name' => 'Ops', 'slug' => 'ops']);
+    $role->permissions()->create([
+        'resource' => 'test-users',
+        'ability' => PermissionAbilities::VIEW_ANY,
+        'allowed' => true,
+    ]);
+    pest_test_case()->actingAs($user, 'web');
+
+    $cache = new WidgetCache;
+    $context = ['tenant' => 'tenant-a', 'connection' => 'testing'];
+    expect($cache->remember('stats', 'orders', 'main', $user, $context, 60, fn (): string => 'before'))
+        ->toBe('before');
+
+    $connection = $role->getConnection();
+    $connection->beginTransaction();
+    Livewire::test(RoleForm::class, ['role' => $role->getKey()])
+        ->set('permissions.test-users.viewAny', false)
+        ->call('save');
+
+    expect($cache->remember('stats', 'orders', 'main', $user, $context, 60, fn (): string => 'changed'))
+        ->toBe('before');
+    $connection->rollBack();
+
+    expect($cache->remember('stats', 'orders', 'main', $user, $context, 60, fn (): string => 'rolled-back'))
+        ->toBe('before');
+
+    expect($role->fresh()?->permissions()->where('resource', 'test-users')->where('ability', PermissionAbilities::VIEW_ANY)->exists())
+        ->toBeTrue();
+});
+
+it('defers role deletion invalidation until the outer transaction commits', function (): void {
+    config()->set('seviaflow.performance.cache.enabled', true);
+    config()->set('seviaflow.performance.cache.store', 'array');
+    config()->set('seviaflow-ui.cache.dashboard', true);
+    config()->set('seviaflow-ui.cache.isolation_context', 'c03-test-host');
+
+    $user = RoleManagementUser::query()->create(['name' => 'Admin']);
+    $role = Role::query()->create(['name' => 'Temporary', 'slug' => 'temporary']);
+    pest_test_case()->actingAs($user, 'web');
+
+    $cache = new WidgetCache;
+    $context = ['tenant' => 'tenant-a', 'connection' => 'testing'];
+    expect($cache->remember('stats', 'orders', 'main', $user, $context, 60, fn (): string => 'before'))
+        ->toBe('before');
+
+    $connection = $role->getConnection();
+    $connection->beginTransaction();
+    Livewire::test(RoleIndex::class)->call('deleteRole', $role->getKey());
+
+    expect($cache->remember('stats', 'orders', 'main', $user, $context, 60, fn (): string => 'changed'))
+        ->toBe('before');
+    $connection->rollBack();
+
+    expect(Role::query()->whereKey($role->getKey())->exists())->toBeTrue()
+        ->and($cache->remember('stats', 'orders', 'main', $user, $context, 60, fn (): string => 'rolled-back'))
+        ->toBe('before');
+
+    expect(Role::query()->whereKey($role->getKey())->exists())->toBeTrue();
 });
 
 it('unauthorized user cannot access role management when permissions are enabled', function (): void {
