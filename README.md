@@ -24,9 +24,9 @@ browser-session security operations require a fresh `current_password` check.
 
 ## Installation Status
 
-SeviaFlow is pre-release and this repository currently declares `license: proprietary`. UI + Core does not require a Hub token, paid API or licensing adapter, but that technical profile is not an open-source grant or proof that public distribution is already authorized. Use an authorized Composer source until the owner publishes the applicable terms.
+SeviaFlow is pre-release and this repository currently declares `license: proprietary`. UI + Core does not require a Hub token, API or licensing adapter, but that technical profile is not an open-source grant or proof that public distribution is already authorized. Use an authorized Composer source until the owner publishes the applicable terms.
 
-The intended operator profile is Core + UI without API or Hub. Public availability, no-cost rights, support scope and the first stable tag remain owner decisions.
+The intended operator profile is Core + UI without API or Hub. The owner approved the free Core/UI/API/DevTools/Framework edition on 2026-10-10. Usage-license rights, publication, support scope and the first stable tag remain release decisions.
 
 ```bash
 composer require seviaflow/ui:^0.1@dev
@@ -46,3 +46,7 @@ npm run build
 ```
 
 Assets build to `public/dist/seviaflow.css` and `public/dist/seviaflow.js`; those distribution assets are committed because they are part of the package installation strategy.
+
+## Free edition scope
+
+Core, UI, API, DevTools and Framework are free. API requires no paid license or runtime Hub activation. Copilot remains an optional paid module and is excluded from the free edition. Price zero does not change the current proprietary usage terms or publish private source repositories.
