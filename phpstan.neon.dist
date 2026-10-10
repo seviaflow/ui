@@ -2,6 +2,8 @@ includes:
   - vendor/larastan/larastan/extension.neon
 
 parameters:
+  bootstrapFiles:
+    - tests/PHPStan/bootstrap.php
   paths:
     - src
     - config
@@ -10,7 +12,6 @@ parameters:
     - tests
   stubFiles:
     - tests/PHPStan/Stubs/Testable.stub.php
-    - tests/PHPStan/Stubs/LivewireView.stub
   level: 5
   treatPhpDocTypesAsCertain: false
   excludePaths:
