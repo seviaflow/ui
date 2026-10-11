@@ -32,6 +32,8 @@ parameters:
     -
       message: '#TestCall::with#'
       path: tests/Unit/Icons/SidebarLinkComponentTest.php
+      # Pest 3 omits this dataset method from its PHPDoc; Pest 4 declares it.
+      reportUnmatched: false
     -
       identifier: varTag.nativeType
       path: tests/Unit/Dashboard/RecentActivityWidgetTest.php

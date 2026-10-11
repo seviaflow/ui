@@ -14,7 +14,7 @@ use SeviaFlow\Core\Resources\Table;
 use SeviaFlow\Ui\Navigation\NavigationMetadataCache;
 use SeviaFlow\Ui\Navigation\NavigationMetadataResolver;
 
-require __DIR__.'/Support/ResourceIndexSetup.php';
+require_once __DIR__.'/Support/ResourceIndexDefinitions.php';
 
 /**
  * @param  array<string, class-string<resource>>  $resources
