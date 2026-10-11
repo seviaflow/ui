@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\View\View;
 use SeviaFlow\Core\Auth\AdminAccessGate;
 use SeviaFlow\Ui\Auth\TwoFactorAuthenticationManager;
@@ -117,9 +118,13 @@ final class LoginController
 
     public function verifyTwoFactor(Request $request): RedirectResponse
     {
-        $validated = $request->validate([
+        $validator = Validator::make($request->all(), [
             'code' => ['required', 'string', 'max:255'],
         ]);
+        if ($validator->fails()) {
+            return back()->withErrors($validator);
+        }
+        $validated = $validator->validated();
         $user = $this->pendingUser($request);
 
         if (! $user instanceof Model || ! $user instanceof Authenticatable || ! $this->twoFactorAuthenticationManager->verifyLoginChallenge($user, (string) $validated['code'])) {

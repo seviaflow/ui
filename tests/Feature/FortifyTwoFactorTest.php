@@ -235,6 +235,34 @@ it('preserves Fortify protection against replaying an accepted TOTP', function (
         ->and($manager->verifyLoginChallenge($user, $code))->toBeFalse();
 });
 
+it('does not spend login or OTP attempts when rendering authentication forms', function (): void {
+    config()->set('seviaflow-ui.auth.login_throttle.max_attempts', 3);
+    $user = fortifyPanelUser();
+    startFortifyPanelLogin($user);
+
+    for ($visit = 0; $visit < 5; $visit++) {
+        pest_test_case()->get('/admin/login/two-factor')->assertOk();
+    }
+
+    for ($attempt = 0; $attempt < 2; $attempt++) {
+        pest_test_case()->from('/admin/login/two-factor')->post('/admin/login/two-factor', ['code' => 'invalid'])
+            ->assertSessionHasErrors('code');
+        pest_test_case()->get('/admin/login/two-factor')->assertOk();
+    }
+
+    pest_test_case()->post('/admin/login/two-factor', ['code' => fortifyPanelOtp($user)])->assertRedirect('/admin');
+    pest_test_case()->assertAuthenticatedAs($user, 'web');
+});
+
+it('does not flash invalid challenge payloads into session input', function (): void {
+    $user = fortifyPanelUser();
+    startFortifyPanelLogin($user);
+
+    pest_test_case()->post('/admin/login/two-factor', ['code' => str_repeat('1', 256)])
+        ->assertSessionHasErrors('code')->assertSessionMissing('_old_input.code');
+    pest_test_case()->assertGuest('web');
+});
+
 it('uses the configured panel guard and custom route prefixes', function (): void {
     config()->set('auth.guards.panel', ['driver' => 'session', 'provider' => 'users']);
     config()->set('seviaflow-ui.auth.guard', 'panel');

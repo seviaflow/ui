@@ -76,9 +76,9 @@ Route::prefix(config('seviaflow-ui.route_prefix', 'admin'))
 
         $adminMiddleware = array_values(array_unique($adminMiddleware));
         $publicAuthMiddleware = array_values(array_unique(array_merge($authMiddleware, ['seviaflow.guest:'.$guard])));
-        if ((bool) config('seviaflow-ui.auth.login_throttle.enabled', true)) {
-            $publicAuthMiddleware[] = 'throttle:seviaflow.login';
-        }
+        $authThrottleMiddleware = (bool) config('seviaflow-ui.auth.login_throttle.enabled', true)
+            ? ['throttle:seviaflow.login']
+            : [];
         $publicAuthMiddleware = array_values(array_unique($publicAuthMiddleware));
         $authEnabled = (bool) config('seviaflow-ui.auth.enabled', true);
 
@@ -116,19 +116,19 @@ Route::prefix(config('seviaflow-ui.route_prefix', 'admin'))
         });
 
         if ((bool) config('seviaflow-ui.auth.enabled', true)) {
-            Route::middleware($publicAuthMiddleware)->group(function (): void {
+            Route::middleware($publicAuthMiddleware)->group(function () use ($authThrottleMiddleware): void {
                 Route::get('/login', [LoginController::class, 'create'])->name('login');
-                Route::post('/login', [LoginController::class, 'store'])->name('login.store');
+                Route::post('/login', [LoginController::class, 'store'])->middleware($authThrottleMiddleware)->name('login.store');
                 Route::get('/login/two-factor', [LoginController::class, 'twoFactor'])->name('login.two-factor');
                 Route::post('/login/two-factor', [LoginController::class, 'verifyTwoFactor'])
                     ->middleware('throttle:seviaflow.two-factor')
                     ->name('login.two-factor.verify');
 
                 Route::get('/forgot-password', [ForgotPasswordController::class, 'create'])->name('password.request');
-                Route::post('/forgot-password', [ForgotPasswordController::class, 'store'])->name('password.email');
+                Route::post('/forgot-password', [ForgotPasswordController::class, 'store'])->middleware($authThrottleMiddleware)->name('password.email');
 
                 Route::get('/reset-password/{token}', [ResetPasswordController::class, 'create'])->name('password.reset');
-                Route::post('/reset-password', [ResetPasswordController::class, 'store'])->name('password.update');
+                Route::post('/reset-password', [ResetPasswordController::class, 'store'])->middleware($authThrottleMiddleware)->name('password.update');
             });
 
             Route::middleware($adminMiddleware)->group(function (): void {
