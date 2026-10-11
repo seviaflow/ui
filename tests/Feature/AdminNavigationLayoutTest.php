@@ -5,6 +5,7 @@ declare(strict_types=1);
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Auth\User as AuthenticatableUser;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Schema;
@@ -14,7 +15,9 @@ use SeviaFlow\Core\Resources\Table;
 use SeviaFlow\Ui\Navigation\NavigationMetadataCache;
 use SeviaFlow\Ui\Navigation\NavigationMetadataResolver;
 
-require __DIR__.'/Support/ResourceIndexSetup.php';
+require_once __DIR__.'/Support/ResourceIndexDefinitions.php';
+
+uses(RefreshDatabase::class);
 
 /**
  * @param  array<string, class-string<resource>>  $resources
