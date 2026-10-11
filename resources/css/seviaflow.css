@@ -927,7 +927,7 @@ body {
   .sf-textarea {
     display: block;
     width: 100%;
-    border: 1px solid #dfe5e2;
+    border: 1px solid var(--sf-color-border-strong);
     border-radius: var(--sf-radius-sm);
     background: #fbfcfb;
     color: var(--sf-color-text);
@@ -1367,7 +1367,7 @@ body {
   }
 
   .sf-button-secondary {
-    border-color: var(--sf-color-border-strong);
+    border-color: var(--sf-color-border);
     background: var(--sf-color-surface);
     color: #536878;
   }
@@ -1381,13 +1381,14 @@ body {
   }
 
   .sf-button-danger {
-    border-color: var(--sf-color-danger);
-    background: var(--sf-color-danger);
-    color: #ffffff;
+    border-color: var(--sf-color-border);
+    background: var(--sf-color-surface);
+    color: var(--sf-color-danger);
   }
 
   .sf-button-danger:hover {
-    background: #b94f59;
+    border-color: var(--sf-color-danger);
+    background: var(--sf-color-danger-soft);
     transform: translateY(-1px);
   }
 
