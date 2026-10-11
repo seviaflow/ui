@@ -19,8 +19,6 @@
                 id="code"
                 name="code"
                 type="text"
-                value="{{ old('code') }}"
-                inputmode="numeric"
                 autocomplete="one-time-code"
                 required
                 autofocus

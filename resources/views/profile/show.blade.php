@@ -118,12 +118,14 @@
                             <p class="sf-item-body sf-text-warning mt-2 font-semibold">Two-factor authentication backend support is not installed or configured.</p>
                         @elseif ($twoFactorEnabled)
                             <p class="sf-item-body sf-text-success mt-2 font-semibold">Two-factor authentication is enabled.</p>
+                        @elseif ($twoFactorSetupPending)
+                            <p class="sf-item-body sf-text-warning mt-2 font-semibold">Confirm setup with a code from your authenticator app.</p>
                         @else
                             <p class="sf-item-body mt-2 font-semibold">Two-factor authentication is not enabled.</p>
                         @endif
                     </div>
 
-                    @if ($twoFactorFeatureEnabled && $twoFactorBackendAvailable && ! $twoFactorEnabled)
+                    @if ($twoFactorFeatureEnabled && $twoFactorBackendAvailable && ! $twoFactorEnabled && ! $twoFactorSetupPending)
                         <form class="mt-4" method="POST" action="{{ route($routeNamePrefix.'profile.two-factor-authentication.enable') }}">
                             @csrf
                             <label class="sf-label" for="two_factor_enable_current_password">Current password</label>
@@ -135,7 +137,7 @@
                         </form>
                     @endif
 
-                    @if ($twoFactorFeatureEnabled && $twoFactorBackendAvailable && $twoFactorEnabled)
+                    @if ($twoFactorFeatureEnabled && $twoFactorBackendAvailable && ($twoFactorEnabled || $twoFactorSetupPending))
                         @if ($twoFactorQrCodeSvg)
                             <section class="mt-4">
                                 <h3 class="sf-card-title">Scan QR code</h3>
@@ -145,7 +147,20 @@
                             </section>
                         @endif
 
-                        @if ($twoFactorRecoveryCodes !== [])
+                        @if ($twoFactorSetupPending)
+                            <form class="sf-form mt-4" method="POST" action="{{ route($routeNamePrefix.'profile.two-factor-authentication.confirm') }}">
+                                @csrf
+                                <label class="sf-label" for="two_factor_setup_code">Authentication code</label>
+                                <input class="sf-input mt-2" id="two_factor_setup_code" name="code" type="text" required autocomplete="one-time-code" inputmode="numeric">
+                                @error('code')<p class="sf-error">{{ $message }}</p>@enderror
+                                <label class="sf-label mt-3" for="two_factor_confirm_current_password">Current password</label>
+                                <input class="sf-input mt-2" id="two_factor_confirm_current_password" name="current_password" type="password" required autocomplete="current-password">
+                                @error('current_password')<p class="sf-error">{{ $message }}</p>@enderror
+                                <button class="sf-button sf-button-primary" type="submit">Confirm two-factor authentication</button>
+                            </form>
+                        @endif
+
+                        @if ($twoFactorEnabled && $twoFactorRecoveryCodes !== [])
                             <section class="mt-4">
                                 <h3 class="sf-card-title">Recovery codes</h3>
                                 <p class="sf-card-description sf-text-warning mt-1">Store these codes in a safe place. Each code can be used once.</p>
@@ -157,6 +172,7 @@
                             </section>
                         @endif
 
+                        @if ($twoFactorEnabled)
                         <form class="mt-4" method="POST" action="{{ route($routeNamePrefix.'profile.two-factor-authentication.recovery-codes.regenerate') }}">
                             @csrf
                             <label class="sf-label" for="two_factor_recovery_current_password">Current password</label>
@@ -166,6 +182,7 @@
                                 Regenerate recovery codes
                             </button>
                         </form>
+                        @endif
 
                         <form class="sf-form mt-4" method="POST" action="{{ route($routeNamePrefix.'profile.two-factor-authentication.disable') }}">
                             @csrf

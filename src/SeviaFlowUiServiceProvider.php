@@ -70,7 +70,7 @@ final class SeviaFlowUiServiceProvider extends ServiceProvider
             $limit = max(1, (int) config('seviaflow-ui.auth.login_throttle.max_attempts', 5));
             $decay = max(1, (int) config('seviaflow-ui.auth.login_throttle.decay_minutes', 1));
             $pending = $request->session()->get('seviaflow.auth.pending_two_factor');
-            $key = is_array($pending) ? (string) ($pending['id'] ?? '') : '';
+            $key = is_array($pending) ? (string) ($pending['id'] ?? '') : (string) $request->user()?->getAuthIdentifier();
 
             return Limit::perMinutes($decay, $limit)->by('seviaflow-two-factor|'.$key.'|'.$request->ip());
         });

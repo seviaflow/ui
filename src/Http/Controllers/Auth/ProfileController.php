@@ -88,6 +88,21 @@ final class ProfileController
             return back()->withErrors(['two_factor_authentication' => 'Two-factor authentication backend support is not available.']);
         }
 
+        return back()->with('status', $this->twoFactorAuthenticationManager->setupPending($user)
+            ? 'Scan the QR code and confirm setup with an authentication code.'
+            : 'Two-factor authentication enabled successfully.');
+    }
+
+    public function confirmTwoFactorAuthentication(Request $request): RedirectResponse
+    {
+        $user = $this->authenticatedUser();
+        $this->validateFreshPassword($request);
+        $validated = $request->validate(['code' => ['required', 'string', 'max:255']]);
+
+        if (! $this->twoFactorFeatureEnabled() || ! $this->twoFactorAuthenticationManager->confirm($user, $validated['code'])) {
+            return back()->withErrors(['code' => 'The verification code is invalid or setup is unavailable.']);
+        }
+
         return back()->with('status', 'Two-factor authentication enabled successfully.');
     }
 
@@ -191,8 +206,9 @@ final class ProfileController
             'title' => $content[$section]['title'] ?? $content['profile']['title'],
             'description' => $content[$section]['description'] ?? $content['profile']['description'],
             'twoFactorFeatureEnabled' => $this->twoFactorFeatureEnabled(),
-            'twoFactorBackendAvailable' => $this->twoFactorAuthenticationManager->available(),
+            'twoFactorBackendAvailable' => $this->twoFactorAuthenticationManager->available($this->authenticatedUser()),
             'twoFactorEnabled' => $section === 'two_factor_authentication' ? $this->twoFactorAuthenticationManager->enabled($this->authenticatedUser()) : false,
+            'twoFactorSetupPending' => $section === 'two_factor_authentication' ? $this->twoFactorAuthenticationManager->setupPending($this->authenticatedUser()) : false,
             'twoFactorQrCodeSvg' => $section === 'two_factor_authentication' ? $this->twoFactorAuthenticationManager->qrCodeSvg($this->authenticatedUser()) : null,
             'twoFactorRecoveryCodes' => $section === 'two_factor_authentication' ? $this->twoFactorAuthenticationManager->recoveryCodes($this->authenticatedUser()) : [],
         ]);

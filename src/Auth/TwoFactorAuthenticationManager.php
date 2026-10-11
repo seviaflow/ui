@@ -6,6 +6,7 @@ namespace SeviaFlow\Ui\Auth;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\App;
+use Laravel\Fortify\Fortify;
 use Throwable;
 
 final class TwoFactorAuthenticationManager
@@ -16,11 +17,41 @@ final class TwoFactorAuthenticationManager
 
     private const REGENERATE_ACTION = 'Laravel\\Fortify\\Actions\\GenerateNewRecoveryCodes';
 
-    public function available(): bool
+    private const CONFIRM_ACTION = 'Laravel\\Fortify\\Actions\\ConfirmTwoFactorAuthentication';
+
+    public function available(?Model $user = null): bool
     {
         return class_exists(self::ENABLE_ACTION)
             && class_exists(self::DISABLE_ACTION)
-            && class_exists(self::REGENERATE_ACTION);
+            && class_exists(self::REGENERATE_ACTION)
+            && $this->fortifyProvider() !== null
+            && ($user === null || (
+                method_exists($user, 'hasEnabledTwoFactorAuthentication')
+                && method_exists($user, 'twoFactorQrCodeSvg')
+                && method_exists($user, 'recoveryCodes')
+                && method_exists($user, 'replaceRecoveryCode')
+            ));
+    }
+
+    public function setupPending(Model $user): bool
+    {
+        return filled($user->getAttribute('two_factor_secret')) && ! $this->enabled($user);
+    }
+
+    public function confirm(Model $user, string $code): bool
+    {
+        if (! $this->available($user) || ! $this->setupPending($user) || ! class_exists(self::CONFIRM_ACTION)) {
+            return false;
+        }
+
+        try {
+            $action = App::make(self::CONFIRM_ACTION);
+            $action($user, trim($code));
+
+            return $this->enabled($user);
+        } catch (Throwable) {
+            return false;
+        }
     }
 
     public function enabled(Model $user): bool
@@ -70,7 +101,9 @@ final class TwoFactorAuthenticationManager
         $verifier = config('seviaflow-ui.auth.two_factor_login.verify');
         if (is_callable($verifier)) {
             try {
-                return (bool) call_user_func($verifier, $user, $code);
+                if ((bool) call_user_func($verifier, $user, $code)) {
+                    return true;
+                }
             } catch (Throwable) {
                 return false;
             }
@@ -78,6 +111,10 @@ final class TwoFactorAuthenticationManager
 
         if ($this->consumeRecoveryCode($user, $code)) {
             return true;
+        }
+
+        if (is_callable($verifier)) {
+            return false;
         }
 
         $provider = $this->fortifyProvider();
@@ -99,7 +136,11 @@ final class TwoFactorAuthenticationManager
             return null;
         }
 
-        $value = $user->twoFactorQrCodeSvg();
+        try {
+            $value = $user->twoFactorQrCodeSvg();
+        } catch (Throwable) {
+            return null;
+        }
 
         return is_string($value) && $value !== '' ? $value : null;
     }
@@ -113,14 +154,18 @@ final class TwoFactorAuthenticationManager
             return [];
         }
 
-        $codes = $user->recoveryCodes();
+        try {
+            $codes = $user->recoveryCodes();
+        } catch (Throwable) {
+            return [];
+        }
 
         return is_array($codes) ? array_values(array_filter($codes, 'is_string')) : [];
     }
 
     public function enable(Model $user): bool
     {
-        if (! $this->available()) {
+        if (! $this->available($user)) {
             return false;
         }
 
@@ -132,7 +177,7 @@ final class TwoFactorAuthenticationManager
 
     public function disable(Model $user): bool
     {
-        if (! $this->available()) {
+        if (! $this->available($user)) {
             return false;
         }
 
@@ -144,7 +189,7 @@ final class TwoFactorAuthenticationManager
 
     public function regenerateRecoveryCodes(Model $user): bool
     {
-        if (! $this->available()) {
+        if (! $this->available($user) || ! $this->enabled($user)) {
             return false;
         }
 
@@ -182,6 +227,20 @@ final class TwoFactorAuthenticationManager
         }
 
         try {
+            if ($user->exists) {
+                return $user->getConnection()->transaction(function () use ($user, $code): bool {
+                    $locked = $user->newQuery()->whereKey($user->getKey())->lockForUpdate()->first();
+                    if (! $locked instanceof Model || ! method_exists($locked, 'replaceRecoveryCode')
+                        || ! in_array($code, $this->recoveryCodes($locked), true)) {
+                        return false;
+                    }
+
+                    $locked->replaceRecoveryCode($code);
+
+                    return true;
+                });
+            }
+
             $user->replaceRecoveryCode($code);
 
             return true;
@@ -225,6 +284,16 @@ final class TwoFactorAuthenticationManager
 
         $secret = $user->getAttribute('two_factor_secret');
 
-        return is_string($secret) && $secret !== '' ? $secret : null;
+        if (! is_string($secret) || $secret === '' || ! class_exists(Fortify::class)) {
+            return null;
+        }
+
+        try {
+            $decrypted = Fortify::currentEncrypter()->decrypt($secret);
+
+            return is_string($decrypted) && $decrypted !== '' ? $decrypted : null;
+        } catch (Throwable) {
+            return null;
+        }
     }
 }

@@ -138,6 +138,9 @@ Route::prefix(config('seviaflow-ui.route_prefix', 'admin'))
                 Route::post('/profile/password', [ProfileController::class, 'updatePassword'])->name('profile.password.update');
                 Route::get('/profile/two-factor-authentication', [ProfileController::class, 'twoFactorAuthentication'])->name('profile.two-factor-authentication');
                 Route::post('/profile/two-factor-authentication', [ProfileController::class, 'enableTwoFactorAuthentication'])->name('profile.two-factor-authentication.enable');
+                Route::post('/profile/two-factor-authentication/confirm', [ProfileController::class, 'confirmTwoFactorAuthentication'])
+                    ->middleware('throttle:seviaflow.two-factor')
+                    ->name('profile.two-factor-authentication.confirm');
                 Route::delete('/profile/two-factor-authentication', [ProfileController::class, 'disableTwoFactorAuthentication'])->name('profile.two-factor-authentication.disable');
                 Route::post('/profile/two-factor-authentication/recovery-codes', [ProfileController::class, 'regenerateTwoFactorRecoveryCodes'])->name('profile.two-factor-authentication.recovery-codes.regenerate');
                 Route::get('/profile/browser-sessions', [ProfileController::class, 'browserSessions'])->name('profile.browser-sessions');

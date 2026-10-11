@@ -34,6 +34,15 @@ it('consumes a recovery code only once', function (): void {
         ->and($manager->verifyLoginChallenge($user, 'recovery-code'))->toBeFalse();
 });
 
+it('allows recovery codes when a configured OTP verifier rejects them', function (): void {
+    $user = new TwoFactorManagerUser;
+    $manager = new TwoFactorAuthenticationManager;
+    config()->set('seviaflow-ui.auth.two_factor_login.verify', static fn (): bool => false);
+
+    expect($manager->verifyLoginChallenge($user, 'recovery-code'))->toBeTrue()
+        ->and($manager->verifyLoginChallenge($user, 'recovery-code'))->toBeFalse();
+});
+
 it('fails closed when an enabled account has no challenge adapter', function (): void {
     $user = new TwoFactorNoAdapterUser;
     $manager = new TwoFactorAuthenticationManager;
