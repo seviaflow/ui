@@ -4,6 +4,10 @@ Composer package: `seviaflow/ui`
 
 Repository: `https://github.com/seviaflow/ui`
 
+## Beta compatibility
+
+The free beta supports Laravel 12 on PHP 8.2+ and Laravel 13 on PHP 8.3+. Laravel 11 is outside this beta's support scope; its security support ended on March 12, 2026. CI covers these framework targets with Livewire 3 and 4. Package unit tests use SQLite; the Northstar integration and browser suites use MariaDB 10.11. PostgreSQL is not yet a verified beta target.
+
 UI is the optional Livewire and Blade operator interface over `seviaflow/core`. It owns web routes, views, frontend assets, navigation, dashboards, saved views and auth/profile screens.
 
 UI depends on Core and Livewire. It does not require `seviaflow/api`.
@@ -24,9 +28,9 @@ browser-session security operations require a fresh `current_password` check.
 
 ## Installation Status
 
-SeviaFlow is pre-release and this repository currently declares `license: proprietary`. UI + Core does not require a Hub token, API or licensing adapter, but that technical profile is not an open-source grant or proof that public distribution is already authorized. Use an authorized Composer source until the owner publishes the applicable terms.
+SeviaFlow is pre-release. This package is licensed under the [MIT License](LICENSE), which permits commercial use, modification and redistribution with its copyright and license notice. Release tags, distribution endpoints and support scope are documented separately.
 
-The intended operator profile is Core + UI without API or Hub. The owner approved the free Core/UI/API/DevTools/Framework edition on 2026-10-10. Usage-license rights, publication, support scope and the first stable tag remain release decisions.
+The intended operator profile is Core + UI without API or Hub. The owner approved the free Core/UI/API/DevTools/Framework edition on 2026-10-10. MIT usage rights apply to this package; publication, support scope and the first stable tag remain release decisions.
 
 ```bash
 composer require seviaflow/ui:^0.1@dev
@@ -49,4 +53,4 @@ Assets build to `public/dist/seviaflow.css` and `public/dist/seviaflow.js`; thos
 
 ## Free edition scope
 
-Core, UI, API, DevTools and Framework are free. API requires no paid license or runtime Hub activation. Copilot remains an optional paid module and is excluded from the free edition. Price zero does not change the current proprietary usage terms or publish private source repositories.
+Core, UI, API, DevTools and Framework are free. API requires no paid license or runtime Hub activation. Copilot remains an optional paid module and is excluded from the free edition. The five free packages use MIT; Copilot retains its separate license. Repository visibility and published artifacts are separate from the usage license.
