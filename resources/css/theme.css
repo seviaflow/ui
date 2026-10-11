@@ -1,0 +1,24 @@
+/* Shared SeviaFlow theme. Keep identical to Hub public/css/theme.css. */
+:root {
+  --sf-theme-canvas: #f6f8f7;
+  --sf-theme-surface: #ffffff;
+  --sf-theme-surface-soft: #f9fbfa;
+  --sf-theme-text: #263746;
+  --sf-theme-muted: #536575;
+  --sf-theme-border: #dfe7e3;
+  --sf-theme-border-strong: #82938c;
+  --sf-theme-primary: #315dcc;
+  --sf-theme-primary-strong: #244db4;
+  --sf-theme-primary-soft: #f1f5fd;
+  --sf-theme-flow: #177762;
+  --sf-theme-flow-soft: #edf7f2;
+  --sf-theme-sidebar: #263c50;
+  --sf-theme-sidebar-text: #e1e9ef;
+  --sf-theme-sidebar-muted: #b2c2ce;
+  --sf-theme-sidebar-active: #354f65;
+  --sf-theme-radius-sm: 0.5rem;
+  --sf-theme-radius-md: 0.75rem;
+  --sf-theme-radius-lg: 1rem;
+  --sf-theme-shadow-card: none;
+  --sf-theme-shadow-floating: 0 12px 36px rgb(26 45 68 / 0.12);
+}
