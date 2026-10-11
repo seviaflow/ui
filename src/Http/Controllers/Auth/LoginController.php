@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\View\View;
 use SeviaFlow\Core\Auth\AdminAccessGate;
 use SeviaFlow\Ui\Auth\TwoFactorAuthenticationManager;
@@ -36,6 +37,8 @@ final class LoginController
 
     public function store(Request $request): RedirectResponse
     {
+        $request->session()->forget('seviaflow.auth.pending_two_factor');
+
         $credentials = $request->validate([
             'email' => ['required', 'email'],
             'password' => ['required', 'string'],
@@ -74,10 +77,13 @@ final class LoginController
             }
 
             $authGuard->logout();
+            $request->session()->regenerate();
             $request->session()->put('seviaflow.auth.pending_two_factor', [
                 'guard' => $guard,
                 'id' => (string) $user->getAuthIdentifier(),
                 'remember' => $remember,
+                'expires_at' => now()->timestamp + max(1, (int) config('seviaflow-ui.auth.two_factor_login.challenge_timeout_seconds', 300)),
+                'password_fingerprint' => hash('sha256', $user->getAuthPassword()),
             ]);
 
             $routeNamePrefix = (string) config('seviaflow-ui.route_name_prefix', 'seviaflow.');
@@ -112,13 +118,17 @@ final class LoginController
 
     public function verifyTwoFactor(Request $request): RedirectResponse
     {
-        $validated = $request->validate([
+        $validator = Validator::make($request->all(), [
             'code' => ['required', 'string', 'max:255'],
         ]);
+        if ($validator->fails()) {
+            return back()->withErrors($validator);
+        }
+        $validated = $validator->validated();
         $user = $this->pendingUser($request);
 
         if (! $user instanceof Model || ! $user instanceof Authenticatable || ! $this->twoFactorAuthenticationManager->verifyLoginChallenge($user, (string) $validated['code'])) {
-            return back()->withInput()->withErrors(['code' => 'The verification code is invalid or has expired.']);
+            return back()->withErrors(['code' => 'The verification code is invalid or has expired.']);
         }
 
         $pending = $request->session()->pull('seviaflow.auth.pending_two_factor', []);
@@ -168,6 +178,12 @@ final class LoginController
             return null;
         }
 
+        if (! is_numeric($pending['expires_at'] ?? null) || (int) $pending['expires_at'] <= now()->timestamp) {
+            $request->session()->forget('seviaflow.auth.pending_two_factor');
+
+            return null;
+        }
+
         $guardName = (string) ($pending['guard'] ?? config('seviaflow-ui.auth.guard', 'web'));
         $id = $pending['id'] ?? null;
         if (! is_scalar($id) || (string) $id === '') {
@@ -191,6 +207,16 @@ final class LoginController
 
         $user = $provider->retrieveById($id);
 
-        return $user instanceof Model ? $user : null;
+        if (! $user instanceof Model || ! $user instanceof Authenticatable
+            || ! is_string($pending['password_fingerprint'] ?? null)
+            || ! hash_equals($pending['password_fingerprint'], hash('sha256', $user->getAuthPassword()))
+            || ! $this->twoFactorAuthenticationManager->challengeRequired($user)
+            || ! $this->adminAccessGate->allows($user)) {
+            $request->session()->forget('seviaflow.auth.pending_two_factor');
+
+            return null;
+        }
+
+        return $user;
     }
 }

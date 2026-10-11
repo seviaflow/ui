@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests;
 
 use Illuminate\Foundation\Application;
+use Laravel\Fortify\FortifyServiceProvider;
 use Livewire\LivewireServiceProvider;
 use Orchestra\Testbench\TestCase as Orchestra;
 use SeviaFlow\Core\SeviaFlowCoreServiceProvider;
@@ -20,6 +21,7 @@ abstract class TestCase extends Orchestra
     {
         return [
             LivewireServiceProvider::class,
+            FortifyServiceProvider::class,
             SeviaFlowCoreServiceProvider::class,
             SeviaFlowUiServiceProvider::class,
         ];

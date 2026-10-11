@@ -27,6 +27,7 @@ return [
         ],
         'two_factor_login' => [
             'enabled' => true,
+            'challenge_timeout_seconds' => 300,
             'verify' => null,
             'consume_recovery_code' => null,
         ],

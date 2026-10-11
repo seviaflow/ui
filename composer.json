@@ -19,7 +19,8 @@
         "livewire/livewire": "^3.0|^4.0"
     },
     "require-dev": {
-    "larastan/larastan": "^3.10",
+        "larastan/larastan": "^3.10",
+        "laravel/fortify": "^1.30",
         "laravel/pint": "^1.17",
         "orchestra/testbench": "^10.0|^11.0",
         "pestphp/pest": "^3.7|^4.4",
