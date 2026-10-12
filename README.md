@@ -59,6 +59,28 @@ methods return decrypted secrets. The profile enrollment UI requires a
 Fortify-compatible user model and backend. Northstar demonstrates the complete
 Fortify configuration and includes a database integration test.
 
+## Record toolbar
+
+Resource lists use one toolbar for search, filters, saved views and table tools.
+Selecting a saved view applies it immediately. Its menu also contains saving
+and deleting views. Bulk actions appear in the same toolbar after selecting
+records; confirmation remains visible until confirmed or cancelled.
+
+Column visibility and order, table density, records per page and trash scope
+live in Table settings. Import and export are available under More when the
+operator has permission. The
+toolbar wraps on narrow screens, and dropdowns support keyboard navigation,
+Escape and clicking outside. On phones, filters and views use icon buttons
+with accessible labels. Re-publish package assets when updating an application
+that uses published UI assets:
+
+```bash
+php artisan vendor:publish --tag=seviaflow-ui-assets --force
+```
+
+If the application has published or customized package views, also merge the
+updated `livewire/resource-index.blade.php` into its view override.
+
 ## Installation Status
 
 SeviaFlow is pre-release. This package is licensed under the [MIT License](LICENSE), which permits commercial use, modification and redistribution with its copyright and license notice. Release tags, distribution endpoints and support scope are documented separately.

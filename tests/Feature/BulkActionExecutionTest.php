@@ -56,16 +56,21 @@ beforeEach(function (): void {
     ]), 'web');
 });
 
-it('renders bulk actions when resource defines them', function (): void {
-    BulkActionUser::query()->create([
+it('shows configured bulk actions only after selecting records', function (): void {
+    $user = BulkActionUser::query()->create([
         'name' => 'Bulk Render',
         'is_active' => true,
     ]);
 
-    pest_test_case()->get('/admin/resources/bulk-users')
-        ->assertOk()
+    Livewire::test(ResourceIndex::class, ['resource' => 'bulk-users'])
+        ->assertDontSee('Deactivate selected')
+        ->assertDontSee('Dangerous deactivate selected')
+        ->set('selectedRecords', [(string) $user->getKey()])
         ->assertSee('Deactivate selected')
-        ->assertSee('Dangerous deactivate selected');
+        ->assertSee('Dangerous deactivate selected')
+        ->call('clearSelection')
+        ->assertDontSee('Deactivate selected')
+        ->assertDontSee('Dangerous deactivate selected');
 });
 
 it('executes bulk action on selected records', function (): void {
