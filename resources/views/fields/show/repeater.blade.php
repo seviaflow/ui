@@ -20,7 +20,7 @@
                         @php
                             $itemValue = $item[$itemField->name()] ?? null;
                             if ($itemField instanceof \SeviaFlow\Core\Resources\Fields\SelectField) {
-                                $itemDisplay = $itemField->getOptions()[(string) $itemValue] ?? ($itemValue === null || $itemValue === '' ? '—' : (string) $itemValue);
+                                $itemDisplay = $itemField->getOptions(new \SeviaFlow\Core\Forms\FormState($item, \SeviaFlow\Core\Resources\ResourceContext::Show))[(string) $itemValue] ?? ($itemValue === null || $itemValue === '' ? '—' : (string) $itemValue);
                             } elseif ($itemField instanceof \SeviaFlow\Core\Resources\Fields\ToggleField) {
                                 $itemDisplay = (bool) $itemValue ? 'Yes' : 'No';
                             } elseif (is_scalar($itemValue) && $itemValue !== '') {

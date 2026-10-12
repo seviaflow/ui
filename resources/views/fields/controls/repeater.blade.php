@@ -11,7 +11,7 @@
 
 <div id="{{ $fieldId }}" tabindex="-1" class="sf-repeater" data-sf-repeater data-repeater-field="{{ $field->name() }}" @if($hasError) aria-invalid="true" @endif>
     <div class="sf-repeater-header">
-        <p class="sf-help">One-level JSON objects. Values are stored without UI row keys.</p>
+        <p class="sf-help">Add and arrange items.</p>
         <button
             type="button"
             wire:click="addRepeaterItem('{{ addslashes($field->name()) }}', '{{ addslashes($modelPath) }}')"
@@ -77,71 +77,19 @@
 
                     <div class="sf-repeater-grid">
                         @foreach($field->getItemFields() as $itemField)
-                            @php
-                                $itemPath = $fieldPath.'.'.$index.'.'.$itemField->name();
-                                $itemId = $fieldId.'-'.$uiKey.'-'.$itemField->name();
-                                $itemValue = $item[$itemField->name()] ?? null;
-                                $safeItemValue = is_scalar($itemValue) ? (string) $itemValue : '';
-                                $itemError = $errors->has($itemPath);
-                                $itemRequired = $itemField->isRequiredForState($itemContext, $formState);
-                                $itemDisabled = $isDisabled || $itemField->isDisabledForState($itemContext, $formState);
-                                $itemReadonly = $isReadonly || $itemField->isReadonly($itemContext);
-                                $itemDescribedBy = $itemError ? $itemId.'-error' : '';
-                            @endphp
-                            <div class="sf-repeater-field" data-repeater-field-name="{{ $itemField->name() }}">
-                                <label for="{{ $itemId }}" class="sf-label">
-                                    {{ $itemField->getLabel() }}
-                                    @if($itemRequired)<span class="sf-required" aria-label="Required">*</span>@endif
-                                </label>
-                                @if($itemField instanceof \SeviaFlow\Core\Resources\Fields\SelectField)
-                                    <select
-                                        id="{{ $itemId }}"
-                                        wire:key="{{ $itemPath }}"
-                                        wire:model.live="{{ $itemPath }}"
-                                        class="sf-select {{ $itemError ? 'sf-input-error' : '' }}"
-                                        @disabled($itemDisabled || $itemReadonly)
-                                        @if($itemRequired) aria-required="true" @endif
-                                        @if($itemError) aria-invalid="true" aria-describedby="{{ $itemDescribedBy }}" @endif
-                                    >
-                                        <option value="">Select an option</option>
-                                        @foreach($itemField->getOptions() as $optionValue => $optionLabel)
-                                            <option value="{{ $optionValue }}">{{ $optionLabel }}</option>
-                                        @endforeach
-                                    </select>
-                                @elseif($itemField instanceof \SeviaFlow\Core\Resources\Fields\ToggleField)
-                                    <label class="sf-toggle-control" for="{{ $itemId }}">
-                                        <input
-                                            id="{{ $itemId }}"
-                                            type="checkbox"
-                                            wire:key="{{ $itemPath }}"
-                                            wire:model.live="{{ $itemPath }}"
-                                            class="sf-toggle-input"
-                                            @checked((bool) $itemValue)
-                                            @disabled($itemDisabled || $itemReadonly)
-                                        >
-                                        <span>Enabled</span>
-                                    </label>
-                                @else
-                                    <input
-                                        id="{{ $itemId }}"
-                                        type="{{ $itemField instanceof \SeviaFlow\Core\Resources\Fields\NumberField || $itemField instanceof \SeviaFlow\Core\Resources\Fields\MoneyField ? 'number' : 'text' }}"
-                                        wire:key="{{ $itemPath }}"
-                                        wire:model.live="{{ $itemPath }}"
-                                        value="{{ $safeItemValue }}"
-                                        class="sf-input {{ $itemError ? 'sf-input-error' : '' }}"
-                                        @if($itemField instanceof \SeviaFlow\Core\Resources\Fields\NumberField) step="{{ $itemField->getStep() ?? 'any' }}" @endif
-                                        @disabled($itemDisabled)
-                                        @readonly($itemReadonly)
-                                        @if($itemRequired) aria-required="true" @endif
-                                        @if($itemError) aria-invalid="true" aria-describedby="{{ $itemDescribedBy }}" @endif
-                                    >
-                                @endif
-                                @if($itemError)
-                                    @error($itemPath)
-                                        <p id="{{ $itemId }}-error" class="sf-error">{{ $message }}</p>
-                                    @enderror
-                                @endif
-                            </div>
+                            @include('seviaflow-ui::fields.field-wrapper', [
+                                'field' => $itemField,
+                                'context' => $itemContext,
+                                'modelPath' => $fieldPath.'.'.$index,
+                                'modelValues' => $item,
+                                'parentDisabled' => $isDisabled,
+                                'parentReadonly' => $isReadonly,
+                                'formState' => new \SeviaFlow\Core\Forms\FormState($item, $itemContext),
+                                'renderer' => app(\SeviaFlow\Ui\Fields\FieldRendererRegistry::class)->resolve($itemField, 'edit'),
+                                'inputAttributes' => [],
+                                'inputType' => 'text',
+                                'rendererData' => [],
+                            ])
                         @endforeach
                     </div>
 
@@ -153,3 +101,4 @@
         </div>
     @endif
 </div>
+

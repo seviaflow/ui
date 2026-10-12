@@ -59,6 +59,7 @@ use SeviaFlow\Core\Resources\Section;
 use SeviaFlow\Core\Resources\Table;
 use SeviaFlow\Core\Support\SensitiveDataPolicy;
 use SeviaFlow\Ui\Fields\FieldRendererRegistry;
+use SeviaFlow\Ui\Fields\SelectChoiceState;
 use SeviaFlow\Ui\Index\TableUrlFactory;
 use SeviaFlow\Ui\Show\Actions\ShowActionResolver;
 use SeviaFlow\Ui\Show\Actions\ShowActionRunner;
@@ -79,6 +80,9 @@ use SeviaFlow\Ui\Support\MoneyFormatter;
 
 final class ResourceShow extends Component
 {
+    /** @var array<string, mixed> */
+    public array $selectSearch = [];
+
     use WithFileUploads;
     use WithPagination;
 
@@ -825,7 +829,7 @@ final class ResourceShow extends Component
         }
 
         $value = (string) $value;
-        $allowed = array_map(static fn (int|string $option): string => (string) $option, array_keys($field->getOptions()));
+        $allowed = (new SelectChoiceState)->allowedKeys($field, $this->relationModalModelClass(), new FormState($this->relationModalValues, ResourceContext::Create), $value);
         if (! in_array($value, $allowed, true)) {
             return;
         }
@@ -943,7 +947,11 @@ final class ResourceShow extends Component
         }
 
         $value = (string) $value;
-        $allowed = array_map(static fn (int|string $option): string => (string) $option, array_keys($field->getOptions()));
+        $state = $this->relationInlineCreateState();
+        if (! is_string($state['modelClass'])) {
+            return;
+        }
+        $allowed = (new SelectChoiceState)->allowedKeys($field, $state['modelClass'], new FormState($this->relationInlineCreateValues, ResourceContext::Create), $value);
         if (! in_array($value, $allowed, true)) {
             return;
         }

@@ -221,6 +221,7 @@ final class SeviaFlowUiServiceProvider extends ServiceProvider
                 ->register('textarea', 'seviaflow-ui::fields.controls.textarea', $showView, $showView)
                 ->register('toggle', 'seviaflow-ui::fields.controls.toggle', 'seviaflow-ui::fields.show.toggle', 'seviaflow-ui::fields.show.toggle')
                 ->register('select', 'seviaflow-ui::fields.controls.select', 'seviaflow-ui::fields.show.select', $showView)
+                ->register('belongs-to-many', 'seviaflow-ui::fields.controls.multiselect', 'seviaflow-ui::fields.show.belongs-to-many', 'seviaflow-ui::fields.show.belongs-to-many')
                 ->register('multiselect', 'seviaflow-ui::fields.controls.multiselect', $showView, $showView)
                 ->register('belongs-to', 'seviaflow-ui::fields.controls.belongs-to', $showView, $showView)
                 ->register('file', 'seviaflow-ui::fields.controls.file', $showView, $showView)

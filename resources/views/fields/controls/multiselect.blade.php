@@ -1,4 +1,5 @@
 @php
+    $isRelationSelect = $field instanceof \SeviaFlow\Core\Resources\Fields\BelongsToManyField;
     $searchPath = $multiSelectSearchPath ?? match ($modelPath) {
         'fieldValues' => 'multiSelectSearch',
         'inlineCreateValues' => 'inlineCreateMultiSelectSearch',
@@ -27,20 +28,38 @@
         'relationInlineCreateValues' => $relationInlineCreateMultiSelectSearch ?? [],
         default => [],
     };
+    if ($isRelationSelect) {
+        $searchPath = str_replace('MultiSelect', 'BelongsTo', str_replace('multiSelect', 'belongsTo', $searchPath));
+        $searchValues = match ($modelPath) {
+            'inlineCreateValues' => $inlineCreateBelongsToSearch ?? [],
+            'relationModalValues' => $relationModalBelongsToSearch ?? [],
+            'relationInlineCreateValues' => $relationInlineCreateBelongsToSearch ?? [],
+            default => $belongsToSearch ?? [],
+        };
+    }
+    $allOptions = $isRelationSelect ? ($belongsToOptions[$field->name()] ?? []) : $field->getOptions($formState);
     $searchValue = data_get($searchValues, $field->name(), '');
     $selectedValues = data_get($modelValues ?? [], $field->name(), []);
     $selectedValues = is_array($selectedValues) ? array_values(array_map(static fn (mixed $value): string => (string) $value, $selectedValues)) : [];
+    $optionGroupLabels = [];
+    if (! $isRelationSelect) {
+        foreach ($field->getOptionGroups($formState) as $group => $groupOptions) {
+            foreach ($groupOptions as $key => $label) {
+                $optionGroupLabels[(string) $key] = $group;
+            }
+        }
+    }
     $searchTerm = mb_strtolower(trim((string) $searchValue));
     $visibleOptions = array_filter(
-        $field->getOptions(),
-        static fn (mixed $label, int|string $value): bool => $searchTerm === ''
+        $allOptions,
+        static fn (mixed $label, int|string $value): bool => ! $field->isSearchable() || $searchTerm === ''
             || str_contains(mb_strtolower((string) $label), $searchTerm)
             || str_contains(mb_strtolower((string) $value), $searchTerm),
         ARRAY_FILTER_USE_BOTH
     );
     $selectedLabels = [];
     foreach ($selectedValues as $selectedValue) {
-        $selectedLabels[$selectedValue] = $field->getOptions()[$selectedValue] ?? 'Selected option is not available.';
+        $selectedLabels[$selectedValue] = $allOptions[$selectedValue] ?? 'Selected option is not available.';
     }
     $selectedCount = count($selectedValues);
     $atMaximum = $field->getMaxSelected() !== null && $selectedCount >= $field->getMaxSelected();
@@ -49,6 +68,7 @@
 @endphp
 
 <div class="sf-multiselect" data-sf-multiselect>
+    @if($field->isSearchable())
     <input
         id="{{ $fieldId }}-search"
         type="search"
@@ -60,6 +80,8 @@
         @if($describedBy !== '') aria-describedby="{{ $describedBy }}" @endif
         @class(['sf-input', 'sf-input-error' => $hasError, 'sf-control-readonly' => $isReadonly])
     >
+
+    @endif
 
     <div class="sf-multiselect-selected" aria-label="Selected {{ $field->getLabel() }}">
         @forelse($selectedLabels as $value => $label)
@@ -79,13 +101,19 @@
     </div>
 
     <div id="{{ $listId }}" class="sf-multiselect-options" role="listbox" aria-multiselectable="true" aria-label="{{ $field->getLabel() }} options">
+        @php $previousGroup = null; @endphp
         @forelse($visibleOptions as $value => $label)
+            @php $groupLabel = $optionGroupLabels[(string) $value] ?? ''; @endphp
+            @if($groupLabel !== '' && $groupLabel !== $previousGroup)
+                <p class="sf-help">{{ $groupLabel }}</p>
+            @endif
+            @php $previousGroup = $groupLabel; @endphp
             @php $valueArgument = addslashes((string) $value); @endphp
             <button
                 type="button"
                 role="option"
                 aria-selected="{{ in_array((string) $value, $selectedValues, true) ? 'true' : 'false' }}"
-                @disabled($isDisabled || $isReadonly || ($atMaximum && ! in_array((string) $value, $selectedValues, true)))
+                @disabled($isDisabled || $isReadonly || in_array((string) $value, $field->getDisabledOptions(), true) || ($atMaximum && ! in_array((string) $value, $selectedValues, true)))
                 wire:click="{{ $toggleAction }}('{{ $fieldArgument }}', '{{ $valueArgument }}')"
                 class="sf-multiselect-option"
             >
@@ -102,3 +130,4 @@
         @if($atMaximum) Maximum reached.@endif
     </p>
 </div>
+

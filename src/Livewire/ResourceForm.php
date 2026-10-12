@@ -42,10 +42,14 @@ use SeviaFlow\Core\Resources\ResourceRegistry;
 use SeviaFlow\Core\Resources\ResourceScopedQuery;
 use SeviaFlow\Core\Resources\Section;
 use SeviaFlow\Core\Resources\Tab;
+use SeviaFlow\Ui\Fields\SelectChoiceState;
 use SeviaFlow\Ui\Index\TableUrlFactory;
 
 final class ResourceForm extends Component
 {
+    /** @var array<string, mixed> */
+    public array $selectSearch = [];
+
     use WithFileUploads;
 
     #[Locked]
@@ -376,6 +380,7 @@ final class ResourceForm extends Component
         }
 
         $this->markFieldPresent($changedField);
+        $this->fieldValues = (new SelectChoiceState)->prune($this->fields(), $this->fieldValues, $changedField, $this->context(), $this->record);
 
         if ($this->slugAutoUpdating) {
             $this->slugAutoUpdating = false;
@@ -412,6 +417,7 @@ final class ResourceForm extends Component
     public function updatedInlineCreateValues(mixed $value, string $fieldPath): void
     {
         $this->markInlineCreateFieldPresent($fieldPath);
+        $this->inlineCreateValues = (new SelectChoiceState)->prune($this->inlineCreateState()['fields'], $this->inlineCreateValues, $fieldPath, ResourceContext::Create);
         $this->refreshDirtyState();
     }
 
@@ -461,7 +467,7 @@ final class ResourceForm extends Component
         }
 
         $value = (string) $value;
-        $allowed = array_map(static fn (int|string $option): string => (string) $option, array_keys($field->getOptions()));
+        $allowed = (new SelectChoiceState)->allowedKeys($field, $this->modelClass, $this->formState(), $value);
         if (! in_array($value, $allowed, true)) {
             return;
         }
@@ -640,7 +646,11 @@ final class ResourceForm extends Component
         }
 
         $value = (string) $value;
-        $allowed = array_map(static fn (int|string $option): string => (string) $option, array_keys($field->getOptions()));
+        $state = $this->inlineCreateState();
+        if (! is_string($state['modelClass'])) {
+            return;
+        }
+        $allowed = (new SelectChoiceState)->allowedKeys($field, $state['modelClass'], new FormState($this->inlineCreateValues, ResourceContext::Create), $value);
         if (! in_array($value, $allowed, true)) {
             return;
         }
