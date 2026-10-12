@@ -77,9 +77,10 @@
 
                     <div class="sf-repeater-grid">
                         @foreach($field->getItemFields() as $itemField)
-                            <div class="sf-repeater-field" data-repeater-field-name="{{ $itemField->name() }}">
+                            <div class="sf-repeater-field" wire:key="{{ $fieldPath.'.'.$index.'.'.$itemField->name() }}" data-repeater-field-name="{{ $itemField->name() }}">
                             @include('seviaflow-ui::fields.field-wrapper', [
                                 'field' => $itemField,
+                                'fieldIdOverride' => $fieldId.'-'.$uiKey.'-'.$itemField->name(),
                                 'context' => $itemContext,
                                 'modelPath' => $fieldPath.'.'.$index,
                                 'modelValues' => $item,
