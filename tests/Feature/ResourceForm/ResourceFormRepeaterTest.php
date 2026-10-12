@@ -18,6 +18,7 @@ it('keeps row errors and values attached to stable rows after reorder and remova
     $component = Livewire::test(ResourceForm::class, ['resource' => 'repeater-form-users'])
         ->call('addRepeaterItem', 'items')
         ->assertSee('data-repeater-field-name="label"', false)
+        ->assertSee('wire:key="fieldValues.items.0.label"', false)
         ->assertSee('data-repeater-field-name="quantity"', false)
         ->call('addRepeaterItem', 'items')
         ->set('fieldValues.items.0.label', 'First row')
