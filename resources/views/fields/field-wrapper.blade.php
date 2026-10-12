@@ -1,7 +1,7 @@
 @php
     $modelPath = $modelPath ?? 'fieldValues';
     $fieldPath = $modelPath.'.'.$field->name();
-    $fieldId = 'field-'.preg_replace('/[^A-Za-z0-9_-]+/', '-', $modelPath === 'fieldValues' ? $field->name() : $fieldPath);
+    $fieldId = $fieldIdOverride ?? 'field-'.preg_replace('/[^A-Za-z0-9_-]+/', '-', $modelPath === 'fieldValues' ? $field->name() : $fieldPath);
     $errorPath = $fieldPath;
     $helpId = $fieldId.'-help';
     $errorId = $fieldId.'-error';

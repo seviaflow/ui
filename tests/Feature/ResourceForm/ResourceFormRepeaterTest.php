@@ -35,6 +35,7 @@ it('keeps row errors and values attached to stable rows after reorder and remova
 
     $component
         ->call('moveRepeaterItemUp', 'items', $secondRowKey)
+        ->assertSee('id="field-items-'.$secondRowKey.'-label"', false)
         ->assertHasErrors([
             'fieldValues.items.0.label',
             'fieldValues.items.1.quantity',

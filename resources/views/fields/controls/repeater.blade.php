@@ -80,6 +80,7 @@
                             <div class="sf-repeater-field" data-repeater-field-name="{{ $itemField->name() }}">
                             @include('seviaflow-ui::fields.field-wrapper', [
                                 'field' => $itemField,
+                                'fieldIdOverride' => $fieldId.'-'.$uiKey.'-'.$itemField->name(),
                                 'context' => $itemContext,
                                 'modelPath' => $fieldPath.'.'.$index,
                                 'modelValues' => $item,
