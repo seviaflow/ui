@@ -10,8 +10,8 @@
     $fieldValue = data_get($modelValues ?? [], $field->name());
     $inputValue = $field->formatForInput($fieldValue);
     $isRequired = $field->isRequiredForState($context, $formState);
-    $isDisabled = $field->isDisabledForState($context, $formState);
-    $isReadonly = $field->isReadonly($context);
+    $isDisabled = (bool) ($parentDisabled ?? false) || $field->isDisabledForState($context, $formState);
+    $isReadonly = (bool) ($parentReadonly ?? false) || $field->isReadonly($context);
     $help = $field->getHelp();
     if ($help === null && $field instanceof \SeviaFlow\Core\Resources\Fields\PasswordField) {
         $help = $context === \SeviaFlow\Core\Resources\ResourceContext::Edit
@@ -46,7 +46,8 @@
         <p id="{{ $helpId }}" class="sf-help">{{ $help }}</p>
     @endif
 
-    @error($errorPath)
-        <p id="{{ $errorId }}" class="sf-error">{{ $message }}</p>
-    @enderror
+    @if($hasError)
+        <p id="{{ $errorId }}" class="sf-error">{{ $errors->first($errorPath) }}</p>
+    @endif
 </div>
+
