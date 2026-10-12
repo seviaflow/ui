@@ -17,6 +17,8 @@ beforeEach(function (): void {
 it('keeps row errors and values attached to stable rows after reorder and removal', function (): void {
     $component = Livewire::test(ResourceForm::class, ['resource' => 'repeater-form-users'])
         ->call('addRepeaterItem', 'items')
+        ->assertSee('data-repeater-field-name="label"', false)
+        ->assertSee('data-repeater-field-name="quantity"', false)
         ->call('addRepeaterItem', 'items')
         ->set('fieldValues.items.0.label', 'First row')
         ->set('fieldValues.items.0.quantity', 'invalid')

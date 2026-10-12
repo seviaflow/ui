@@ -77,6 +77,7 @@
 
                     <div class="sf-repeater-grid">
                         @foreach($field->getItemFields() as $itemField)
+                            <div class="sf-repeater-field" data-repeater-field-name="{{ $itemField->name() }}">
                             @include('seviaflow-ui::fields.field-wrapper', [
                                 'field' => $itemField,
                                 'context' => $itemContext,
@@ -90,6 +91,7 @@
                                 'inputType' => 'text',
                                 'rendererData' => [],
                             ])
+                            </div>
                         @endforeach
                     </div>
 
@@ -101,4 +103,3 @@
         </div>
     @endif
 </div>
-
