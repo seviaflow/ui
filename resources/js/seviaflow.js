@@ -35,6 +35,7 @@ const richTextRetryControllers = new WeakMap();
 let richTextModulePromise = null;
 let livewireHooksRegistered = false;
 let dashboardChartObserverRegistered = false;
+let toolbarMenusInitialized = false;
 let overlayControllerRegistered = false;
 let overlayLivewireHookRegistered = false;
 let tableSelectionLivewireHookRegistered = false;
@@ -497,7 +498,11 @@ const inertDialogBackground = (dialog) => {
 
 const restoreDialogFocus = () => {
   if (activeDialogTrigger instanceof HTMLElement && document.contains(activeDialogTrigger) && !activeDialogTrigger.matches('[disabled]')) {
-    activeDialogTrigger.focus();
+    const menu = activeDialogTrigger.closest('[data-sf-toolbar-menu]');
+    const focusTarget = menu instanceof HTMLDetailsElement && !menu.open
+      ? menu.querySelector('summary')
+      : activeDialogTrigger;
+    focusTarget?.focus();
   }
 };
 
@@ -751,7 +756,10 @@ const registerLivewireChartHooks = () => {
     return;
   }
 
-  window.Livewire.hook('morphed', scheduleDashboardCharts);
+  window.Livewire.hook('morphed', () => {
+    scheduleDashboardCharts();
+    initTableDensity();
+  });
   window.Livewire.hook('morph.added', scheduleDashboardCharts);
   livewireHooksRegistered = true;
 };
@@ -1166,13 +1174,14 @@ const initTableDensity = () => {
   body.dataset.sfTableDensity = preferredDensity === 'compact' ? 'compact' : 'comfortable';
 
   document.querySelectorAll('[data-sf-density]').forEach((button) => {
-    if (!(button instanceof HTMLButtonElement) || button.dataset.sfDensityInitialized === '1') {
+    if (!(button instanceof HTMLButtonElement)) {
       return;
     }
 
-    const sync = () => {
-      button.setAttribute('aria-pressed', body.dataset.sfTableDensity === button.dataset.sfDensity ? 'true' : 'false');
-    };
+    button.setAttribute('aria-pressed', body.dataset.sfTableDensity === button.dataset.sfDensity ? 'true' : 'false');
+    if (button.dataset.sfDensityInitialized === '1') {
+      return;
+    }
 
     button.addEventListener('click', () => {
       const density = button.dataset.sfDensity === 'compact' ? 'compact' : 'comfortable';
@@ -1186,7 +1195,6 @@ const initTableDensity = () => {
     });
 
     button.dataset.sfDensityInitialized = '1';
-    sync();
   });
 };
 
@@ -1542,6 +1550,64 @@ const registerFormUi = () => {
   initFormUi();
 };
 
+const initToolbarMenus = () => {
+  if (toolbarMenusInitialized) {
+    return;
+  }
+
+  const openMenus = () => document.querySelectorAll('[data-sf-toolbar-menu][open]');
+  const closeMenu = (menu, restoreFocus = false) => {
+    menu.open = false;
+    if (restoreFocus) {
+      menu.querySelector('summary')?.focus();
+    }
+  };
+
+  // Delegate events so menus added or replaced by Livewire work immediately.
+  document.addEventListener('toggle', (event) => {
+    const menu = event.target;
+    if (!(menu instanceof HTMLDetailsElement) || !menu.matches('[data-sf-toolbar-menu]') || !menu.open) {
+      return;
+    }
+    openMenus().forEach((other) => {
+      if (other !== menu) {
+        closeMenu(other);
+      }
+    });
+  }, true);
+
+  document.addEventListener('click', (event) => {
+    if (!(event.target instanceof Element)) {
+      return;
+    }
+    const action = event.target.closest('[data-sf-menu-close]');
+    openMenus().forEach((menu) => {
+      if (!menu.contains(event.target)) {
+        closeMenu(menu);
+      } else if (action) {
+        closeMenu(menu, !action.matches('[data-sf-drawer-target], [data-sf-modal-target]'));
+      }
+    });
+  });
+
+  document.addEventListener('focusin', (event) => {
+    openMenus().forEach((menu) => {
+      if (!menu.contains(event.target)) {
+        closeMenu(menu);
+      }
+    });
+  });
+
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && openMenus().length > 0) {
+      event.preventDefault();
+      openMenus().forEach((menu) => closeMenu(menu, true));
+    }
+  });
+
+  toolbarMenusInitialized = true;
+};
+
 const initSeviaFlowUi = () => {
   registerOverlayController();
   registerLivewireChartHooks();
@@ -1551,6 +1617,7 @@ const initSeviaFlowUi = () => {
   initShell();
   initDrawers();
   initTableDensity();
+  initToolbarMenus();
   syncPartialTableSelection();
   registerFormUi();
 };

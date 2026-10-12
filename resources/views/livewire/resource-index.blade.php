@@ -1,10 +1,5 @@
-@php
-    $visibleRecordCount = is_countable($records) ? count($records) : null;
-    $totalRecordCount = method_exists($records, 'total') ? $records->total() : null;
-@endphp
-
 <div class="sf-resource-index">
-    <div class="sf-livewire-loading" wire:loading wire:target="search,perPage,trashedScope,filterValues,selectedSavedViewId" role="status" aria-live="polite">
+    <div class="sf-livewire-loading" wire:loading wire:target="search,perPage,trashedScope,filterValues,selectedSavedViewId,applySavedView" role="status" aria-live="polite">
         {{ __('seviaflow-ui::ui.states.loading') }}
     </div>
     <div class="grid gap-4">
@@ -15,188 +10,204 @@
             @include('seviaflow-ui::livewire.partials.feedback-alert', ['type' => 'danger', 'message' => $errorMessage])
         @endif
 
-        <section class="sf-panel">
-            <div class="sf-resource-toolbar">
-                <div class="sf-toolbar-group">
-                    <div class="w-full sm:w-80">
-                        <label for="resource-search" class="sr-only">Search records</label>
-                        <input
-                            id="resource-search"
-                            type="search"
-                            wire:model.live.debounce.300ms="search"
-                            placeholder="Search records"
-                            class="sf-input"
-                        >
-                    </div>
-
-                    @if(count($filters) > 0)
-                        <button
-                            type="button"
-                            class="sf-button sf-button-secondary"
-                            id="sf-resource-filters-trigger"
-                            data-sf-drawer-target="sf-resource-filters"
-                            aria-controls="sf-resource-filters"
-                            aria-expanded="false"
-                        >
-                            <x-seviaflow-ui::icon name="funnel" class="sf-action-icon" />
-                            <span>Filters</span>
-                            <span class="sf-summary-pill {{ $activeFiltersCount > 0 ? 'sf-summary-pill-strong' : '' }}">
-                                {{ $activeFiltersCount }} {{ $activeFiltersCount === 1 ? 'filter active' : 'filters active' }}
-                            </span>
-                        </button>
-                    @endif
+        <section class="sf-panel sf-resource-toolbar-panel" aria-label="Record tools">
+            <div class="sf-resource-toolbar sf-resource-toolbar-unified">
+                <div class="sf-toolbar-search">
+                    <label for="resource-search" class="sr-only">Search records</label>
+                    <x-seviaflow-ui::icon name="magnifying-glass" class="sf-toolbar-search-icon" />
+                    <input
+                        id="resource-search"
+                        type="search"
+                        wire:model.live.debounce.300ms="search"
+                        placeholder="Search records"
+                        class="sf-input"
+                    >
                 </div>
 
-                <div class="sf-resource-actions">
-                    <div class="sf-density-toggle" aria-label="Table density">
-                        <button type="button" data-sf-density="comfortable" aria-pressed="true">Comfortable</button>
-                        <button type="button" data-sf-density="compact" aria-pressed="false">Compact</button>
-                    </div>
+                @if(count($filters) > 0)
+                    <button
+                        type="button"
+                        class="sf-button sf-button-secondary"
+                        id="sf-resource-filters-trigger"
+                        data-sf-drawer-target="sf-resource-filters"
+                        aria-controls="sf-resource-filters"
+                        aria-expanded="false"
+                        title="Filters"
+                    >
+                        <x-seviaflow-ui::icon name="funnel" class="sf-action-icon" />
+                        <span class="sf-toolbar-control-label">Filters</span>
+                        @if($activeFiltersCount > 0)
+                            <span class="sf-summary-pill sf-summary-pill-strong">{{ $activeFiltersCount }}</span>
+                            <span class="sr-only">{{ $activeFiltersCount === 1 ? 'filter active' : 'filters active' }}</span>
+                        @endif
+                    </button>
+                @endif
 
-                    @if($hasForm && $canCreate)
-                        <a href="{{ $createUrl }}" class="sf-button sf-button-primary">
-                            Create
-                        </a>
-                    @endif
+                <details class="sf-toolbar-dropdown" data-sf-toolbar-menu wire:ignore.self wire:key="resource-views-menu">
+                    <summary class="sf-button sf-button-ghost" title="Views">
+                        <x-seviaflow-ui::icon name="bookmark" class="sf-action-icon" />
+                        <span class="sf-toolbar-control-label">Views</span>
+                        <span class="sf-toolbar-chevron" aria-hidden="true"></span>
+                    </summary>
+                    <div class="sf-toolbar-menu" aria-label="Saved views">
+                        <p class="sf-toolbar-menu-label">Saved views</p>
+                        @if($savedViewModified)
+                            <p class="sf-help sf-toolbar-menu-empty" role="status">Current view modified</p>
+                        @endif
+                        @forelse($savedViews as $savedView)
+                            <button
+                                type="button"
+                                wire:key="saved-view-{{ $savedView->id }}"
+                                wire:click="applySavedView('{{ $savedView->id }}')"
+                                class="sf-toolbar-menu-item"
+                                aria-pressed="{{ $selectedSavedViewId === (string) $savedView->id ? 'true' : 'false' }}"
+                                data-sf-menu-close
+                            >
+                                <span>{{ $savedView->name }}</span>
+                                @if($selectedSavedViewId === (string) $savedView->id)
+                                    <x-seviaflow-ui::icon name="check-circle" class="sf-action-icon" />
+                                @endif
+                            </button>
+                        @empty
+                            <p class="sf-help sf-toolbar-menu-empty">No saved views yet.</p>
+                        @endforelse
+                        <div class="sf-toolbar-menu-divider"></div>
+                        <button type="button" wire:click="openSaveViewForm" class="sf-toolbar-menu-item" data-sf-menu-close>
+                            <x-seviaflow-ui::icon name="plus-circle" class="sf-action-icon" />
+                            <span>Save current view</span>
+                        </button>
+                        @if($selectedSavedViewId !== null && $selectedSavedViewId !== '')
+                            <button
+                                type="button"
+                                wire:click="deleteSavedView('{{ $selectedSavedViewId }}')"
+                                wire:confirm="Delete this saved view?"
+                                class="sf-toolbar-menu-item sf-toolbar-menu-item-danger"
+                                data-sf-menu-close
+                            >
+                                <x-seviaflow-ui::icon name="trash" class="sf-action-icon" />
+                                <span>Delete current view</span>
+                            </button>
+                        @endif
+                    </div>
+                </details>
+
+                @if($selectedCount > 0)
+                    <div class="sf-toolbar-selection" wire:key="resource-selection-tools">
+                        <span class="sf-toolbar-selection-count" role="status">
+                            {{ $selectedCount }} {{ $selectedCount === 1 ? 'record' : 'records' }} selected
+                        </span>
+                        @if(count($bulkActions) > 0)
+                            <details class="sf-toolbar-dropdown" data-sf-toolbar-menu wire:ignore.self>
+                                <summary class="sf-button sf-button-ghost">
+                                    <span>Bulk actions</span>
+                                    <span class="sf-toolbar-chevron" aria-hidden="true"></span>
+                                </summary>
+                                <div class="sf-toolbar-menu" aria-label="Bulk actions">
+                                    <p class="sf-help sf-toolbar-menu-empty">
+                                        {{ $selectedVisibleCount }} selected on this page; bulk actions never select the full result set automatically.
+                                    </p>
+                                    @foreach($bulkActions as $action)
+                                        <button
+                                            type="button"
+                                            wire:click="executeBulkAction('{{ $action->name() }}')"
+                                            @class([
+                                                'sf-toolbar-menu-item',
+                                                'sf-toolbar-menu-item-danger' => $action->isDanger(),
+                                            ])
+                                            data-sf-menu-close
+                                        >
+                                            {{ $action->getLabel() }}
+                                        </button>
+                                    @endforeach
+                                </div>
+                            </details>
+                        @endif
+                        <button type="button" wire:click="clearSelection" class="sf-button sf-button-ghost sf-toolbar-icon-button" aria-label="Clear selection" title="Clear selection">
+                            <x-seviaflow-ui::icon name="x-circle" class="sf-action-icon" />
+                        </button>
+                    </div>
+                @else
+                    <span class="sr-only" role="status">0 records selected</span>
+                @endif
+
+                <div class="sf-toolbar-end">
+                    <details class="sf-toolbar-dropdown" data-sf-toolbar-menu wire:ignore.self wire:key="resource-settings-menu">
+                        <summary class="sf-button sf-button-ghost sf-toolbar-icon-button" title="Table settings">
+                            <x-seviaflow-ui::icon name="adjustments-horizontal" class="sf-action-icon" />
+                            <span class="sr-only">Table settings</span>
+                        </summary>
+                        <div class="sf-toolbar-menu sf-toolbar-menu-end" aria-label="Table settings">
+                            <p class="sf-toolbar-menu-label">Table settings</p>
+                            @if(count($columnSettings) > 0)
+                                <button
+                                    type="button"
+                                    class="sf-toolbar-menu-item"
+                                    data-sf-drawer-target="sf-resource-columns"
+                                    aria-controls="sf-resource-columns"
+                                    aria-expanded="false"
+                                    data-sf-menu-close
+                                >
+                                    Columns and order
+                                </button>
+                                <div class="sf-toolbar-menu-divider"></div>
+                            @endif
+                            <div class="sf-toolbar-menu-field">
+                                <p class="sf-label">Table density</p>
+                                <div class="sf-density-toggle" role="group" aria-label="Table density">
+                                    <button type="button" data-sf-density="comfortable" aria-pressed="true">Comfortable</button>
+                                    <button type="button" data-sf-density="compact" aria-pressed="false">Compact</button>
+                                </div>
+                            </div>
+                            <div class="sf-toolbar-menu-field">
+                                <label for="resource-per-page" class="sf-label">Records per page</label>
+                                <select id="resource-per-page" wire:model.live="perPage" class="sf-select">
+                                    @foreach($perPageOptions as $option)
+                                        <option value="{{ $option }}">{{ $option }} per page</option>
+                                    @endforeach
+                                </select>
+                            </div>
+
+                            @if($supportsSoftDeletes)
+                                <div class="sf-toolbar-menu-field">
+                                    <label for="resource-trashed-scope" class="sf-label">Trash scope</label>
+                                    <select id="resource-trashed-scope" wire:model.live="trashedScope" class="sf-select">
+                                        <option value="active">Active records</option>
+                                        <option value="trashed">Trashed records</option>
+                                        <option value="with_trashed">All records</option>
+                                    </select>
+                                </div>
+                            @endif
+                        </div>
+                    </details>
+
                     @if($canExport || $canImport)
-                        <details class="sf-toolbar-menu">
-                            <summary class="sf-button sf-button-secondary">More actions</summary>
-                            <div class="sf-toolbar-menu-panel">
+                        <details class="sf-toolbar-dropdown" data-sf-toolbar-menu wire:ignore.self wire:key="resource-more-menu">
+                            <summary class="sf-button sf-button-ghost" title="More actions">
+                                <span>More</span>
+                                <span class="sf-toolbar-chevron" aria-hidden="true"></span>
+                            </summary>
+                            <div class="sf-toolbar-menu sf-toolbar-menu-end" aria-label="More actions">
                                 @if($canExport)
-                                    <button type="button" wire:click="openExportModal" data-sf-modal-target="sf-resource-export" class="sf-button sf-button-secondary" aria-controls="sf-resource-export" aria-expanded="false">
-                                        Export
-                                    </button>
+                                    <button type="button" wire:click="openExportModal" data-sf-modal-target="sf-resource-export" aria-controls="sf-resource-export" aria-expanded="false" class="sf-toolbar-menu-item" data-sf-menu-close>Export</button>
                                 @endif
                                 @if($canImport)
-                                    <button type="button" wire:click="openImportModal" data-sf-modal-target="sf-resource-import" class="sf-button sf-button-secondary" aria-controls="sf-resource-import" aria-expanded="false">
-                                        Import
-                                    </button>
+                                    <button type="button" wire:click="openImportModal" data-sf-modal-target="sf-resource-import" aria-controls="sf-resource-import" aria-expanded="false" class="sf-toolbar-menu-item" data-sf-menu-close>Import</button>
                                 @endif
                             </div>
                         </details>
                     @endif
 
-                    @if(count($columnSettings) > 0)
-                        <button
-                            type="button"
-                            class="sf-button sf-button-secondary"
-                            data-sf-drawer-target="sf-resource-columns"
-                            aria-controls="sf-resource-columns"
-                            aria-expanded="false"
-                        >
-                            Table settings
-                        </button>
+                    @if($hasForm && $canCreate)
+                        <a href="{{ $createUrl }}" class="sf-button sf-button-primary">
+                            <x-seviaflow-ui::icon name="plus-circle" class="sf-action-icon" />
+                            <span>Create</span>
+                        </a>
                     @endif
-
-                    <label for="resource-per-page" class="sr-only">Records per page</label>
-                    <select
-                        id="resource-per-page"
-                        wire:model.live="perPage"
-                        class="sf-select sm:w-36"
-                    >
-                        @foreach($perPageOptions as $option)
-                            <option value="{{ $option }}">{{ $option }} per page</option>
-                        @endforeach
-                    </select>
-
-                    @if($supportsSoftDeletes)
-                        <label for="resource-trashed-scope" class="sr-only">Trash scope</label>
-                        <select
-                            id="resource-trashed-scope"
-                            wire:model.live="trashedScope"
-                            class="sf-select sm:w-44"
-                        >
-                            <option value="active">Active records</option>
-                            <option value="trashed">Trashed records</option>
-                            <option value="with_trashed">All records</option>
-                        </select>
-                    @endif
-                </div>
-            </div>
-
-            <div class="sf-resource-summary mt-3">
-                @if($totalRecordCount !== null)
-                    <span class="sf-summary-pill sf-summary-pill-strong">
-                        {{ $totalRecordCount }} {{ $totalRecordCount === 1 ? 'record' : 'records' }}
-                    </span>
-                @elseif($visibleRecordCount !== null)
-                    <span class="sf-summary-pill sf-summary-pill-strong">
-                        {{ $visibleRecordCount }} visible {{ $visibleRecordCount === 1 ? 'record' : 'records' }}
-                    </span>
-                @endif
-                <span class="sf-summary-pill">
-                    {{ $selectedCount }} {{ $selectedCount === 1 ? 'record' : 'records' }} selected
-                </span>
-                @if(count($filters) > 0)
-                    <span class="sf-summary-pill">
-                        {{ $activeFiltersCount }} {{ $activeFiltersCount === 1 ? 'filter active' : 'filters active' }}
-                    </span>
-                @endif
-            </div>
-
-            @if(count($activeFilterEntries) > 0)
-                <div class="sf-resource-summary mt-3" aria-label="Active filters">
-                    <span class="sf-help">Active filters:</span>
-                    @foreach($activeFilterEntries as $activeFilter)
-                        <button
-                            type="button"
-                            wire:click="clearFilter('{{ $activeFilter['name'] }}')"
-                            class="sf-summary-pill sf-summary-pill-strong"
-                            aria-label="Remove {{ $activeFilter['label'] }} filter"
-                        >
-                            {{ $activeFilter['label'] }}: {{ $activeFilter['value'] }} ×
-                        </button>
-                    @endforeach
-                    <button type="button" wire:click="resetFilters" class="sf-button sf-button-secondary !px-2 !py-1">
-                        Reset filters
-                    </button>
-                </div>
-            @endif
-        </section>
-
-        <section class="sf-saved-views" aria-label="Saved views">
-            <div class="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-                <div class="w-full lg:max-w-md">
-                    <label for="saved-view-select" class="sf-label">Saved views</label>
-                    <select id="saved-view-select" wire:model.live="selectedSavedViewId" class="sf-select">
-                        <option value="">Select saved view</option>
-                        @foreach($savedViews as $savedView)
-                            <option value="{{ $savedView->id }}">{{ $savedView->name }}</option>
-                        @endforeach
-                    </select>
-                    @if($savedViewModified)
-                        <p class="sf-help mt-1" role="status">Current view modified</p>
-                    @endif
-                    @if($savedViews->isEmpty())
-                        <p class="sf-help mt-1">No saved views yet.</p>
-                    @endif
-                </div>
-                <div class="sf-resource-actions">
-                    <button type="button" wire:click="openSaveViewForm" class="sf-button sf-button-secondary !px-3 !py-1.5">
-                        Save current view
-                    </button>
-                    <button
-                        type="button"
-                        wire:click="applySavedView(selectedSavedViewId)"
-                        class="sf-button sf-button-secondary !px-3 !py-1.5"
-                        @disabled($selectedSavedViewId === null || $selectedSavedViewId === '')
-                    >
-                        Apply
-                    </button>
-                    <button
-                        type="button"
-                        wire:click="deleteSavedView(selectedSavedViewId)"
-                        wire:confirm="Delete this saved view?"
-                        class="sf-button sf-button-danger !px-3 !py-1.5"
-                        @disabled($selectedSavedViewId === null || $selectedSavedViewId === '')
-                    >
-                        Delete
-                    </button>
                 </div>
             </div>
 
             @if($showSaveViewForm)
-                <div class="mt-3 grid gap-2 sm:grid-cols-[1fr_auto_auto] sm:items-end">
+                <div class="sf-toolbar-context grid gap-2 sm:grid-cols-[1fr_auto_auto] sm:items-end">
                     <div>
                         <label for="saved-view-name" class="sf-label">View name</label>
                         <input
@@ -215,76 +226,41 @@
                     </button>
                 </div>
             @endif
-        </section>
-
-        @if($selectedCount > 0 || count($bulkActions) > 0)
-            <section class="sf-panel">
-                <div class="sf-resource-actions">
-                    @if($selectedCount > 0)
-                        <span class="sf-summary-pill sf-summary-pill-strong">
-                            {{ $selectedCount }} {{ $selectedCount === 1 ? 'record' : 'records' }} selected
-                        </span>
-                        <span class="sf-help">
-                            {{ $selectedVisibleCount }} selected on this page; bulk actions never select the full result set automatically.
-                        </span>
-                        <button
-                            type="button"
-                            wire:click="clearSelection"
-                            class="sf-button sf-button-secondary !px-3 !py-1.5"
-                        >
-                            Clear selection
-                        </button>
-                    @else
-                        <span class="sf-help">Select records on this page to enable bulk actions.</span>
-                    @endif
-                    @if(count($bulkActions) > 0)
-                        @foreach($bulkActions as $action)
-                            @if($pendingBulkActionName === $action->name())
-                                <div class="w-full">
-                                    @component('seviaflow-ui::livewire.partials.action-confirmation', [
-                                        'id' => 'sf-bulk-action-confirmation-'.\Illuminate\Support\Str::slug($action->name()),
-                                        'variant' => $action->isDanger() ? 'danger' : 'safe',
-                                        'title' => $action->isDanger() ? 'Confirm dangerous bulk action' : 'Confirm bulk action',
-                                        'message' => 'You are about to run this action on '.$selectedCount.' '.($selectedCount === 1 ? 'record' : 'records').'.',
-                                        'consequences' => $action->isDanger()
-                                            ? ['Selected records may be changed immediately.', 'This action may be hard to undo.']
-                                            : [],
-                                    ])
-                                        <button
-                                            type="button"
-                                            wire:click="executeBulkAction('{{ $action->name() }}', true)"
-                                            class="sf-button {{ $action->isDanger() ? 'sf-button-danger' : 'sf-button-primary' }} !px-3 !py-1.5"
-                                        >
-                                            {{ $action->getConfirmButton() ?? 'Confirm' }}
-                                        </button>
-                                        <button
-                                            type="button"
-                                            wire:click="$set('pendingBulkActionName', null)"
-                                            class="sf-button sf-button-secondary !px-3 !py-1.5"
-                                        >
-                                            {{ $action->getCancelButton() ?? 'Cancel' }}
-                                        </button>
-                                    @endcomponent
-                                </div>
-                            @else
-                                <button
-                                    type="button"
-                                    wire:click="executeBulkAction('{{ $action->name() }}')"
-                                    @class([
-                                        'sf-button !px-3 !py-1.5',
-                                        'sf-button-danger' => $action->isDanger(),
-                                        'sf-button-secondary' => ! $action->isDanger(),
-                                    ])
-                                    @disabled($selectedCount === 0)
-                                >
-                                    {{ $action->getLabel() }}
-                                </button>
-                            @endif
-                        @endforeach
-                    @endif
+            @if($selectedCount > 0 && $pendingBulkActionName !== null)
+                <div class="sf-toolbar-context">
+                    @foreach($bulkActions as $action)
+                        @if($pendingBulkActionName === $action->name())
+                            <div class="w-full">
+                                @component('seviaflow-ui::livewire.partials.action-confirmation', [
+                                    'id' => 'sf-bulk-action-confirmation-'.\Illuminate\Support\Str::slug($action->name()),
+                                    'variant' => $action->isDanger() ? 'danger' : 'safe',
+                                    'title' => $action->isDanger() ? 'Confirm dangerous bulk action' : 'Confirm bulk action',
+                                    'message' => 'You are about to run this action on '.$selectedCount.' '.($selectedCount === 1 ? 'record' : 'records').'.',
+                                    'consequences' => $action->isDanger()
+                                        ? ['Selected records may be changed immediately.', 'This action may be hard to undo.']
+                                        : [],
+                                ])
+                                    <button
+                                        type="button"
+                                        wire:click="executeBulkAction('{{ $action->name() }}', true)"
+                                        class="sf-button {{ $action->isDanger() ? 'sf-button-danger' : 'sf-button-primary' }} !px-3 !py-1.5"
+                                    >
+                                        {{ $action->getConfirmButton() ?? 'Confirm' }}
+                                    </button>
+                                    <button
+                                        type="button"
+                                        wire:click="$set('pendingBulkActionName', null)"
+                                        class="sf-button sf-button-secondary !px-3 !py-1.5"
+                                    >
+                                        {{ $action->getCancelButton() ?? 'Cancel' }}
+                                    </button>
+                                @endcomponent
+                            </div>
+                        @endif
+                    @endforeach
                 </div>
-            </section>
-        @endif
+            @endif
+        </section>
 
         @if($showExportModal && $canExport)
             <section id="sf-resource-export" class="sf-modal" role="dialog" aria-modal="true" aria-hidden="false" aria-labelledby="sf-resource-export-title" data-sf-modal>
@@ -615,6 +591,7 @@
             aria-labelledby="sf-resource-columns-title"
             hidden
             data-sf-drawer
+            wire:ignore.self
         >
             <div class="sf-drawer-header">
                 <div>
@@ -680,6 +657,7 @@
             aria-labelledby="sf-resource-filters-title"
             hidden
             data-sf-drawer
+            wire:ignore.self
         >
             <div class="sf-drawer-header">
                 <div>
@@ -694,6 +672,24 @@
             </div>
 
             <div class="sf-drawer-body">
+                @if(count($activeFilterEntries) > 0)
+                    <div class="sf-resource-summary mt-3" aria-label="Active filters">
+                        <span class="sf-help">Active filters:</span>
+                        @foreach($activeFilterEntries as $activeFilter)
+                            <button
+                                type="button"
+                                wire:click="clearFilter('{{ $activeFilter['name'] }}')"
+                                class="sf-summary-pill sf-summary-pill-strong"
+                                aria-label="Remove {{ $activeFilter['label'] }} filter"
+                            >
+                                {{ $activeFilter['label'] }}: {{ $activeFilter['value'] }} ×
+                            </button>
+                        @endforeach
+                        <button type="button" wire:click="resetFilters" class="sf-button sf-button-secondary !px-2 !py-1">
+                            Reset filters
+                        </button>
+                    </div>
+                @endif
                 <div class="sf-filter-grid">
                     @foreach($filters as $filter)
                         <div class="sf-field">
