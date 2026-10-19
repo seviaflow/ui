@@ -2,15 +2,16 @@
     "name": "seviaflow/ui",
     "description": "SeviaFlow operator UI adapter for Laravel and Livewire.",
     "type": "library",
-    "homepage": "https://github.com/seviaflow/ui",
+    "homepage": "https://seviaflow.io/",
     "license": "MIT",
     "support": {
         "issues": "https://github.com/seviaflow/ui/issues",
-        "source": "https://github.com/seviaflow/ui"
+        "source": "https://github.com/seviaflow/ui",
+        "docs": "https://seviaflow.io/docs/0.1/ui/"
     },
     "require": {
         "php": "^8.2",
-        "seviaflow/core": "^0.1@dev",
+        "seviaflow/core": "^0.1@beta",
         "illuminate/support": "^12.0|^13.0",
         "illuminate/cache": "^12.0|^13.0",
         "illuminate/routing": "^12.0|^13.0",
