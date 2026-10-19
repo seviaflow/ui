@@ -105,7 +105,7 @@ This package is in beta and is licensed under the [MIT License](LICENSE). You ma
 
 The operator profile combines Core + UI; API integration is optional. UI and Core are part of the free SeviaFlow edition.
 
-After this package's beta tag is available on Packagist, install it with:
+Install the beta with Composer:
 
 ```bash
 composer require seviaflow/ui:^0.1@beta
