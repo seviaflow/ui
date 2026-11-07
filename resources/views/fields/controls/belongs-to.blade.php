@@ -38,7 +38,7 @@
     $options = $belongsToOptions[$field->name()] ?? [];
     $selectedLabel = $selectedKey !== '' && array_key_exists($selectedKey, $options)
         ? $options[$selectedKey]
-        : ($selectedKey !== '' ? 'Selected option is not available.' : null);
+        : ($selectedKey !== '' ? __('seviaflow-ui::panel.selected_option_is_not_available') : null);
     $searchModel = $searchPath.'.'.$field->name();
     $listId = $fieldId.'-options';
     $fieldArgument = addslashes($field->name());
@@ -59,7 +59,7 @@
             aria-expanded="true"
             autocomplete="off"
             wire:model.live.debounce.300ms="{{ $searchModel }}"
-            placeholder="{{ $selectedLabel ?: ($belongsToPlaceholder[$field->name()] ?? null) ?: $field->getPlaceholder() ?: 'Select an option' }}"
+            placeholder="{{ $selectedLabel ?: ($belongsToPlaceholder[$field->name()] ?? null) ?: $field->getPlaceholder() ?: __('seviaflow-ui::panel.select_an_option') }}"
             @disabled($isDisabled || $isReadonly)
             @if($isRequired) aria-required="true" @endif
             @if($hasError) aria-invalid="true" @endif
@@ -70,7 +70,7 @@
             <button
                 type="button"
                 class="sf-combobox-clear"
-                aria-label="Clear selected {{ $field->getLabel() }}"
+                aria-label="{{ __('seviaflow-ui::panel.clear_selected', ['field' => $field->getLabel()]) }}"
                 wire:click="{{ $clearAction }}('{{ $fieldArgument }}')"
             >
                 ×
@@ -80,7 +80,7 @@
 
     @if($selectedLabel)
         <p class="sf-combobox-selected" data-sf-combobox-selected>
-            <span class="sf-item-meta">Selected:</span> {{ $selectedLabel }}
+            <span class="sf-item-meta">{{ __('seviaflow-ui::panel.selected_label') }}</span> {{ $selectedLabel }}
         </p>
     @endif
 
@@ -100,7 +100,7 @@
                 @if($selectedKey === (string) $value)<span aria-hidden="true">✓</span>@endif
             </button>
         @empty
-            <p class="sf-combobox-empty">{{ $searchValue !== '' ? 'No matching options.' : 'No options available.' }}</p>
+            <p class="sf-combobox-empty">{{ $searchValue !== '' ? __('seviaflow-ui::panel.no_matching_options') : __('seviaflow-ui::panel.no_options_available') }}</p>
         @endforelse
     </div>
 </div>

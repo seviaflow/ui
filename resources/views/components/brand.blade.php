@@ -11,7 +11,7 @@
     $surface = in_array($surface, ['light', 'dark'], true) ? $surface : 'light';
 @endphp
 
-<a {{ $attributes->class(['sf-brand', 'sf-brand-collapsed' => $collapsed, 'sf-brand-on-dark' => $surface === 'dark'])->merge(['href' => $href ?? '#', 'aria-label' => 'SeviaFlow home']) }}>
+<a {{ $attributes->class(['sf-brand', 'sf-brand-collapsed' => $collapsed, 'sf-brand-on-dark' => $surface === 'dark'])->merge(['href' => $href ?? '#', 'aria-label' => __('seviaflow-ui::panel.seviaflow_home')]) }}>
     @if ($surface === 'dark')
         <img class="sf-brand-mark sf-brand-mark-lockup" src="{{ $markUrl }}" alt="" aria-hidden="true">
         <span class="sf-brand-text sf-brand-text-lockup" aria-hidden="true">

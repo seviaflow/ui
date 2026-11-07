@@ -13,11 +13,11 @@ final class DefaultDashboard extends Dashboard
 
     public static function label(): string
     {
-        return 'Dashboard';
+        return __('seviaflow-ui::panel.dashboard');
     }
 
     public static function description(): string
     {
-        return 'Welcome to SeviaFlow';
+        return __('seviaflow-ui::panel.welcome');
     }
 }

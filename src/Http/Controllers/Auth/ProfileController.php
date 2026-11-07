@@ -44,7 +44,7 @@ final class ProfileController
             'email' => $validated['email'],
         ])->save();
 
-        return back()->with('status', 'Profile information updated successfully.');
+        return back()->with('status', __('seviaflow-ui::panel.profile_information_updated_successfully'));
     }
 
     public function password(): View
@@ -66,7 +66,7 @@ final class ProfileController
             'password' => Hash::make($validated['password']),
         ])->save();
 
-        return back()->with('status', 'Password updated successfully.');
+        return back()->with('status', __('seviaflow-ui::panel.password_updated_successfully'));
     }
 
     public function twoFactorAuthentication(): View
@@ -81,16 +81,16 @@ final class ProfileController
         $this->validateFreshPassword($request);
 
         if (! $this->twoFactorFeatureEnabled()) {
-            return back()->withErrors(['two_factor_authentication' => 'Two-factor authentication is disabled by configuration.']);
+            return back()->withErrors(['two_factor_authentication' => __('seviaflow-ui::panel.two_factor_authentication_is_disabled_by_configuration')]);
         }
 
         if (! $this->twoFactorAuthenticationManager->enable($user)) {
-            return back()->withErrors(['two_factor_authentication' => 'Two-factor authentication backend support is not available.']);
+            return back()->withErrors(['two_factor_authentication' => __('seviaflow-ui::panel.two_factor_authentication_backend_support_is_not_available')]);
         }
 
         return back()->with('status', $this->twoFactorAuthenticationManager->setupPending($user)
-            ? 'Scan the QR code and confirm setup with an authentication code.'
-            : 'Two-factor authentication enabled successfully.');
+            ? __('seviaflow-ui::panel.scan_the_qr_code_and_confirm_setup_with_an_authentication_code')
+            : __('seviaflow-ui::panel.two_factor_authentication_enabled_successfully'));
     }
 
     public function confirmTwoFactorAuthentication(Request $request): RedirectResponse
@@ -100,10 +100,10 @@ final class ProfileController
         $validated = $request->validate(['code' => ['required', 'string', 'max:255']]);
 
         if (! $this->twoFactorFeatureEnabled() || ! $this->twoFactorAuthenticationManager->confirm($user, $validated['code'])) {
-            return back()->withErrors(['code' => 'The verification code is invalid or setup is unavailable.']);
+            return back()->withErrors(['code' => __('seviaflow-ui::panel.the_verification_code_is_invalid_or_setup_is_unavailable')]);
         }
 
-        return back()->with('status', 'Two-factor authentication enabled successfully.');
+        return back()->with('status', __('seviaflow-ui::panel.two_factor_authentication_enabled_successfully'));
     }
 
     public function disableTwoFactorAuthentication(Request $request): RedirectResponse
@@ -113,19 +113,19 @@ final class ProfileController
         $request->validate([
             'confirm_disable' => ['accepted'],
         ], [
-            'confirm_disable.accepted' => 'Please confirm that you want to disable two-factor authentication.',
+            'confirm_disable.accepted' => __('seviaflow-ui::panel.please_confirm_that_you_want_to_disable_two_factor_authentication'),
         ]);
         $this->validateFreshPassword($request);
 
         if (! $this->twoFactorFeatureEnabled()) {
-            return back()->withErrors(['two_factor_authentication' => 'Two-factor authentication is disabled by configuration.']);
+            return back()->withErrors(['two_factor_authentication' => __('seviaflow-ui::panel.two_factor_authentication_is_disabled_by_configuration')]);
         }
 
         if (! $this->twoFactorAuthenticationManager->disable($user)) {
-            return back()->withErrors(['two_factor_authentication' => 'Two-factor authentication backend support is not available.']);
+            return back()->withErrors(['two_factor_authentication' => __('seviaflow-ui::panel.two_factor_authentication_backend_support_is_not_available')]);
         }
 
-        return back()->with('status', 'Two-factor authentication disabled successfully.');
+        return back()->with('status', __('seviaflow-ui::panel.two_factor_authentication_disabled_successfully'));
     }
 
     public function regenerateTwoFactorRecoveryCodes(Request $request): RedirectResponse
@@ -135,14 +135,14 @@ final class ProfileController
         $this->validateFreshPassword($request);
 
         if (! $this->twoFactorFeatureEnabled()) {
-            return back()->withErrors(['two_factor_authentication' => 'Two-factor authentication is disabled by configuration.']);
+            return back()->withErrors(['two_factor_authentication' => __('seviaflow-ui::panel.two_factor_authentication_is_disabled_by_configuration')]);
         }
 
         if (! $this->twoFactorAuthenticationManager->regenerateRecoveryCodes($user)) {
-            return back()->withErrors(['two_factor_authentication' => 'Two-factor authentication backend support is not available.']);
+            return back()->withErrors(['two_factor_authentication' => __('seviaflow-ui::panel.two_factor_authentication_backend_support_is_not_available')]);
         }
 
-        return back()->with('status', 'Recovery codes regenerated successfully.');
+        return back()->with('status', __('seviaflow-ui::panel.recovery_codes_regenerated_successfully'));
     }
 
     public function browserSessions(): View
@@ -167,16 +167,16 @@ final class ProfileController
                 Auth::logoutOtherDevices((string) $request->string('current_password'));
             } else {
                 return back()->withErrors([
-                    'browser_sessions' => 'Log out other browser sessions is not available for the current authentication setup.',
+                    'browser_sessions' => __('seviaflow-ui::panel.log_out_other_browser_sessions_is_not_available_for_the_current_authentication_setup'),
                 ]);
             }
         } catch (Throwable) {
             return back()->withErrors([
-                'browser_sessions' => 'Log out other browser sessions is not available for the current authentication setup.',
+                'browser_sessions' => __('seviaflow-ui::panel.log_out_other_browser_sessions_is_not_available_for_the_current_authentication_setup'),
             ]);
         }
 
-        return back()->with('status', 'Logged out from other browser sessions successfully.');
+        return back()->with('status', __('seviaflow-ui::panel.logged_out_from_other_browser_sessions_successfully'));
     }
 
     private function render(string $section): View
@@ -184,20 +184,20 @@ final class ProfileController
         /** @var array<string, array{title: string, description: string}> $content */
         $content = [
             'profile' => [
-                'title' => 'Profile information',
-                'description' => 'Update your account details so your team can identify your account clearly.',
+                'title' => __('seviaflow-ui::panel.profile_information'),
+                'description' => __('seviaflow-ui::panel.update_your_account_details_so_your_team_can_identify_your_account_clearly'),
             ],
             'password' => [
-                'title' => 'Password',
-                'description' => 'Use a strong password and change it regularly to keep your admin account secure.',
+                'title' => __('seviaflow-ui::panel.password'),
+                'description' => __('seviaflow-ui::panel.use_a_strong_password_and_change_it_regularly_to_keep_your_admin_account_secure'),
             ],
             'two_factor_authentication' => [
-                'title' => 'Two-factor authentication',
-                'description' => 'Add an extra sign-in verification step for stronger account protection.',
+                'title' => __('seviaflow-ui::panel.two_factor_authentication'),
+                'description' => __('seviaflow-ui::panel.add_an_extra_sign_in_verification_step_for_stronger_account_protection'),
             ],
             'browser_sessions' => [
-                'title' => 'Browser sessions',
-                'description' => 'Review active sessions and sign out from devices you no longer use.',
+                'title' => __('seviaflow-ui::panel.browser_sessions'),
+                'description' => __('seviaflow-ui::panel.review_active_sessions_and_sign_out_from_devices_you_no_longer_use'),
             ],
         ];
 

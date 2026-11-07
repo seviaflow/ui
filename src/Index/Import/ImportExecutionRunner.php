@@ -41,7 +41,7 @@ final class ImportExecutionRunner
         ?Request $request = null,
     ): array {
         if (! $importFile instanceof UploadedFile) {
-            return ['ok' => false, 'message' => 'A valid CSV file is required.', 'result' => null];
+            return ['ok' => false, 'message' => __('seviaflow-ui::panel.a_valid_csv_file_is_required'), 'result' => null];
         }
 
         try {
@@ -64,7 +64,7 @@ final class ImportExecutionRunner
 
             return [
                 'ok' => false,
-                'message' => 'Import failed. Please try again.',
+                'message' => __('seviaflow-ui::panel.import_failed_please_try_again'),
                 'result' => null,
             ];
         }
@@ -72,22 +72,14 @@ final class ImportExecutionRunner
         if ($result['global_errors'] !== [] || $result['row_errors'] !== []) {
             return [
                 'ok' => false,
-                'message' => sprintf(
-                    'Import failed. Imported: %d. Failed: %d.',
-                    $result['imported_count'],
-                    $result['failed_count']
-                ),
+                'message' => __('seviaflow-ui::panel.import_failed_counts', ['imported' => $result['imported_count'], 'failed' => $result['failed_count']]),
                 'result' => $result,
             ];
         }
 
         return [
             'ok' => true,
-            'message' => sprintf(
-                'Import completed. Imported: %d. Failed: %d.',
-                $result['imported_count'],
-                $result['failed_count']
-            ),
+            'message' => __('seviaflow-ui::panel.import_completed_counts', ['imported' => $result['imported_count'], 'failed' => $result['failed_count']]),
             'result' => $result,
         ];
     }

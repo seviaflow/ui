@@ -26,7 +26,7 @@ final class SavedViewActionRunner
     public function createPrivate(?Model $user, string $resourceSlug, string $name, array $state): array
     {
         if (! $user instanceof Model) {
-            return ['ok' => false, 'message' => 'You must be signed in to save views.', 'saved_view' => null];
+            return ['ok' => false, 'message' => __('seviaflow-ui::panel.you_must_be_signed_in_to_save_views'), 'saved_view' => null];
         }
 
         try {
@@ -40,7 +40,7 @@ final class SavedViewActionRunner
             return ['ok' => false, 'message' => $exception->getMessage(), 'saved_view' => null];
         }
 
-        return ['ok' => true, 'message' => 'Saved view created successfully.', 'saved_view' => $savedView];
+        return ['ok' => true, 'message' => __('seviaflow-ui::panel.saved_view_created_successfully'), 'saved_view' => $savedView];
     }
 
     /**
@@ -49,13 +49,13 @@ final class SavedViewActionRunner
     public function deleteOwned(?SavedView $savedView, ?Model $user): array
     {
         if (! $savedView instanceof SavedView || ! $user instanceof Model) {
-            return ['ok' => false, 'message' => 'Saved view not found.'];
+            return ['ok' => false, 'message' => __('seviaflow-ui::panel.saved_view_not_found')];
         }
 
         if (! $this->savedViewRepository->deleteOwned($savedView, $user)) {
-            return ['ok' => false, 'message' => 'Saved view could not be deleted.'];
+            return ['ok' => false, 'message' => __('seviaflow-ui::panel.saved_view_could_not_be_deleted')];
         }
 
-        return ['ok' => true, 'message' => 'Saved view deleted.'];
+        return ['ok' => true, 'message' => __('seviaflow-ui::panel.saved_view_deleted')];
     }
 }

@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
+use SeviaFlow\Ui\Auth\PasswordResetStatus;
 
 final class ResetPasswordController
 {
@@ -42,11 +43,11 @@ final class ResetPasswordController
         });
 
         if ($status !== Password::PASSWORD_RESET) {
-            return back()->withErrors(['email' => __($status)]);
+            return back()->withErrors(['email' => PasswordResetStatus::message($status)]);
         }
 
         return redirect()
             ->route((string) config('seviaflow-ui.route_name_prefix', 'seviaflow.').'login')
-            ->with('status', __($status));
+            ->with('status', PasswordResetStatus::message($status));
     }
 }

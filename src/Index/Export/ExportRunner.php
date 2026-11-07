@@ -23,10 +23,7 @@ final class ExportRunner
         if (count($rows) > $maxRows) {
             return [
                 'response' => null,
-                'error' => sprintf(
-                    'Export exceeds the maximum allowed rows (%d). Please narrow your filters or selection.',
-                    $maxRows
-                ),
+                'error' => __('seviaflow-ui::panel.export_max_rows', ['max' => $maxRows]),
             ];
         }
 

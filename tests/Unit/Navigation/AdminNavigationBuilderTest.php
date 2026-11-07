@@ -406,7 +406,7 @@ it('caches base navigation metadata when enabled', function (): void {
     $first = $cache->resolve();
     $second = $cache->resolve();
 
-    expect(cache()->store('array')->has('seviaflow.navigation.base.v2'))->toBeTrue()
+    expect(cache()->store('array')->has('seviaflow.navigation.base.v3'))->toBeTrue()
         ->and($first)->toBe($second);
 });
 
@@ -419,7 +419,7 @@ it('builds navigation metadata directly when cache is disabled', function (): vo
     $cache->resolve();
     $cache->resolve();
 
-    expect(cache()->store('array')->has('seviaflow.navigation.base.v2'))->toBeFalse();
+    expect(cache()->store('array')->has('seviaflow.navigation.base.v3'))->toBeFalse();
 });
 
 it('authorization still filters cached navigation per user', function (): void {
@@ -493,14 +493,14 @@ it('navigation cache clear invalidates base metadata cache', function (): void {
     $cache = app(NavigationMetadataCache::class);
 
     $cache->resolve();
-    expect(cache()->store('array')->has('seviaflow.navigation.base.v2'))->toBeTrue();
+    expect(cache()->store('array')->has('seviaflow.navigation.base.v3'))->toBeTrue();
 
     $cache->clear();
-    expect(cache()->store('array')->has('seviaflow.navigation.base.v2'))->toBeFalse();
+    expect(cache()->store('array')->has('seviaflow.navigation.base.v3'))->toBeFalse();
 
     $cache->resolve();
 
-    expect(cache()->store('array')->has('seviaflow.navigation.base.v2'))->toBeTrue();
+    expect(cache()->store('array')->has('seviaflow.navigation.base.v3'))->toBeTrue();
 });
 
 it('includes extension navigation contributed by packages', function (): void {

@@ -7,7 +7,7 @@
             @endif
         </div>
         @if(is_string($indexUrl ?? null) && $indexUrl !== '')
-            <a href="{{ $indexUrl }}" class="sf-button sf-button-secondary !px-3 !py-1.5">Open matching list</a>
+            <a href="{{ $indexUrl }}" class="sf-button sf-button-secondary !px-3 !py-1.5">{{ __('seviaflow-ui::panel.open_matching_list') }}</a>
         @endif
     </div>
 

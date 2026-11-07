@@ -19,7 +19,7 @@
         <div class="sf-card-body">
             <div class="sf-record-header">
                 <div>
-                    <p class="sf-record-kicker">Record details</p>
+                    <p class="sf-record-kicker">{{ __('seviaflow-ui::panel.record_details') }}</p>
                     <h1 class="sf-record-title">{{ $title }}</h1>
                     @if(count($metadata) > 0)
                         <dl class="sf-page-meta mt-2">
@@ -34,7 +34,7 @@
                     @if($workflowPanel['visible'])
                         <div class="sf-page-meta">
                             <span class="sf-badge {{ $workflowStateColorClasses($workflowPanel['currentStateColor']) }}">
-                                {{ $workflowPanel['currentStateLabel'] ?? 'Unknown' }}
+                                {{ $workflowPanel['currentStateLabel'] ?? __('seviaflow-ui::panel.unknown') }}
                             </span>
                         </div>
                     @endif
@@ -45,10 +45,10 @@
                             @component('seviaflow-ui::livewire.partials.action-confirmation', [
                                 'id' => 'sf-record-action-confirmation-'.\Illuminate\Support\Str::slug($action->name()),
                                 'variant' => $action->isDanger() ? 'danger' : 'safe',
-                                'title' => $action->isDanger() ? 'Confirm dangerous action' : 'Confirm action',
-                                'message' => 'Review this action before continuing.',
+                                'title' => $action->isDanger() ? __('seviaflow-ui::panel.confirm_dangerous_action') : __('seviaflow-ui::panel.confirm_action'),
+                                'message' => __('seviaflow-ui::panel.review_this_action_before_continuing'),
                                 'consequences' => $action->isDanger()
-                                    ? ['This action may not be reversible.', 'Record state can change immediately.']
+                                    ? [__('seviaflow-ui::panel.this_action_may_not_be_reversible'), __('seviaflow-ui::panel.record_state_can_change_immediately')]
                                     : [],
                             ])
                                 <button
@@ -56,14 +56,14 @@
                                     wire:click="executeAction('{{ $action->name() }}', true)"
                                     class="sf-button {{ $action->isDanger() ? 'sf-button-danger' : 'sf-button-primary' }}"
                                 >
-                                    {{ $action->getConfirmButton() ?? 'Confirm' }}
+                                    {{ $action->getConfirmButton() ?? __('seviaflow-ui::ui.actions.confirm') }}
                                 </button>
                                 <button
                                     type="button"
                                     wire:click="$set('pendingActionName', null);"
                                     class="sf-button sf-button-secondary"
                                 >
-                                    {{ $action->getCancelButton() ?? 'Cancel' }}
+                                    {{ $action->getCancelButton() ?? __('seviaflow-ui::ui.actions.cancel') }}
                                 </button>
                             @endcomponent
                         @else
@@ -80,9 +80,9 @@
                             </button>
                         @endif
                     @endforeach
-                    <a href="{{ $backUrl }}" class="sf-button sf-button-secondary">Back</a>
+                    <a href="{{ $backUrl }}" class="sf-button sf-button-secondary">{{ __('seviaflow-ui::panel.back') }}</a>
                     @if($canEdit)
-                        <a href="{{ $editUrl }}" class="sf-button sf-button-primary">Edit</a>
+                        <a href="{{ $editUrl }}" class="sf-button sf-button-primary">{{ __('seviaflow-ui::panel.edit') }}</a>
                     @endif
                 </div>
             </div>
@@ -121,7 +121,7 @@
             @else
                 <section class="sf-card">
                     <div class="sf-card-header">
-                        <h2 class="sf-section-title">Fields</h2>
+                        <h2 class="sf-section-title">{{ __('seviaflow-ui::panel.fields') }}</h2>
                     </div>
                     <div class="sf-card-body">
                         <dl class="sf-description-list">
@@ -144,15 +144,15 @@
         </div>
 
         @if($hasSideContext)
-            <aside class="sf-record-side" aria-label="Record context">
+            <aside class="sf-record-side" aria-label="{{ __('seviaflow-ui::panel.record_context') }}">
                 @if($hasRelations)
                     <section class="sf-card">
                         <div class="sf-card-header">
-                            <h2 class="sf-card-title">Connections</h2>
-                            <p class="sf-card-description">Related data available for this record.</p>
+                            <h2 class="sf-card-title">{{ __('seviaflow-ui::panel.connections') }}</h2>
+                            <p class="sf-card-description">{{ __('seviaflow-ui::panel.related_data_available_for_this_record') }}</p>
                         </div>
                         <div class="sf-card-body">
-                            <div class="sf-connection-list" role="tablist" aria-label="Related records">
+                            <div class="sf-connection-list" role="tablist" aria-label="{{ __('seviaflow-ui::panel.related_records') }}">
                                 @foreach($relationManagers as $manager)
                                     <a
                                         id="sf-relation-tab-{{ \Illuminate\Support\Str::slug((string) $manager['relationshipName']) }}"
@@ -177,11 +177,11 @@
                     <section class="sf-workflow-panel">
                         <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                             <div>
-                                <h2 class="sf-card-title">Workflow</h2>
-                                <p class="sf-card-description">Current process state and available transitions.</p>
+                                <h2 class="sf-card-title">{{ __('seviaflow-ui::panel.workflow') }}</h2>
+                                <p class="sf-card-description">{{ __('seviaflow-ui::panel.current_process_state_and_available_transitions') }}</p>
                             </div>
                             <span class="sf-badge {{ $workflowStateColorClasses($workflowPanel['currentStateColor']) }}">
-                                {{ $workflowPanel['currentStateLabel'] ?? 'Unknown' }}
+                                {{ $workflowPanel['currentStateLabel'] ?? __('seviaflow-ui::panel.unknown') }}
                             </span>
                         </div>
 
@@ -192,9 +192,9 @@
                                         <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                                             <div>
                                                 <p class="sf-item-title">{{ $transition->getLabel() }}</p>
-                                                <p class="sf-item-meta">To: {{ ucfirst(str_replace('_', ' ', $transition->getToState())) }}</p>
+                                                <p class="sf-item-meta">{{ __('seviaflow-ui::panel.to_state', ['state' => ucfirst(str_replace('_', ' ', $transition->getToState()))]) }}</p>
                                                 @if($workflowPanel['primaryTransition']?->name() === $transition->name())
-                                                    <span class="sf-summary-pill sf-summary-pill-strong mt-1 inline-flex">Next action</span>
+                                                    <span class="sf-summary-pill sf-summary-pill-strong mt-1 inline-flex">{{ __('seviaflow-ui::panel.next_action') }}</span>
                                                 @endif
                                             </div>
                                             <div class="sf-resource-actions">
@@ -202,23 +202,23 @@
                                                     @component('seviaflow-ui::livewire.partials.action-confirmation', [
                                                         'id' => 'sf-workflow-confirmation-'.\Illuminate\Support\Str::slug($transition->name()),
                                                         'variant' => $transition->isDanger() ? 'danger' : 'safe',
-                                                        'title' => $transition->isDanger() ? 'Confirm dangerous transition' : 'Confirm transition',
-                                                        'message' => 'This workflow transition will update the current state.',
-                                                        'consequences' => $transition->isDanger() ? ['The record may enter a final or restricted state.'] : [],
+                                                        'title' => $transition->isDanger() ? __('seviaflow-ui::panel.confirm_dangerous_transition') : __('seviaflow-ui::panel.confirm_transition'),
+                                                        'message' => __('seviaflow-ui::panel.this_workflow_transition_will_update_the_current_state'),
+                                                        'consequences' => $transition->isDanger() ? [__('seviaflow-ui::panel.the_record_may_enter_a_final_or_restricted_state')] : [],
                                                     ])
                                                         <button
                                                             type="button"
                                                             wire:click="executeWorkflowTransition('{{ $transition->name() }}', true)"
                                                             class="sf-button {{ $transition->isDanger() ? 'sf-button-danger' : 'sf-button-primary' }} !px-3 !py-1.5"
                                                         >
-                                                            Confirm
+                                                            {{ __('seviaflow-ui::ui.actions.confirm') }}
                                                         </button>
                                                         <button
                                                             type="button"
                                                             wire:click="$set('pendingWorkflowTransitionName', null)"
                                                             class="sf-button sf-button-secondary !px-3 !py-1.5"
                                                         >
-                                                            Cancel
+                                                            {{ __('seviaflow-ui::ui.actions.cancel') }}
                                                         </button>
                                                     @endcomponent
                                                 @else
@@ -238,13 +238,13 @@
                                         </div>
                                         @if($transition->requiresComment())
                                             <div class="mt-3">
-                                                <label for="workflow-comment-{{ $transition->name() }}" class="sf-label">Comment</label>
+                                                <label for="workflow-comment-{{ $transition->name() }}" class="sf-label">{{ __('seviaflow-ui::panel.comment') }}</label>
                                                 <textarea
                                                     id="workflow-comment-{{ $transition->name() }}"
                                                     wire:model.defer="workflowTransitionComment"
                                                     rows="2"
                                                     class="sf-textarea"
-                                                    placeholder="Add reason for this transition"
+                                                    placeholder="{{ __('seviaflow-ui::panel.add_reason_for_this_transition') }}"
                                                 ></textarea>
                                             </div>
                                         @endif
@@ -252,12 +252,12 @@
                                 @endforeach
                             </div>
                         @else
-                            <p class="sf-muted mt-4">No transitions are currently available.</p>
+                            <p class="sf-muted mt-4">{{ __('seviaflow-ui::panel.no_transitions_are_currently_available') }}</p>
                         @endif
 
                         @if(count($workflowPanel['blockedTransitions']) > 0)
                             <div class="sf-inset-panel mt-4">
-                                <p class="sf-item-title">Blocked next steps</p>
+                                <p class="sf-item-title">{{ __('seviaflow-ui::panel.blocked_next_steps') }}</p>
                                 <ul class="mt-2 space-y-1">
                                     @foreach($workflowPanel['blockedTransitions'] as $transition)
                                         <li class="sf-item-meta">
@@ -269,7 +269,7 @@
                         @endif
 
                         <div class="mt-5">
-                            <h3 class="sf-card-title">Activity timeline</h3>
+                            <h3 class="sf-card-title">{{ __('seviaflow-ui::panel.activity_timeline') }}</h3>
                             <div class="sf-timeline mt-3">
                                 @forelse($workflowPanel['activities'] as $activity)
                                     <div class="sf-timeline-item">
@@ -280,13 +280,13 @@
                                             </p>
                                             <p class="sf-item-meta">{{ $activity->created_at?->format('Y-m-d H:i') }}</p>
                                         </div>
-                                        <p class="sf-item-meta mt-1">By: {{ $workflowPanel['userLabel']($activity) }}</p>
+                                        <p class="sf-item-meta mt-1">{{ __('seviaflow-ui::panel.by_user', ['user' => $workflowPanel['userLabel']($activity)]) }}</p>
                                         @if($activity->comment)
-                                            <p class="sf-item-body mt-1">Comment: {{ $activity->comment }}</p>
+                                            <p class="sf-item-body mt-1">{{ __('seviaflow-ui::panel.comment_value', ['comment' => $activity->comment]) }}</p>
                                         @endif
                                     </div>
                                 @empty
-                                    <p class="sf-muted">No workflow activity yet.</p>
+                                    <p class="sf-muted">{{ __('seviaflow-ui::panel.no_workflow_activity_yet') }}</p>
                                 @endforelse
                             </div>
                         </div>
@@ -308,7 +308,7 @@
                     <div>
                         <h2 class="sf-card-title">{{ $manager['label'] }}</h2>
                         <p class="sf-card-description">
-                            {{ \Illuminate\Support\Str::headline($manager['type']) }} relation · {{ $manager['recordCount'] }} record(s)
+                            {{ __('seviaflow-ui::panel.relation_summary', ['type' => \Illuminate\Support\Str::headline($manager['type']), 'count' => $manager['recordCount']]) }}
                         </p>
                     </div>
                     <div class="sf-resource-actions">
@@ -319,7 +319,7 @@
                                 class="sf-button sf-button-secondary !px-3 !py-2"
                                 aria-expanded="{{ $manager['expanded'] ? 'true' : 'false' }}"
                             >
-                                {{ $manager['expanded'] ? 'Close' : 'Open' }} related records
+                                {{ $manager['expanded'] ? __('seviaflow-ui::panel.close_related_records') : __('seviaflow-ui::panel.open_related_records') }}
                             </button>
                         @endif
                         @if($manager['type'] === 'hasMany' && $manager['canCreate'])
@@ -348,13 +348,13 @@
                         @endif
                     @if($manager['type'] === 'belongsToMany' && $manager['canAttach'])
                         <div class="sf-resource-actions">
-                            <label for="attach-{{ $manager['relationshipName'] }}" class="sr-only">Attach related record</label>
+                            <label for="attach-{{ $manager['relationshipName'] }}" class="sr-only">{{ __('seviaflow-ui::panel.attach_related_record') }}</label>
                             <select
                                 id="attach-{{ $manager['relationshipName'] }}"
                                 wire:model="attachSelection.{{ $manager['relationshipName'] }}"
                                 class="sf-select"
                             >
-                                <option value="">Select record to attach</option>
+                                <option value="">{{ __('seviaflow-ui::panel.select_record_to_attach') }}</option>
                                 @foreach($manager['attachOptions'] as $value => $label)
                                     <option value="{{ $value }}">{{ $label }}</option>
                                 @endforeach
@@ -368,7 +368,7 @@
                                     aria-expanded="false"
                                     class="sf-button sf-button-primary !px-3 !py-2"
                                 >
-                                    Attach
+                                    {{ __('seviaflow-ui::panel.attach') }}
                                 </button>
                             @else
                                 <button
@@ -376,7 +376,7 @@
                                     wire:click="attachBelongsToMany('{{ $manager['relationshipName'] }}')"
                                     class="sf-button sf-button-primary !px-3 !py-2"
                                 >
-                                    Attach
+                                    {{ __('seviaflow-ui::panel.attach') }}
                                 </button>
                             @endif
                         </div>
@@ -398,7 +398,7 @@
                                 @foreach($manager['pivotColumns'] as $pivotColumn)
                                     <th scope="col" class="sf-table-header">{{ $pivotColumn->getLabel() }}</th>
                                 @endforeach
-                                <th scope="col" class="sf-table-header">Actions</th>
+                                <th scope="col" class="sf-table-header">{{ __('seviaflow-ui::panel.actions') }}</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -413,10 +413,10 @@
                                     <td class="sf-table-cell">
                                         <div class="sf-row-actions">
                                             @if($manager['showUrl']($relationRecord))
-                                                <a href="{{ $manager['showUrl']($relationRecord) }}" class="sf-button sf-button-secondary !px-3 !py-1.5">View</a>
+                                                <a href="{{ $manager['showUrl']($relationRecord) }}" class="sf-button sf-button-secondary !px-3 !py-1.5">{{ __('seviaflow-ui::panel.view') }}</a>
                                             @endif
                                             @if($manager['editUrl']($relationRecord))
-                                                <a href="{{ $manager['editUrl']($relationRecord) }}" class="sf-button sf-button-secondary !px-3 !py-1.5">Edit</a>
+                                                <a href="{{ $manager['editUrl']($relationRecord) }}" class="sf-button sf-button-secondary !px-3 !py-1.5">{{ __('seviaflow-ui::panel.edit') }}</a>
                                             @endif
                                             @if($manager['type'] === 'belongsToMany' && $manager['canEditPivot'] && $manager['canEditPivotRecord']($relationRecord))
                                                 <button
@@ -427,7 +427,7 @@
                                                     aria-expanded="false"
                                                     class="sf-button sf-button-secondary !px-3 !py-1.5"
                                                 >
-                                                    Edit pivot
+                                                    {{ __('seviaflow-ui::panel.edit_pivot') }}
                                                 </button>
                                             @endif
                                             @if($manager['type'] === 'hasMany' && $manager['canEdit'] && $manager['canEditRecord']($relationRecord))
@@ -461,14 +461,14 @@
                                                         wire:click="deleteHasManyRecord('{{ $manager['relationshipName'] }}', '{{ $relationRecord->getKey() }}', true)"
                                                         class="sf-button sf-button-danger !px-3 !py-1.5"
                                                     >
-                                                        Confirm move to trash
+                                                        {{ __('seviaflow-ui::panel.confirm_move_to_trash') }}
                                                     </button>
                                                     <button
                                                         type="button"
                                                         wire:click="$set('pendingHasManyDeleteRelation', null); $set('pendingHasManyDeleteRecordId', null);"
                                                         class="sf-button sf-button-secondary !px-3 !py-1.5"
                                                     >
-                                                        Cancel
+                                                        {{ __('seviaflow-ui::ui.actions.cancel') }}
                                                     </button>
                                                 @else
                                                     <button
@@ -476,7 +476,7 @@
                                                         wire:click="deleteHasManyRecord('{{ $manager['relationshipName'] }}', '{{ $relationRecord->getKey() }}')"
                                                         class="sf-button sf-button-danger !px-3 !py-1.5"
                                                     >
-                                                        Move to trash
+                                                        {{ __('seviaflow-ui::panel.move_to_trash') }}
                                                     </button>
                                                 @endif
                                             @endif
@@ -487,14 +487,14 @@
                                                         wire:click="deleteHasOneRecord('{{ $manager['relationshipName'] }}', '{{ $relationRecord->getKey() }}', true)"
                                                         class="sf-button sf-button-danger !px-3 !py-1.5"
                                                     >
-                                                        Confirm delete
+                                                        {{ __('seviaflow-ui::panel.confirm_delete') }}
                                                     </button>
                                                     <button
                                                         type="button"
                                                         wire:click="$set('pendingHasOneDeleteRelation', null);"
                                                         class="sf-button sf-button-secondary !px-3 !py-1.5"
                                                     >
-                                                        Cancel
+                                                        {{ __('seviaflow-ui::ui.actions.cancel') }}
                                                     </button>
                                                 @else
                                                     <button
@@ -502,7 +502,7 @@
                                                         wire:click="deleteHasOneRecord('{{ $manager['relationshipName'] }}', '{{ $relationRecord->getKey() }}')"
                                                         class="sf-button sf-button-danger !px-3 !py-1.5"
                                                     >
-                                                        Delete
+                                                        {{ __('seviaflow-ui::panel.delete') }}
                                                     </button>
                                                 @endif
                                             @endif
@@ -512,7 +512,7 @@
                                                     wire:click="restoreHasManyRecord('{{ $manager['relationshipName'] }}', '{{ $relationRecord->getKey() }}', true)"
                                                     class="sf-button sf-button-secondary !px-3 !py-1.5"
                                                 >
-                                                    Restore
+                                                    {{ __('seviaflow-ui::panel.restore') }}
                                                 </button>
                                             @endif
                                             @if($manager['type'] === 'belongsToMany' && $manager['canDetach'])
@@ -522,14 +522,14 @@
                                                         wire:click="detachBelongsToMany('{{ $manager['relationshipName'] }}', '{{ $relationRecord->getKey() }}', true)"
                                                         class="sf-button sf-button-danger !px-3 !py-1.5"
                                                     >
-                                                        Confirm detach
+                                                        {{ __('seviaflow-ui::panel.confirm_detach') }}
                                                     </button>
                                                     <button
                                                         type="button"
                                                         wire:click="$set('pendingDetachRelation', null); $set('pendingDetachRecordId', null);"
                                                         class="sf-button sf-button-secondary !px-3 !py-1.5"
                                                     >
-                                                        Cancel
+                                                        {{ __('seviaflow-ui::ui.actions.cancel') }}
                                                     </button>
                                                 @else
                                                     <button
@@ -537,7 +537,7 @@
                                                         wire:click="detachBelongsToMany('{{ $manager['relationshipName'] }}', '{{ $relationRecord->getKey() }}')"
                                                         class="sf-button sf-button-danger !px-3 !py-1.5"
                                                     >
-                                                        Detach
+                                                        {{ __('seviaflow-ui::panel.detach') }}
                                                     </button>
                                                 @endif
                                             @endif
@@ -547,7 +547,7 @@
                             @empty
                                 <tr>
                                     <td colspan="{{ max(count($manager['columns']) + count($manager['pivotColumns']) + 1, 1) }}" class="sf-table-empty">
-                                        No related records to display.
+                                        {{ __('seviaflow-ui::panel.no_related_records_to_display') }}
                                     </td>
                                 </tr>
                             @endforelse
@@ -570,7 +570,7 @@
             <div class="sf-modal-panel sf-card">
                 <div class="sf-modal-header">
                     <h2 id="sf-relation-modal-title" class="sf-card-title">{{ $relationModalState['title'] }}</h2>
-                    <button type="button" class="sf-icon-button" aria-label="Close related record dialog" data-sf-modal-close wire:click="cancelRelationModal">
+                    <button type="button" class="sf-icon-button" aria-label="{{ __('seviaflow-ui::panel.close_related_record_dialog') }}" data-sf-modal-close wire:click="cancelRelationModal">
                         <x-seviaflow-ui::icon name="x-circle" />
                     </button>
                 </div>
@@ -625,14 +625,14 @@
                             @endforeach
                         </div>
                         <div class="sf-resource-actions mt-4">
-                            <button type="button" wire:click="saveRelationInlineCreate" class="sf-button sf-button-primary">Save related record</button>
-                            <button type="button" wire:click="cancelRelationInlineCreate" class="sf-button sf-button-secondary">Cancel</button>
+                            <button type="button" wire:click="saveRelationInlineCreate" class="sf-button sf-button-primary">{{ __('seviaflow-ui::panel.save_related_record') }}</button>
+                            <button type="button" wire:click="cancelRelationInlineCreate" class="sf-button sf-button-secondary">{{ __('seviaflow-ui::ui.actions.cancel') }}</button>
                         </div>
                     </section>
                 @endif
                 <div class="sf-modal-footer">
-                    <button type="button" wire:click="saveRelationModal" class="sf-button sf-button-primary">Save</button>
-                    <button type="button" wire:click="cancelRelationModal" class="sf-button sf-button-secondary" data-sf-modal-close>Cancel</button>
+                    <button type="button" wire:click="saveRelationModal" class="sf-button sf-button-primary">{{ __('seviaflow-ui::panel.save') }}</button>
+                    <button type="button" wire:click="cancelRelationModal" class="sf-button sf-button-secondary" data-sf-modal-close>{{ __('seviaflow-ui::ui.actions.cancel') }}</button>
                 </div>
             </div>
             </div>
@@ -643,8 +643,8 @@
         <section id="sf-pivot-modal" class="sf-modal" role="dialog" aria-modal="true" aria-hidden="false" aria-labelledby="sf-pivot-modal-title" data-sf-modal>
             <div class="sf-modal-panel sf-card">
                 <div class="sf-modal-header">
-                    <h2 id="sf-pivot-modal-title" class="sf-card-title">{{ $pivotModalMode === 'edit' ? 'Edit pivot values' : 'Attach with details' }}</h2>
-                    <button type="button" class="sf-icon-button" aria-label="Close pivot dialog" data-sf-modal-close wire:click="cancelPivotModal">
+                    <h2 id="sf-pivot-modal-title" class="sf-card-title">{{ $pivotModalMode === 'edit' ? __('seviaflow-ui::panel.edit_pivot_values') : __('seviaflow-ui::panel.attach_with_details') }}</h2>
+                    <button type="button" class="sf-icon-button" aria-label="{{ __('seviaflow-ui::panel.close_pivot_dialog') }}" data-sf-modal-close wire:click="cancelPivotModal">
                         <x-seviaflow-ui::icon name="x-circle" />
                     </button>
                 </div>
@@ -662,8 +662,8 @@
                     @endforeach
                 </div>
                 <div class="sf-modal-footer">
-                    <button type="button" wire:click="savePivotModal" class="sf-button sf-button-primary">Save</button>
-                    <button type="button" wire:click="cancelPivotModal" class="sf-button sf-button-secondary" data-sf-modal-close>Cancel</button>
+                    <button type="button" wire:click="savePivotModal" class="sf-button sf-button-primary">{{ __('seviaflow-ui::panel.save') }}</button>
+                    <button type="button" wire:click="cancelPivotModal" class="sf-button sf-button-secondary" data-sf-modal-close>{{ __('seviaflow-ui::ui.actions.cancel') }}</button>
                 </div>
             </div>
             </div>

@@ -10,39 +10,39 @@
 @endphp
 
 @if($paginator->hasPages() || $total !== null)
-    <nav class="sf-pagination-nav" role="navigation" aria-label="Pagination navigation">
+    <nav class="sf-pagination-nav" role="navigation" aria-label="{{ __('seviaflow-ui::panel.pagination_navigation') }}">
         @if($total !== null && $firstItem !== null && $lastItem !== null)
             <p class="sf-pagination-summary">
-                Showing {{ $firstItem }}-{{ $lastItem }} of {{ $total }}
+                {{ __('seviaflow-ui::panel.pagination_summary', ['first' => $firstItem, 'last' => $lastItem, 'total' => $total]) }}
             </p>
         @endif
 
         @if($paginator->hasPages())
-            <div class="sf-pagination-mobile" aria-label="Mobile pagination">
+            <div class="sf-pagination-mobile" aria-label="{{ __('seviaflow-ui::panel.mobile_pagination') }}">
                 @if($paginator->onFirstPage())
-                    <button type="button" class="sf-pagination-button" aria-label="Previous page" disabled>Previous</button>
+                    <button type="button" class="sf-pagination-button" aria-label="{{ __('seviaflow-ui::panel.previous_page') }}" disabled>{{ __('seviaflow-ui::panel.previous') }}</button>
                 @else
-                    <button type="button" class="sf-pagination-button" wire:click="previousPage('{{ $pageName }}')" wire:loading.attr="disabled" aria-label="Previous page">Previous</button>
+                    <button type="button" class="sf-pagination-button" wire:click="previousPage('{{ $pageName }}')" wire:loading.attr="disabled" aria-label="{{ __('seviaflow-ui::panel.previous_page') }}">{{ __('seviaflow-ui::panel.previous') }}</button>
                 @endif
 
                 @if($lastPage !== null)
-                    <span class="sf-pagination-mobile-status">Page {{ $currentPage }} of {{ $lastPage }}</span>
+                    <span class="sf-pagination-mobile-status">{{ __('seviaflow-ui::panel.pagination_page_of', ['current' => $currentPage, 'last' => $lastPage]) }}</span>
                 @else
-                    <span class="sf-pagination-mobile-status">Page {{ $currentPage }}</span>
+                    <span class="sf-pagination-mobile-status">{{ __('seviaflow-ui::panel.pagination_page', ['page' => $currentPage]) }}</span>
                 @endif
 
                 @if($paginator->hasMorePages())
-                    <button type="button" class="sf-pagination-button" wire:click="nextPage('{{ $pageName }}')" wire:loading.attr="disabled" aria-label="Next page">Next</button>
+                    <button type="button" class="sf-pagination-button" wire:click="nextPage('{{ $pageName }}')" wire:loading.attr="disabled" aria-label="{{ __('seviaflow-ui::panel.next_page') }}">{{ __('seviaflow-ui::panel.next') }}</button>
                 @else
-                    <button type="button" class="sf-pagination-button" aria-label="Next page" disabled>Next</button>
+                    <button type="button" class="sf-pagination-button" aria-label="{{ __('seviaflow-ui::panel.next_page') }}" disabled>{{ __('seviaflow-ui::panel.next') }}</button>
                 @endif
             </div>
 
-            <div class="sf-pagination-desktop" aria-label="Page navigation">
+            <div class="sf-pagination-desktop" aria-label="{{ __('seviaflow-ui::panel.page_navigation') }}">
                 @if($paginator->onFirstPage())
-                    <button type="button" class="sf-pagination-button" aria-label="Previous page" disabled>Previous</button>
+                    <button type="button" class="sf-pagination-button" aria-label="{{ __('seviaflow-ui::panel.previous_page') }}" disabled>{{ __('seviaflow-ui::panel.previous') }}</button>
                 @else
-                    <button type="button" class="sf-pagination-button" wire:click="previousPage('{{ $pageName }}')" wire:loading.attr="disabled" aria-label="Previous page">Previous</button>
+                    <button type="button" class="sf-pagination-button" wire:click="previousPage('{{ $pageName }}')" wire:loading.attr="disabled" aria-label="{{ __('seviaflow-ui::panel.previous_page') }}">{{ __('seviaflow-ui::panel.previous') }}</button>
                 @endif
 
                 @foreach($elements as $element)
@@ -60,7 +60,7 @@
                                     class="sf-pagination-page"
                                     wire:click="gotoPage({{ $page }}, '{{ $pageName }}')"
                                     wire:loading.attr="disabled"
-                                    aria-label="Go to page {{ $page }}"
+                                    aria-label="{{ __('seviaflow-ui::panel.pagination_go_to', ['page' => $page]) }}"
                                 >
                                     {{ $page }}
                                 </button>
@@ -70,9 +70,9 @@
                 @endforeach
 
                 @if($paginator->hasMorePages())
-                    <button type="button" class="sf-pagination-button" wire:click="nextPage('{{ $pageName }}')" wire:loading.attr="disabled" aria-label="Next page">Next</button>
+                    <button type="button" class="sf-pagination-button" wire:click="nextPage('{{ $pageName }}')" wire:loading.attr="disabled" aria-label="{{ __('seviaflow-ui::panel.next_page') }}">{{ __('seviaflow-ui::panel.next') }}</button>
                 @else
-                    <button type="button" class="sf-pagination-button" aria-label="Next page" disabled>Next</button>
+                    <button type="button" class="sf-pagination-button" aria-label="{{ __('seviaflow-ui::panel.next_page') }}" disabled>{{ __('seviaflow-ui::panel.next') }}</button>
                 @endif
             </div>
         @endif

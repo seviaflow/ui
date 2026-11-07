@@ -32,12 +32,12 @@ final class WorkflowTimelineResolver
         }
 
         if (! class_exists($activity->user_type) || ! is_subclass_of($activity->user_type, Model::class)) {
-            return 'User #'.$activity->user_id;
+            return __('seviaflow-ui::panel.user_number', ['id' => $activity->user_id]);
         }
 
         $user = $activity->user_type::query()->find($activity->user_id);
         if (! $user instanceof Model) {
-            return 'User #'.$activity->user_id;
+            return __('seviaflow-ui::panel.user_number', ['id' => $activity->user_id]);
         }
 
         $name = $user->getAttribute('name');
@@ -45,6 +45,6 @@ final class WorkflowTimelineResolver
             return $name;
         }
 
-        return 'User #'.$activity->user_id;
+        return __('seviaflow-ui::panel.user_number', ['id' => $activity->user_id]);
     }
 }

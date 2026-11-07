@@ -11,7 +11,7 @@
                 $item = is_array($item) ? $item : [];
                 $labelField = $field->getItemLabelField();
                 $itemLabel = $labelField !== null ? ($item[$labelField] ?? null) : null;
-                $itemLabel = is_scalar($itemLabel) && (string) $itemLabel !== '' ? (string) $itemLabel : 'Item '.($index + 1);
+                $itemLabel = is_scalar($itemLabel) && (string) $itemLabel !== '' ? (string) $itemLabel : __('seviaflow-ui::panel.item_number', ['number' => $index + 1]);
             @endphp
             <section class="sf-repeater-value-item">
                 <h3 class="sf-repeater-value-title">{{ $itemLabel }}</h3>
@@ -22,7 +22,7 @@
                             if ($itemField instanceof \SeviaFlow\Core\Resources\Fields\SelectField) {
                                 $itemDisplay = $itemField->getOptions(new \SeviaFlow\Core\Forms\FormState($item, \SeviaFlow\Core\Resources\ResourceContext::Show))[(string) $itemValue] ?? ($itemValue === null || $itemValue === '' ? '—' : (string) $itemValue);
                             } elseif ($itemField instanceof \SeviaFlow\Core\Resources\Fields\ToggleField) {
-                                $itemDisplay = (bool) $itemValue ? 'Yes' : 'No';
+                                $itemDisplay = (bool) $itemValue ? __('seviaflow-ui::panel.yes') : __('seviaflow-ui::panel.no');
                             } elseif (is_scalar($itemValue) && $itemValue !== '') {
                                 $itemDisplay = (string) $itemValue;
                             } else {

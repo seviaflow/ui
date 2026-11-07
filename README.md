@@ -129,3 +129,7 @@ Assets build to `public/dist/seviaflow.css` and `public/dist/seviaflow.js`; thos
 ## Free edition scope
 
 Core, UI, API, DevTools and Framework are part of the free edition. Copilot is an optional paid module and is excluded. These five packages use MIT; Copilot has a separate license.
+
+## Localization
+
+The panel supports English and Polish through Laravel translations, including forms, tables, authentication and JavaScript messages. See [localization and the SeviaConsent adapter migration](docs/localization.md) for configuration, overrides and asset updates.

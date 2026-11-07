@@ -59,7 +59,7 @@
     );
     $selectedLabels = [];
     foreach ($selectedValues as $selectedValue) {
-        $selectedLabels[$selectedValue] = $allOptions[$selectedValue] ?? 'Selected option is not available.';
+        $selectedLabels[$selectedValue] = $allOptions[$selectedValue] ?? __('seviaflow-ui::panel.selected_option_is_not_available');
     }
     $selectedCount = count($selectedValues);
     $atMaximum = $field->getMaxSelected() !== null && $selectedCount >= $field->getMaxSelected();
@@ -74,7 +74,7 @@
         type="search"
         role="searchbox"
         autocomplete="off"
-        placeholder="Search {{ strtolower($field->getLabel()) }}"
+        placeholder="{{ __('seviaflow-ui::panel.search_options', ['field' => strtolower($field->getLabel())]) }}"
         wire:model.live.debounce.200ms="{{ $searchPath }}.{{ $field->name() }}"
         @disabled($isDisabled || $isReadonly)
         @if($describedBy !== '') aria-describedby="{{ $describedBy }}" @endif
@@ -83,20 +83,20 @@
 
     @endif
 
-    <div class="sf-multiselect-selected" aria-label="Selected {{ $field->getLabel() }}">
+    <div class="sf-multiselect-selected" aria-label="{{ __('seviaflow-ui::panel.selected_field', ['field' => $field->getLabel()]) }}">
         @forelse($selectedLabels as $value => $label)
             <span class="sf-multiselect-chip">
                 <span>{{ $label }}</span>
                 @if(! $isDisabled && ! $isReadonly)
                     <button
                         type="button"
-                        aria-label="Remove {{ $label }}"
+                        aria-label="{{ __('seviaflow-ui::panel.remove_option', ['option' => $label]) }}"
                         wire:click="{{ $removeAction }}('{{ $fieldArgument }}', '{{ addslashes((string) $value) }}')"
                     >×</button>
                 @endif
             </span>
         @empty
-            <span class="sf-combobox-empty">No selections.</span>
+            <span class="sf-combobox-empty">{{ __('seviaflow-ui::panel.no_selections') }}</span>
         @endforelse
     </div>
 
@@ -121,12 +121,12 @@
                 @if(in_array((string) $value, $selectedValues, true))<span aria-hidden="true">✓</span>@endif
             </button>
         @empty
-            <p class="sf-combobox-empty">{{ $searchTerm === '' ? 'No options available.' : 'No matching options.' }}</p>
+            <p class="sf-combobox-empty">{{ $searchTerm === '' ? __('seviaflow-ui::panel.no_options_available') : __('seviaflow-ui::panel.no_matching_options') }}</p>
         @endforelse
     </div>
 
     <p class="sf-help" aria-live="polite">
-        {{ $selectedCount }} selected{{ $field->getMaxSelected() !== null ? ' of '.$field->getMaxSelected() : '' }}.
+        {{ $field->getMaxSelected() !== null ? __('seviaflow-ui::panel.selected_options_limit', ['count' => $selectedCount, 'max' => $field->getMaxSelected()]) : __('seviaflow-ui::panel.selected_options', ['count' => $selectedCount]) }}
         @if($atMaximum) Maximum reached.@endif
     </p>
 </div>

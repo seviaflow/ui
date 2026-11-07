@@ -5,6 +5,7 @@
 <div
     class="grid gap-4"
     data-sf-resource-form
+    data-sf-form-leave-message="{{ __('seviaflow-ui::panel.leave_this_form_unsaved_changes_will_be_lost') }}"
     data-sf-form-dirty="{{ $isDirty ? 'true' : 'false' }}"
     data-sf-form-submitting="false"
 >
@@ -21,15 +22,15 @@
             {{ $errorMessage }}
             @if($hasConflict)
                 <button type="button" wire:click="reloadRecord" class="sf-button sf-button-secondary mt-3">
-                    Refresh record and discard local changes
+                    {{ __('seviaflow-ui::panel.refresh_record_and_discard_local_changes') }}
                 </button>
             @endif
         </div>
     @endif
     @if($errors->any())
         <div class="sf-alert sf-alert-danger" data-sf-validation-summary role="alert" tabindex="-1">
-            <p>Please correct the highlighted fields.</p>
-            <p>{{ $errors->count() }} validation {{ $errors->count() === 1 ? 'error' : 'errors' }}.</p>
+            <p>{{ __('seviaflow-ui::panel.please_correct_the_highlighted_fields') }}</p>
+            <p>{{ trans_choice('seviaflow-ui::panel.validation_errors', $errors->count(), ['count' => $errors->count()]) }}</p>
             <ul>
                 @foreach($validationMessages as $errorPath => $messages)
                     @if(str_starts_with($errorPath, 'fieldValues.'))
@@ -46,7 +47,7 @@
                                 $errorId .= '-'.$errorUiKey;
                             }
                             $errorLabel = count($errorParts) > 1
-                                ? str_replace('_', ' ', $errorTarget).' row '.((int) ($errorParts[1] ?? 0) + 1)
+                                ? __('seviaflow-ui::panel.field_row', ['field' => str_replace('_', ' ', $errorTarget), 'row' => (int) ($errorParts[1] ?? 0) + 1])
                                 : str_replace('_', ' ', $errorField);
                         @endphp
                         <li><a href="#{{ $errorId }}" data-sf-validation-target="{{ $errorId }}">{{ $errorLabel }}</a></li>
@@ -61,19 +62,19 @@
             <div class="sf-card-header">
                 <div class="sf-form-header">
                     <div>
-                        <p class="sf-card-kicker">{{ $isEditMode ? 'Edit record' : 'Create record' }}</p>
-                        <h2 class="sf-card-title">{{ $isEditMode ? 'Record fields' : 'New record details' }}</h2>
+                        <p class="sf-card-kicker">{{ $isEditMode ? __('seviaflow-ui::panel.edit_record') : __('seviaflow-ui::panel.create_record') }}</p>
+                        <h2 class="sf-card-title">{{ $isEditMode ? __('seviaflow-ui::panel.record_fields') : __('seviaflow-ui::panel.new_record_details') }}</h2>
                     </div>
-                    <p class="sf-card-description">Required fields are marked with an asterisk.</p>
+                    <p class="sf-card-description">{{ __('seviaflow-ui::panel.required_fields_are_marked_with_an_asterisk') }}</p>
                 </div>
                 @if($isDirty)
-                    <p class="sf-form-state sf-form-state-dirty" data-sf-form-state>Unsaved changes</p>
+                    <p class="sf-form-state sf-form-state-dirty" data-sf-form-state>{{ __('seviaflow-ui::panel.unsaved_changes') }}</p>
                 @endif
             </div>
             <div class="sf-card-body">
                 @if(count($tabs) > 0)
                     <div class="sf-form-tabs" data-sf-form-tabs>
-                        <div class="sf-tab-list" role="tablist" aria-label="Form sections">
+                        <div class="sf-tab-list" role="tablist" aria-label="{{ __('seviaflow-ui::panel.form_sections') }}">
                             @foreach($tabs as $tab)
                                 <button
                                     type="button"
@@ -132,22 +133,22 @@
                 <div class="sf-form-actions">
                     <div class="sf-resource-actions">
                         <button type="submit" class="sf-button sf-button-primary" wire:loading.attr="disabled">
-                            {{ $isEditMode ? 'Save' : 'Create' }}
+                            {{ $isEditMode ? __('seviaflow-ui::panel.save') : __('seviaflow-ui::panel.create') }}
                         </button>
                         <button type="button" wire:click="saveAndReturn" class="sf-button sf-button-secondary" wire:loading.attr="disabled">
-                            Save and return
+                            {{ __('seviaflow-ui::panel.save_and_return') }}
                         </button>
                         <button type="button" wire:click="saveAndCreateAnother" class="sf-button sf-button-secondary" wire:loading.attr="disabled">
-                            Save and add another
+                            {{ __('seviaflow-ui::panel.save_and_add_another') }}
                         </button>
                         <a href="{{ $cancelUrl }}" class="sf-button sf-button-secondary" data-sf-form-exit>
-                            Cancel
+                            {{ __('seviaflow-ui::ui.actions.cancel') }}
                         </a>
                     </div>
                     @if($isDirty)
-                        <span class="sf-form-state" data-sf-form-state>Unsaved changes</span>
+                        <span class="sf-form-state" data-sf-form-state>{{ __('seviaflow-ui::panel.unsaved_changes') }}</span>
                     @elseif($statusMessage)
-                        <span class="sf-form-state sf-form-state-success" data-sf-form-state>Saved</span>
+                        <span class="sf-form-state sf-form-state-success" data-sf-form-state>{{ __('seviaflow-ui::panel.saved') }}</span>
                     @endif
                 </div>
             </div>
@@ -181,10 +182,10 @@
 
                 <div class="sf-resource-actions mt-4">
                     <button type="button" wire:click="saveInlineCreate" class="sf-button sf-button-primary">
-                        Save
+                        {{ __('seviaflow-ui::panel.save') }}
                     </button>
                     <button type="button" wire:click="cancelInlineCreate" class="sf-button sf-button-secondary">
-                        Cancel
+                        {{ __('seviaflow-ui::ui.actions.cancel') }}
                     </button>
                 </div>
             </div>

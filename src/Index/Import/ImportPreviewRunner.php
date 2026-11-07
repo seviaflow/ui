@@ -29,7 +29,7 @@ final class ImportPreviewRunner
     public function run(mixed $importFile, array $allowedFields, array $requiredFields, int $rowLimit = 20): array
     {
         if (! $importFile instanceof UploadedFile) {
-            return ['ok' => false, 'message' => 'A valid CSV file is required.', 'preview' => null];
+            return ['ok' => false, 'message' => __('seviaflow-ui::panel.a_valid_csv_file_is_required'), 'preview' => null];
         }
 
         $preview = $this->csvImportPreviewer->preview(

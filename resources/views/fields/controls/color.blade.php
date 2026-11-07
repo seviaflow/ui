@@ -6,7 +6,7 @@
         value="{{ $colorValue }}"
         wire:change="$set('{{ $fieldPath }}', $event.target.value)"
         @disabled($isDisabled || $isReadonly)
-        aria-label="Pick {{ $field->getLabel() }} color"
+        aria-label="{{ __('seviaflow-ui::panel.pick_color', ['field' => $field->getLabel()]) }}"
         class="sf-color-picker"
     >
     <input

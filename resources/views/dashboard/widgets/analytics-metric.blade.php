@@ -4,11 +4,11 @@
             <p class="sf-card-kicker">{{ $widget['label'] }}</p>
 
             @if($state === 'loading')
-                <p class="sf-dashboard-empty mt-2">Loading analytics...</p>
+                <p class="sf-dashboard-empty mt-2">{{ __('seviaflow-ui::panel.loading_analytics') }}</p>
             @elseif($state === 'error')
-                <p class="sf-dashboard-empty mt-2">{{ $message ?: 'Unable to load analytics.' }}</p>
+                <p class="sf-dashboard-empty mt-2">{{ $message ?: __('seviaflow-ui::panel.unable_to_load_analytics') }}</p>
             @elseif($state === 'empty')
-                <p class="sf-dashboard-empty mt-2">No analytics data found.</p>
+                <p class="sf-dashboard-empty mt-2">{{ __('seviaflow-ui::panel.no_analytics_data_found') }}</p>
             @else
                 <p class="sf-dashboard-metric sf-dashboard-stat-{{ $color }}">{!! $value !!}</p>
             @endif

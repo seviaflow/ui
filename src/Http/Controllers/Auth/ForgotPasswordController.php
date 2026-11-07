@@ -8,6 +8,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Password;
 use Illuminate\View\View;
+use SeviaFlow\Ui\Auth\PasswordResetStatus;
 
 final class ForgotPasswordController
 {
@@ -27,9 +28,9 @@ final class ForgotPasswordController
         )->sendResetLink($credentials);
 
         if ($status !== Password::RESET_LINK_SENT) {
-            return back()->withErrors(['email' => __($status)]);
+            return back()->withErrors(['email' => PasswordResetStatus::message($status)]);
         }
 
-        return back()->with('status', __($status));
+        return back()->with('status', PasswordResetStatus::message($status));
     }
 }

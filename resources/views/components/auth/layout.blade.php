@@ -17,15 +17,15 @@
         @endphp
         <div class="sf-auth-brand">
             <x-seviaflow-ui::brand :href="$brandRoute ? route($brandRoute) : '#'" />
-            <p class="sf-auth-product">SeviaFlow Admin</p>
-            <p class="sf-auth-vendor">Balanced Flow workspace</p>
+            <p class="sf-auth-product">{{ __('seviaflow-ui::panel.seviaflow_admin') }}</p>
+            <p class="sf-auth-vendor">{{ __('seviaflow-ui::panel.balanced_flow_workspace') }}</p>
         </div>
 
         <div class="sf-auth-card">
             {{ $slot }}
         </div>
 
-        <p class="sf-auth-footer">Protected by industry-standard encryption.</p>
+        <p class="sf-auth-footer">{{ __('seviaflow-ui::panel.protected_by_industry_standard_encryption') }}</p>
     </section>
 </main>
 @include('seviaflow-ui::partials.assets-foot')

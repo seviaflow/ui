@@ -55,7 +55,7 @@ final class LoginController
         if (! $authenticated) {
             return back()
                 ->withInput($request->only('email', 'remember'))
-                ->withErrors(['email' => 'These credentials do not match our records.']);
+                ->withErrors(['email' => __('seviaflow-ui::panel.these_credentials_do_not_match_our_records')]);
         }
 
         $user = $authGuard->user();
@@ -64,7 +64,7 @@ final class LoginController
 
             return back()
                 ->withInput($request->only('email', 'remember'))
-                ->withErrors(['email' => 'These credentials do not provide admin access.']);
+                ->withErrors(['email' => __('seviaflow-ui::panel.these_credentials_do_not_provide_admin_access')]);
         }
 
         if ($this->twoFactorAuthenticationManager->challengeRequired($user)) {
@@ -73,7 +73,7 @@ final class LoginController
 
                 return back()
                     ->withInput($request->only('email', 'remember'))
-                    ->withErrors(['email' => 'Two-factor authentication cannot be completed for this account.']);
+                    ->withErrors(['email' => __('seviaflow-ui::panel.two_factor_authentication_cannot_be_completed_for_this_account')]);
             }
 
             $authGuard->logout();
@@ -128,7 +128,7 @@ final class LoginController
         $user = $this->pendingUser($request);
 
         if (! $user instanceof Model || ! $user instanceof Authenticatable || ! $this->twoFactorAuthenticationManager->verifyLoginChallenge($user, (string) $validated['code'])) {
-            return back()->withErrors(['code' => 'The verification code is invalid or has expired.']);
+            return back()->withErrors(['code' => __('seviaflow-ui::panel.the_verification_code_is_invalid_or_has_expired')]);
         }
 
         $pending = $request->session()->pull('seviaflow.auth.pending_two_factor', []);
@@ -139,7 +139,7 @@ final class LoginController
             Auth::guard($guard)->logout();
 
             return redirect()->route((string) config('seviaflow-ui.route_name_prefix', 'seviaflow.').'login')
-                ->withErrors(['email' => 'These credentials do not provide admin access.']);
+                ->withErrors(['email' => __('seviaflow-ui::panel.these_credentials_do_not_provide_admin_access')]);
         }
 
         Auth::guard($guard)->login($user, $remember);

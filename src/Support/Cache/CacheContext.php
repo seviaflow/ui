@@ -22,6 +22,8 @@ final class CacheContext
     {
         $scope = $this->scope($context);
         $cacheContext = [
+            'locale' => app()->getLocale(),
+            'fallback_locale' => app('translator')->getFallback(),
             'actor' => $this->actor($actor),
             'host' => $scope['host'],
             'connection' => $scope['connection'],

@@ -54,7 +54,7 @@ final class WorkflowPanelState
 
         $currentStateName = $this->transitionResolver->currentState($resourceClass, $record);
         $state = $currentStateName !== null ? $workflow->getState($currentStateName) : null;
-        $currentStateLabel = $state?->getLabel() ?? ($currentStateName !== null ? ucfirst(str_replace('_', ' ', $currentStateName)) : 'Unknown');
+        $currentStateLabel = $state?->getLabel() ?? ($currentStateName !== null ? ucfirst(str_replace('_', ' ', $currentStateName)) : __('seviaflow-ui::panel.unknown'));
 
         $availableTransitions = $this->transitionResolver->availableTransitions($resourceClass, $record, $user);
 

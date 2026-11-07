@@ -77,8 +77,8 @@ final class Dashboard extends Component
                 'userName' => is_object($user) && isset($user->name) ? (string) $user->name : null,
                 'userEmail' => is_object($user) && isset($user->email) ? (string) $user->email : null,
                 'dashboardSlug' => null,
-                'dashboardLabel' => 'Dashboard',
-                'dashboardDescription' => 'No dashboards are currently visible for your account.',
+                'dashboardLabel' => __('seviaflow-ui::panel.dashboard'),
+                'dashboardDescription' => __('seviaflow-ui::panel.no_dashboards_are_currently_visible_for_your_account'),
                 'widgets' => [],
                 'hasWidgets' => false,
                 'layoutEditing' => false,
@@ -91,12 +91,12 @@ final class Dashboard extends Component
                 'showDashboardSwitcher' => count($dashboardOptions) > 1,
                 'noVisibleDashboards' => true,
             ])->layout('seviaflow-ui::components.app.layout', [
-                'pageTitle' => 'Dashboard',
-                'pageDescription' => 'No dashboards are currently visible for your account.',
+                'pageTitle' => __('seviaflow-ui::panel.dashboard'),
+                'pageDescription' => __('seviaflow-ui::panel.no_dashboards_are_currently_visible_for_your_account'),
                 'contentWidth' => 'wide',
                 'breadcrumbs' => [
-                    ['label' => 'Admin', 'url' => route($routeNamePrefix.'dashboard')],
-                    ['label' => 'Dashboard', 'url' => null],
+                    ['label' => __('seviaflow-ui::panel.admin'), 'url' => route($routeNamePrefix.'dashboard')],
+                    ['label' => __('seviaflow-ui::panel.dashboard'), 'url' => null],
                 ],
             ]);
         }
@@ -191,10 +191,10 @@ final class Dashboard extends Component
             'noVisibleDashboards' => false,
         ])->layout('seviaflow-ui::components.app.layout', [
             'pageTitle' => $dashboardLabel,
-            'pageDescription' => $dashboardDescription ?? 'Welcome to your operator workspace.',
+            'pageDescription' => $dashboardDescription ?? __('seviaflow-ui::panel.welcome_to_your_operator_workspace'),
             'contentWidth' => 'wide',
             'breadcrumbs' => [
-                ['label' => 'Admin', 'url' => route($routeNamePrefix.'dashboard')],
+                ['label' => __('seviaflow-ui::panel.admin'), 'url' => route($routeNamePrefix.'dashboard')],
                 ['label' => $dashboardLabel, 'url' => null],
             ],
         ]);
@@ -502,21 +502,21 @@ final class Dashboard extends Component
 
         if (Route::has($routeNamePrefix.'settings.roles.index') && $this->canManageRoles($actor)) {
             $actions[] = [
-                'label' => 'Manage roles',
+                'label' => __('seviaflow-ui::panel.manage_roles'),
                 'url' => route($routeNamePrefix.'settings.roles.index'),
             ];
         }
 
         if (Route::has($routeNamePrefix.'profile.index')) {
             $actions[] = [
-                'label' => 'View profile',
+                'label' => __('seviaflow-ui::panel.view_profile'),
                 'url' => route($routeNamePrefix.'profile.index'),
             ];
         }
 
         if (Route::has($routeNamePrefix.'profile.password')) {
             $actions[] = [
-                'label' => 'Account security',
+                'label' => __('seviaflow-ui::panel.account_security'),
                 'url' => route($routeNamePrefix.'profile.password'),
             ];
         }

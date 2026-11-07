@@ -39,41 +39,38 @@ final class BulkActionRunner
         $action = $this->resolveAction($actions, $actionName);
 
         if (! $action instanceof BulkAction) {
-            return $this->result(errorMessage: 'The selected bulk action is not available.');
+            return $this->result(errorMessage: __('seviaflow-ui::panel.the_selected_bulk_action_is_not_available'));
         }
 
         if ($records->isEmpty()) {
             return $this->result(errorMessage: $selectedRecords === []
-                ? 'Select at least one record to run this bulk action.'
-                : 'Selected records are no longer available. Please refresh selection.');
+                ? __('seviaflow-ui::panel.select_at_least_one_record_to_run_this_bulk_action')
+                : __('seviaflow-ui::panel.selected_records_are_no_longer_available_please_refresh_selection'));
         }
 
         $selectedCount = count(array_unique(array_map('strval', $selectedRecords)));
         if ($selectedCount !== $records->count()) {
-            return $this->result(errorMessage: 'Selected records are no longer available. Please refresh selection.');
+            return $this->result(errorMessage: __('seviaflow-ui::panel.selected_records_are_no_longer_available_please_refresh_selection'));
         }
 
         if ($maxByConfig !== null && $records->count() > $maxByConfig) {
-            return $this->result(errorMessage: sprintf('You can select up to %d records for bulk actions.', $maxByConfig));
+            return $this->result(errorMessage: __('seviaflow-ui::panel.bulk_max_records', ['max' => $maxByConfig]));
         }
 
         $maxByAction = $action->getMaxRecords();
         if ($maxByAction !== null && $records->count() > $maxByAction) {
-            return $this->result(errorMessage: sprintf('This bulk action allows up to %d selected records.', $maxByAction));
+            return $this->result(errorMessage: __('seviaflow-ui::panel.bulk_action_max_records', ['max' => $maxByAction]));
         }
 
         if ($action->shouldRequireConfirmation() && ! $confirmed) {
             return $this->result(
-                errorMessage: sprintf(
-                    'You are about to run this action on %d records. Please confirm before continuing.',
-                    $records->count()
-                ),
+                errorMessage: __('seviaflow-ui::panel.bulk_confirm_records', ['count' => $records->count()]),
                 pendingBulkActionName: $action->name()
             );
         }
 
         if (! $canExecuteBulkAction($action, $records)) {
-            return $this->result(errorMessage: 'You are not authorized to run this bulk action on the selected records.');
+            return $this->result(errorMessage: __('seviaflow-ui::panel.you_are_not_authorized_to_run_this_bulk_action_on_the_selected_records'));
         }
 
         try {
@@ -90,14 +87,14 @@ final class BulkActionRunner
             }
 
             return $this->result(
-                statusMessage: $action->getSuccessMessage() ?? 'Bulk action completed successfully.',
+                statusMessage: $action->getSuccessMessage() ?? __('seviaflow-ui::panel.bulk_action_completed_successfully'),
                 shouldClearSelection: true,
                 shouldResetPage: true
             );
         } catch (Throwable $exception) {
             report($exception);
 
-            return $this->result(errorMessage: $action->getErrorMessage() ?? 'The bulk action could not be completed.');
+            return $this->result(errorMessage: $action->getErrorMessage() ?? __('seviaflow-ui::panel.the_bulk_action_could_not_be_completed'));
         }
     }
 
