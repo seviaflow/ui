@@ -136,7 +136,7 @@ final class RoleForm extends Component
         app(CacheInvalidator::class)->permissionsChanged(connection: $connection);
 
         $this->editingRole = $role->fresh('permissions');
-        $this->statusMessage = 'Role saved successfully.';
+        $this->statusMessage = __('seviaflow-ui::panel.role_saved_successfully');
     }
 
     /**
@@ -145,13 +145,13 @@ final class RoleForm extends Component
     private function abilityLabels(): array
     {
         return [
-            PermissionAbilities::VIEW_ANY => 'View list',
-            PermissionAbilities::VIEW => 'View details',
-            PermissionAbilities::CREATE => 'Create',
-            PermissionAbilities::UPDATE => 'Edit',
-            PermissionAbilities::DELETE => 'Delete',
-            PermissionAbilities::RESTORE => 'Restore',
-            PermissionAbilities::FORCE_DELETE => 'Permanently delete',
+            PermissionAbilities::VIEW_ANY => __('seviaflow-ui::panel.view_list'),
+            PermissionAbilities::VIEW => __('seviaflow-ui::panel.view_details'),
+            PermissionAbilities::CREATE => __('seviaflow-ui::panel.create'),
+            PermissionAbilities::UPDATE => __('seviaflow-ui::panel.edit'),
+            PermissionAbilities::DELETE => __('seviaflow-ui::panel.delete'),
+            PermissionAbilities::RESTORE => __('seviaflow-ui::panel.restore'),
+            PermissionAbilities::FORCE_DELETE => __('seviaflow-ui::panel.permanently_delete'),
         ];
     }
 

@@ -49,7 +49,7 @@ final class TableValueFormatter
         }
 
         if ($column instanceof BooleanColumn) {
-            return (bool) $value ? 'Yes' : 'No';
+            return (bool) $value ? __('seviaflow-ui::panel.yes') : __('seviaflow-ui::panel.no');
         }
 
         if ($column instanceof MoneyColumn) {

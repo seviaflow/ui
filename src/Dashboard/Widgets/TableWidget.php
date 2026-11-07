@@ -176,7 +176,7 @@ final class TableWidget extends Widget
         return [
             'columns' => array_map(static fn (Column $column): string => $column->getLabel(), $this->columns),
             'rows' => $resolvedRows,
-            'emptyMessage' => 'No records found.',
+            'emptyMessage' => __('seviaflow-ui::panel.no_records_found'),
         ];
     }
 

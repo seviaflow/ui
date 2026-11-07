@@ -97,22 +97,22 @@ final class NavigationMetadataResolver
             'groups' => [
                 [
                     'key' => 'main',
-                    'label' => 'Main',
+                    'label' => __('seviaflow-ui::panel.main'),
                     'items' => $this->mergeContributorItems('main', $dashboardItems),
                 ],
                 [
                     'key' => 'resources',
-                    'label' => 'Resources',
+                    'label' => __('seviaflow-ui::panel.resources'),
                     'items' => $this->mergeContributorItems('resources', $resourceItems),
                 ],
                 [
                     'key' => 'settings',
-                    'label' => 'Settings',
+                    'label' => __('seviaflow-ui::panel.settings'),
                     'items' => $this->mergeContributorItems('settings', [
                         [
                             'type' => 'settings.roles',
                             'key' => 'settings.roles',
-                            'label' => 'Roles',
+                            'label' => __('seviaflow-ui::panel.roles'),
                             'icon' => 'shield-check',
                             'method' => 'GET',
                             'route_name' => $routeNamePrefix.'settings.roles.index',
@@ -123,7 +123,7 @@ final class NavigationMetadataResolver
                         [
                             'type' => 'settings.admin-users',
                             'key' => 'settings.admin-users',
-                            'label' => 'Admin users',
+                            'label' => __('seviaflow-ui::panel.admin_users'),
                             'icon' => 'users',
                             'method' => 'GET',
                             'route_name' => $routeNamePrefix.'settings.admin-users.index',
@@ -135,12 +135,12 @@ final class NavigationMetadataResolver
                 ],
                 [
                     'key' => 'developer',
-                    'label' => 'Developer',
+                    'label' => __('seviaflow-ui::panel.developer'),
                     'items' => $this->mergeContributorItems('developer', [
                         [
                             'type' => 'developer.api-docs',
                             'key' => 'developer.api-docs',
-                            'label' => 'API documentation',
+                            'label' => __('seviaflow-ui::panel.api_documentation'),
                             'icon' => 'code-bracket',
                             'method' => 'GET',
                             'route_name' => (string) config('seviaflow-ui.api_docs_navigation.route_name', 'seviaflow.api.docs'),
@@ -152,12 +152,12 @@ final class NavigationMetadataResolver
                 ],
                 [
                     'key' => 'account',
-                    'label' => 'Account',
+                    'label' => __('seviaflow-ui::panel.account'),
                     'items' => $this->mergeContributorItems('account', [
                         [
                             'type' => 'account.profile',
                             'key' => 'account.profile',
-                            'label' => 'Profile',
+                            'label' => __('seviaflow-ui::panel.profile'),
                             'icon' => 'user-circle',
                             'method' => 'GET',
                             'route_name' => $routeNamePrefix.'profile.index',
@@ -168,7 +168,7 @@ final class NavigationMetadataResolver
                         [
                             'type' => 'account.security',
                             'key' => 'account.security',
-                            'label' => 'Account security',
+                            'label' => __('seviaflow-ui::panel.account_security'),
                             'icon' => 'lock-closed',
                             'method' => 'GET',
                             'route_name' => $routeNamePrefix.'profile.password',
@@ -179,7 +179,7 @@ final class NavigationMetadataResolver
                         [
                             'type' => 'account.logout',
                             'key' => 'account.logout',
-                            'label' => 'Sign out',
+                            'label' => __('seviaflow-ui::panel.sign_out'),
                             'icon' => 'arrow-right-on-rectangle',
                             'method' => 'POST',
                             'route_name' => $routeNamePrefix.'logout',

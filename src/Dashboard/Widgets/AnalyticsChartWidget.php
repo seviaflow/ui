@@ -109,7 +109,7 @@ final class AnalyticsChartWidget extends Widget
                 resolver: fn () => app(AnalyticsExecutor::class)->execute($this->query, $actor)->toArray(),
             );
         } catch (Throwable) {
-            return $this->state('error', 'Unable to load analytics.');
+            return $this->state('error', __('seviaflow-ui::panel.unable_to_load_analytics'));
         }
 
         /** @var array<int, array<string, mixed>> $rows */

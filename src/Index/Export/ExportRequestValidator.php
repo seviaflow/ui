@@ -44,25 +44,25 @@ final class ExportRequestValidator
         $selected = array_values(array_unique($selected));
 
         if ($selected === []) {
-            return ['ok' => false, 'message' => 'Select at least one export field.', 'selected_fields' => []];
+            return ['ok' => false, 'message' => __('seviaflow-ui::panel.select_at_least_one_export_field'), 'selected_fields' => []];
         }
 
         foreach ($selected as $fieldName) {
             if (! isset($allowedLookup[$fieldName])) {
-                return ['ok' => false, 'message' => 'One or more selected export fields are not allowed.', 'selected_fields' => []];
+                return ['ok' => false, 'message' => __('seviaflow-ui::panel.one_or_more_selected_export_fields_are_not_allowed'), 'selected_fields' => []];
             }
         }
 
         if (! in_array($selectedExportFormat, $allowedFormats, true)) {
-            return ['ok' => false, 'message' => 'Selected export format is not allowed.', 'selected_fields' => []];
+            return ['ok' => false, 'message' => __('seviaflow-ui::panel.selected_export_format_is_not_allowed'), 'selected_fields' => []];
         }
 
         if (! in_array($exportScope, ['current_view', 'selected_rows'], true)) {
-            return ['ok' => false, 'message' => 'Selected export scope is invalid.', 'selected_fields' => []];
+            return ['ok' => false, 'message' => __('seviaflow-ui::panel.selected_export_scope_is_invalid'), 'selected_fields' => []];
         }
 
         if ($exportScope === 'selected_rows' && $selectedRecords === []) {
-            return ['ok' => false, 'message' => 'Select at least one row to export selected rows.', 'selected_fields' => []];
+            return ['ok' => false, 'message' => __('seviaflow-ui::panel.select_at_least_one_row_to_export_selected_rows'), 'selected_fields' => []];
         }
 
         return ['ok' => true, 'message' => null, 'selected_fields' => $selected];

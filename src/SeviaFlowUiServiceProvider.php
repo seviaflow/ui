@@ -107,6 +107,10 @@ final class SeviaFlowUiServiceProvider extends ServiceProvider
         ], 'seviaflow-ui-views');
 
         $this->publishes([
+            __DIR__.'/../resources/lang' => $this->app->langPath('vendor/seviaflow-ui'),
+        ], 'seviaflow-ui-translations');
+
+        $this->publishes([
             __DIR__.'/../public/dist' => public_path('vendor/seviaflow/ui'),
         ], 'seviaflow-ui-assets');
     }

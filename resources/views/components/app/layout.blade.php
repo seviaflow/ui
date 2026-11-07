@@ -62,35 +62,36 @@
         : (Route::has($routeNamePrefix.'home') ? $routeNamePrefix.'home' : null);
     $brandHref = $dashboardRouteName !== null ? route($dashboardRouteName) : '#';
 
-    $defaultTitle = 'Admin';
+    $defaultTitle = __('seviaflow-ui::panel.admin');
     $defaultEyebrow = __('seviaflow-ui::ui.navigation.workspace');
-    $defaultDescription = 'Operator workspace';
-    $defaultBreadcrumbs = [['label' => 'Admin', 'url' => $brandHref]];
+    $defaultDescription = __('seviaflow-ui::panel.operator_workspace');
+    $defaultBreadcrumbs = [['label' => __('seviaflow-ui::panel.admin'), 'url' => $brandHref]];
 
     if ($currentResourceSlug !== null) {
-        $resourceLabel = Str::of($currentResourceSlug)->replace('-', ' ')->headline()->toString();
+        $resourceItem = collect($resourcesNav)->first(fn ($item): bool => $item->key === 'resource:'.$currentResourceSlug);
+        $resourceLabel = $resourceItem?->label ?? Str::of($currentResourceSlug)->replace('-', ' ')->headline()->toString();
         $defaultTitle = $resourceLabel;
         $defaultEyebrow = __('seviaflow-ui::ui.navigation.data');
-        $defaultDescription = 'Manage '.$resourceLabel.' records.';
-        $defaultBreadcrumbs[] = ['label' => 'Data', 'url' => null];
+        $defaultDescription = __('seviaflow-ui::panel.manage_records', ['resource' => $resourceLabel]);
+        $defaultBreadcrumbs[] = ['label' => __('seviaflow-ui::panel.data'), 'url' => null];
         $defaultBreadcrumbs[] = ['label' => $resourceLabel, 'url' => null];
     } elseif (str_starts_with($currentRouteName, $routeNamePrefix.'settings.roles.')) {
-        $defaultTitle = 'Roles';
+        $defaultTitle = __('seviaflow-ui::panel.roles');
         $defaultEyebrow = __('seviaflow-ui::ui.navigation.settings');
-        $defaultDescription = 'Manage admin roles and permissions.';
-        $defaultBreadcrumbs[] = ['label' => 'Settings', 'url' => null];
-        $defaultBreadcrumbs[] = ['label' => 'Roles', 'url' => null];
+        $defaultDescription = __('seviaflow-ui::panel.manage_admin_roles_and_permissions');
+        $defaultBreadcrumbs[] = ['label' => __('seviaflow-ui::panel.settings'), 'url' => null];
+        $defaultBreadcrumbs[] = ['label' => __('seviaflow-ui::panel.roles'), 'url' => null];
     } elseif (str_starts_with($currentRouteName, $routeNamePrefix.'settings.admin-users.')) {
-        $defaultTitle = 'Admin users';
+        $defaultTitle = __('seviaflow-ui::panel.admin_users');
         $defaultEyebrow = __('seviaflow-ui::ui.navigation.settings');
-        $defaultDescription = 'Manage role assignments for admin users.';
-        $defaultBreadcrumbs[] = ['label' => 'Settings', 'url' => null];
-        $defaultBreadcrumbs[] = ['label' => 'Admin users', 'url' => null];
+        $defaultDescription = __('seviaflow-ui::panel.manage_role_assignments_for_admin_users');
+        $defaultBreadcrumbs[] = ['label' => __('seviaflow-ui::panel.settings'), 'url' => null];
+        $defaultBreadcrumbs[] = ['label' => __('seviaflow-ui::panel.admin_users'), 'url' => null];
     } elseif (str_starts_with($currentRouteName, $routeNamePrefix.'profile.')) {
-        $defaultTitle = 'Account settings';
+        $defaultTitle = __('seviaflow-ui::panel.account_settings');
         $defaultEyebrow = __('seviaflow-ui::ui.navigation.account');
-        $defaultDescription = 'Manage your admin account security and profile details.';
-        $defaultBreadcrumbs[] = ['label' => 'Profile', 'url' => null];
+        $defaultDescription = __('seviaflow-ui::panel.manage_your_admin_account_security_and_profile_details');
+        $defaultBreadcrumbs[] = ['label' => __('seviaflow-ui::panel.profile'), 'url' => null];
     }
 
     $pageTitle = trim(isset($pageTitle) ? (string) $pageTitle : $defaultTitle);
@@ -105,7 +106,7 @@
     $authUser = auth()->user();
     $authUserName = is_object($authUser) && isset($authUser->name) ? (string) $authUser->name : null;
     $authUserEmail = is_object($authUser) && isset($authUser->email) ? (string) $authUser->email : null;
-    $authUserLabel = $authUserName ?: ($authUserEmail ?: 'Admin user');
+    $authUserLabel = $authUserName ?: ($authUserEmail ?: __('seviaflow-ui::panel.admin_user'));
     $authInitials = Str::of($authUserLabel)->replaceMatches('/[^A-Za-z0-9 ]/', '')->explode(' ')
         ->filter()
         ->take(2)
@@ -115,11 +116,11 @@
 
     $commandPaletteItems = [];
     foreach ([
-        'Workspace' => $workspaceNav,
-        'Data' => $resourcesNav,
-        'Settings' => $settingsNav,
-        'Developer' => $developerNav,
-        'Account' => $accountNav,
+        __('seviaflow-ui::panel.workspace') => $workspaceNav,
+        __('seviaflow-ui::panel.data') => $resourcesNav,
+        __('seviaflow-ui::panel.settings') => $settingsNav,
+        __('seviaflow-ui::panel.developer') => $developerNav,
+        __('seviaflow-ui::panel.account') => $accountNav,
     ] as $areaLabel => $items) {
         foreach ($items as $item) {
             if ($item->method !== 'GET') {
@@ -127,7 +128,7 @@
             }
 
             $description = $areaLabel;
-            if ($areaLabel === 'Data' && is_string($item->group) && trim($item->group) !== '') {
+            if ($areaLabel === __('seviaflow-ui::panel.data') && is_string($item->group) && trim($item->group) !== '') {
                 $description .= ' / '.trim($item->group);
             }
 

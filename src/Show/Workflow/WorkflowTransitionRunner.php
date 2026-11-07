@@ -39,32 +39,32 @@ final class WorkflowTransitionRunner
         mixed $user = null
     ): array {
         if (! $record instanceof Model) {
-            return $this->result(errorMessage: 'The selected record could not be found.');
+            return $this->result(errorMessage: __('seviaflow-ui::panel.the_selected_record_could_not_be_found'));
         }
 
         $workflow = $this->workflowDefinition($resourceClass);
         if (! $workflow instanceof Workflow) {
-            return $this->result(errorMessage: 'Workflow is not available for this resource.');
+            return $this->result(errorMessage: __('seviaflow-ui::panel.workflow_is_not_available_for_this_resource'));
         }
 
         $transition = $workflow->getTransition($transitionName);
         if (! $transition instanceof Transition) {
-            return $this->result(errorMessage: 'The selected transition is not available.');
+            return $this->result(errorMessage: __('seviaflow-ui::panel.the_selected_transition_is_not_available'));
         }
 
         if (! $this->transitionResolver->canRun($resourceClass, $record, $transitionName, $user)) {
-            return $this->result(errorMessage: 'The selected transition is not available.');
+            return $this->result(errorMessage: __('seviaflow-ui::panel.the_selected_transition_is_not_available'));
         }
 
         if ($transition->shouldRequireConfirmation() && ! $confirmed) {
             return $this->result(
-                errorMessage: 'Please confirm this transition before continuing.',
+                errorMessage: __('seviaflow-ui::panel.please_confirm_this_transition_before_continuing'),
                 pendingTransitionName: $transitionName
             );
         }
 
         if ($transition->shouldRequireComment() && trim((string) $comment) === '') {
-            return $this->result(errorMessage: 'This transition requires a comment.');
+            return $this->result(errorMessage: __('seviaflow-ui::panel.this_transition_requires_a_comment'));
         }
 
         try {
@@ -78,7 +78,7 @@ final class WorkflowTransitionRunner
             );
 
             return $this->result(
-                statusMessage: $transition->getSuccessMessage() ?? 'Transition completed successfully.',
+                statusMessage: $transition->getSuccessMessage() ?? __('seviaflow-ui::panel.transition_completed_successfully'),
                 clearComment: true,
                 refreshRecord: true
             );
@@ -88,7 +88,7 @@ final class WorkflowTransitionRunner
             report($exception);
 
             return $this->result(
-                errorMessage: $transition->getErrorMessage() ?? 'The transition could not be completed.'
+                errorMessage: $transition->getErrorMessage() ?? __('seviaflow-ui::panel.the_transition_could_not_be_completed')
             );
         }
     }

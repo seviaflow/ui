@@ -5,10 +5,11 @@ declare(strict_types=1);
 namespace SeviaFlow\Ui\Navigation;
 
 use Illuminate\Contracts\Cache\Repository as CacheRepository;
+use Illuminate\Support\Str;
 
 final class NavigationMetadataCache
 {
-    private const CACHE_KEY = 'seviaflow.navigation.base.v2';
+    private const CACHE_KEY = 'seviaflow.navigation.base.v3';
 
     public function __construct(
         private readonly NavigationMetadataResolver $resolver
@@ -30,6 +31,9 @@ final class NavigationMetadataCache
         }
 
         $cache = $this->cache();
+        // Clearing the generation invalidates every locale without cache tags.
+        $generation = $cache->remember(self::CACHE_KEY, $this->ttl(), fn (): string => (string) Str::uuid());
+        $key = self::CACHE_KEY.'.'.$generation.'.'.sha1(app()->getLocale().'|'.app('translator')->getFallback());
 
         /** @var array{
          *   groups: array<int, array{
@@ -39,7 +43,7 @@ final class NavigationMetadataCache
          *   }>
          * } $metadata
          */
-        $metadata = $cache->remember(self::CACHE_KEY, $this->ttl(), fn (): array => $this->resolver->resolve());
+        $metadata = $cache->remember($key, $this->ttl(), fn (): array => $this->resolver->resolve());
 
         return $metadata;
     }

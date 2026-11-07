@@ -17,12 +17,12 @@
             <div class="sf-file-copy">
                 <strong>{{ $fileMetadata['name'] }}</strong>
                 <span class="sf-item-meta">
-                    {{ $fileMetadata['size'] !== null ? number_format($fileMetadata['size'] / 1024, 1).' KB' : 'Size unavailable' }}
+                    {{ $fileMetadata['size'] !== null ? number_format($fileMetadata['size'] / 1024, 1).' KB' : __('seviaflow-ui::panel.size_unavailable') }}
                     @if($fileMetadata['mime']) · {{ $fileMetadata['mime'] }} @endif
                 </span>
             </div>
             @if($fileDownloadUrl)
-                <a href="{{ $fileDownloadUrl }}" class="sf-link">Open</a>
+                <a href="{{ $fileDownloadUrl }}" class="sf-link">{{ __('seviaflow-ui::panel.open') }}</a>
             @endif
         </div>
     @endif
@@ -38,24 +38,24 @@
         @class($controlClasses)
     >
     <div class="sf-upload-status" wire:loading wire:target="{{ $fieldPath }}" role="status" aria-live="polite">
-        Uploading…
-        <progress max="100" value="0" data-sf-upload-progress aria-label="Upload progress"></progress>
+        {{ __('seviaflow-ui::panel.uploading') }}
+        <progress max="100" value="0" data-sf-upload-progress aria-label="{{ __('seviaflow-ui::panel.upload_progress') }}"></progress>
     </div>
     @if($filePending)
-        <p class="sf-help" data-sf-file-pending>Replacement selected; save to apply it.</p>
+        <p class="sf-help" data-sf-file-pending>{{ __('seviaflow-ui::panel.replacement_selected_save_to_apply_it') }}</p>
     @endif
     @if(in_array($modelPath, ['fieldValues', 'relationModalValues'], true) && $fileHasValue)
         <div class="mt-2 flex flex-wrap items-center gap-2 text-sm">
             @if($fileAction === 'remove')
-                <span class="sf-item-meta">Removal will be applied on save.</span>
+                <span class="sf-item-meta">{{ __('seviaflow-ui::panel.removal_will_be_applied_on_save') }}</span>
                 @if(! $isDisabled && ! $isReadonly)
-                    <button type="button" wire:click="{{ $retainAction }}('{{ $field->name() }}')" class="sf-button sf-button-secondary !px-3 !py-1.5">Keep current file</button>
+                    <button type="button" wire:click="{{ $retainAction }}('{{ $field->name() }}')" class="sf-button sf-button-secondary !px-3 !py-1.5">{{ __('seviaflow-ui::panel.keep_current_file') }}</button>
                 @endif
             @elseif(! $isDisabled && ! $isReadonly)
-                <button type="button" wire:click="{{ $removeAction }}('{{ $field->name() }}')" class="sf-button sf-button-secondary !px-3 !py-1.5">Remove current file</button>
-                <span class="sf-item-meta">Choose another file above to replace it.</span>
+                <button type="button" wire:click="{{ $removeAction }}('{{ $field->name() }}')" class="sf-button sf-button-secondary !px-3 !py-1.5">{{ __('seviaflow-ui::panel.remove_current_file') }}</button>
+                <span class="sf-item-meta">{{ __('seviaflow-ui::panel.choose_another_file_above_to_replace_it') }}</span>
             @endif
         </div>
     @endif
-    <p class="sf-help mt-2">Upload a file from your device.</p>
+    <p class="sf-help mt-2">{{ __('seviaflow-ui::panel.upload_a_file_from_your_device') }}</p>
 </div>

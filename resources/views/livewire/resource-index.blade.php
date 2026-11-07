@@ -10,16 +10,16 @@
             @include('seviaflow-ui::livewire.partials.feedback-alert', ['type' => 'danger', 'message' => $errorMessage])
         @endif
 
-        <section class="sf-panel sf-resource-toolbar-panel" aria-label="Record tools">
+        <section class="sf-panel sf-resource-toolbar-panel" aria-label="{{ __('seviaflow-ui::panel.record_tools') }}">
             <div class="sf-resource-toolbar sf-resource-toolbar-unified">
                 <div class="sf-toolbar-search">
-                    <label for="resource-search" class="sr-only">Search records</label>
+                    <label for="resource-search" class="sr-only">{{ __('seviaflow-ui::panel.search_records') }}</label>
                     <x-seviaflow-ui::icon name="magnifying-glass" class="sf-toolbar-search-icon" />
                     <input
                         id="resource-search"
                         type="search"
                         wire:model.live.debounce.300ms="search"
-                        placeholder="Search records"
+                        placeholder="{{ __('seviaflow-ui::panel.search_records') }}"
                         class="sf-input"
                     >
                 </div>
@@ -32,27 +32,27 @@
                         data-sf-drawer-target="sf-resource-filters"
                         aria-controls="sf-resource-filters"
                         aria-expanded="false"
-                        title="Filters"
+                        title="{{ __('seviaflow-ui::panel.filters') }}"
                     >
                         <x-seviaflow-ui::icon name="funnel" class="sf-action-icon" />
-                        <span class="sf-toolbar-control-label">Filters</span>
+                        <span class="sf-toolbar-control-label">{{ __('seviaflow-ui::panel.filters') }}</span>
                         @if($activeFiltersCount > 0)
                             <span class="sf-summary-pill sf-summary-pill-strong">{{ $activeFiltersCount }}</span>
-                            <span class="sr-only">{{ $activeFiltersCount === 1 ? 'filter active' : 'filters active' }}</span>
+                            <span class="sr-only">{{ $activeFiltersCount === 1 ? __('seviaflow-ui::panel.filter_active') : __('seviaflow-ui::panel.filters_active') }}</span>
                         @endif
                     </button>
                 @endif
 
                 <details class="sf-toolbar-dropdown" data-sf-toolbar-menu wire:ignore.self wire:key="resource-views-menu">
-                    <summary class="sf-button sf-button-ghost" title="Views">
+                    <summary class="sf-button sf-button-ghost" title="{{ __('seviaflow-ui::panel.views') }}">
                         <x-seviaflow-ui::icon name="bookmark" class="sf-action-icon" />
-                        <span class="sf-toolbar-control-label">Views</span>
+                        <span class="sf-toolbar-control-label">{{ __('seviaflow-ui::panel.views') }}</span>
                         <span class="sf-toolbar-chevron" aria-hidden="true"></span>
                     </summary>
-                    <div class="sf-toolbar-menu" aria-label="Saved views">
-                        <p class="sf-toolbar-menu-label">Saved views</p>
+                    <div class="sf-toolbar-menu" aria-label="{{ __('seviaflow-ui::panel.saved_views') }}">
+                        <p class="sf-toolbar-menu-label">{{ __('seviaflow-ui::panel.saved_views') }}</p>
                         @if($savedViewModified)
-                            <p class="sf-help sf-toolbar-menu-empty" role="status">Current view modified</p>
+                            <p class="sf-help sf-toolbar-menu-empty" role="status">{{ __('seviaflow-ui::panel.current_view_modified') }}</p>
                         @endif
                         @forelse($savedViews as $savedView)
                             <button
@@ -69,12 +69,12 @@
                                 @endif
                             </button>
                         @empty
-                            <p class="sf-help sf-toolbar-menu-empty">No saved views yet.</p>
+                            <p class="sf-help sf-toolbar-menu-empty">{{ __('seviaflow-ui::panel.no_saved_views_yet') }}</p>
                         @endforelse
                         <div class="sf-toolbar-menu-divider"></div>
                         <button type="button" wire:click="openSaveViewForm" class="sf-toolbar-menu-item" data-sf-menu-close>
                             <x-seviaflow-ui::icon name="plus-circle" class="sf-action-icon" />
-                            <span>Save current view</span>
+                            <span>{{ __('seviaflow-ui::panel.save_current_view') }}</span>
                         </button>
                         @if($selectedSavedViewId !== null && $selectedSavedViewId !== '')
                             <button
@@ -85,7 +85,7 @@
                                 data-sf-menu-close
                             >
                                 <x-seviaflow-ui::icon name="trash" class="sf-action-icon" />
-                                <span>Delete current view</span>
+                                <span>{{ __('seviaflow-ui::panel.delete_current_view') }}</span>
                             </button>
                         @endif
                     </div>
@@ -94,17 +94,17 @@
                 @if($selectedCount > 0)
                     <div class="sf-toolbar-selection" wire:key="resource-selection-tools">
                         <span class="sf-toolbar-selection-count" role="status">
-                            {{ $selectedCount }} {{ $selectedCount === 1 ? 'record' : 'records' }} selected
+                            {{ trans_choice('seviaflow-ui::panel.selected_records', $selectedCount, ['count' => $selectedCount]) }}
                         </span>
                         @if(count($bulkActions) > 0)
                             <details class="sf-toolbar-dropdown" data-sf-toolbar-menu wire:ignore.self>
                                 <summary class="sf-button sf-button-ghost">
-                                    <span>Bulk actions</span>
+                                    <span>{{ __('seviaflow-ui::panel.bulk_actions') }}</span>
                                     <span class="sf-toolbar-chevron" aria-hidden="true"></span>
                                 </summary>
-                                <div class="sf-toolbar-menu" aria-label="Bulk actions">
+                                <div class="sf-toolbar-menu" aria-label="{{ __('seviaflow-ui::panel.bulk_actions') }}">
                                     <p class="sf-help sf-toolbar-menu-empty">
-                                        {{ $selectedVisibleCount }} selected on this page; bulk actions never select the full result set automatically.
+                                        {{ __('seviaflow-ui::panel.selected_on_page', ['count' => $selectedVisibleCount]) }}
                                     </p>
                                     @foreach($bulkActions as $action)
                                         <button
@@ -122,22 +122,22 @@
                                 </div>
                             </details>
                         @endif
-                        <button type="button" wire:click="clearSelection" class="sf-button sf-button-ghost sf-toolbar-icon-button" aria-label="Clear selection" title="Clear selection">
+                        <button type="button" wire:click="clearSelection" class="sf-button sf-button-ghost sf-toolbar-icon-button" aria-label="{{ __('seviaflow-ui::panel.clear_selection') }}" title="{{ __('seviaflow-ui::panel.clear_selection') }}">
                             <x-seviaflow-ui::icon name="x-circle" class="sf-action-icon" />
                         </button>
                     </div>
                 @else
-                    <span class="sr-only" role="status">0 records selected</span>
+                    <span class="sr-only" role="status">{{ __('seviaflow-ui::panel.0_records_selected') }}</span>
                 @endif
 
                 <div class="sf-toolbar-end">
                     <details class="sf-toolbar-dropdown" data-sf-toolbar-menu wire:ignore.self wire:key="resource-settings-menu">
-                        <summary class="sf-button sf-button-ghost sf-toolbar-icon-button" title="Table settings">
+                        <summary class="sf-button sf-button-ghost sf-toolbar-icon-button" title="{{ __('seviaflow-ui::panel.table_settings') }}">
                             <x-seviaflow-ui::icon name="adjustments-horizontal" class="sf-action-icon" />
-                            <span class="sr-only">Table settings</span>
+                            <span class="sr-only">{{ __('seviaflow-ui::panel.table_settings') }}</span>
                         </summary>
-                        <div class="sf-toolbar-menu sf-toolbar-menu-end" aria-label="Table settings">
-                            <p class="sf-toolbar-menu-label">Table settings</p>
+                        <div class="sf-toolbar-menu sf-toolbar-menu-end" aria-label="{{ __('seviaflow-ui::panel.table_settings') }}">
+                            <p class="sf-toolbar-menu-label">{{ __('seviaflow-ui::panel.table_settings') }}</p>
                             @if(count($columnSettings) > 0)
                                 <button
                                     type="button"
@@ -147,33 +147,33 @@
                                     aria-expanded="false"
                                     data-sf-menu-close
                                 >
-                                    Columns and order
+                                    {{ __('seviaflow-ui::panel.columns_and_order') }}
                                 </button>
                                 <div class="sf-toolbar-menu-divider"></div>
                             @endif
                             <div class="sf-toolbar-menu-field">
-                                <p class="sf-label">Table density</p>
-                                <div class="sf-density-toggle" role="group" aria-label="Table density">
-                                    <button type="button" data-sf-density="comfortable" aria-pressed="true">Comfortable</button>
-                                    <button type="button" data-sf-density="compact" aria-pressed="false">Compact</button>
+                                <p class="sf-label">{{ __('seviaflow-ui::panel.table_density') }}</p>
+                                <div class="sf-density-toggle" role="group" aria-label="{{ __('seviaflow-ui::panel.table_density') }}">
+                                    <button type="button" data-sf-density="comfortable" aria-pressed="true">{{ __('seviaflow-ui::panel.comfortable') }}</button>
+                                    <button type="button" data-sf-density="compact" aria-pressed="false">{{ __('seviaflow-ui::panel.compact') }}</button>
                                 </div>
                             </div>
                             <div class="sf-toolbar-menu-field">
-                                <label for="resource-per-page" class="sf-label">Records per page</label>
+                                <label for="resource-per-page" class="sf-label">{{ __('seviaflow-ui::panel.records_per_page') }}</label>
                                 <select id="resource-per-page" wire:model.live="perPage" class="sf-select">
                                     @foreach($perPageOptions as $option)
-                                        <option value="{{ $option }}">{{ $option }} per page</option>
+                                        <option value="{{ $option }}">{{ __('seviaflow-ui::panel.per_page', ['count' => $option]) }}</option>
                                     @endforeach
                                 </select>
                             </div>
 
                             @if($supportsSoftDeletes)
                                 <div class="sf-toolbar-menu-field">
-                                    <label for="resource-trashed-scope" class="sf-label">Trash scope</label>
+                                    <label for="resource-trashed-scope" class="sf-label">{{ __('seviaflow-ui::panel.trash_scope') }}</label>
                                     <select id="resource-trashed-scope" wire:model.live="trashedScope" class="sf-select">
-                                        <option value="active">Active records</option>
-                                        <option value="trashed">Trashed records</option>
-                                        <option value="with_trashed">All records</option>
+                                        <option value="active">{{ __('seviaflow-ui::panel.active_records') }}</option>
+                                        <option value="trashed">{{ __('seviaflow-ui::panel.trashed_records') }}</option>
+                                        <option value="with_trashed">{{ __('seviaflow-ui::panel.all_records') }}</option>
                                     </select>
                                 </div>
                             @endif
@@ -182,16 +182,16 @@
 
                     @if($canExport || $canImport)
                         <details class="sf-toolbar-dropdown" data-sf-toolbar-menu wire:ignore.self wire:key="resource-more-menu">
-                            <summary class="sf-button sf-button-ghost" title="More actions">
-                                <span>More</span>
+                            <summary class="sf-button sf-button-ghost" title="{{ __('seviaflow-ui::panel.more_actions') }}">
+                                <span>{{ __('seviaflow-ui::panel.more') }}</span>
                                 <span class="sf-toolbar-chevron" aria-hidden="true"></span>
                             </summary>
-                            <div class="sf-toolbar-menu sf-toolbar-menu-end" aria-label="More actions">
+                            <div class="sf-toolbar-menu sf-toolbar-menu-end" aria-label="{{ __('seviaflow-ui::panel.more_actions') }}">
                                 @if($canExport)
-                                    <button type="button" wire:click="openExportModal" data-sf-modal-target="sf-resource-export" aria-controls="sf-resource-export" aria-expanded="false" class="sf-toolbar-menu-item" data-sf-menu-close>Export</button>
+                                    <button type="button" wire:click="openExportModal" data-sf-modal-target="sf-resource-export" aria-controls="sf-resource-export" aria-expanded="false" class="sf-toolbar-menu-item" data-sf-menu-close>{{ __('seviaflow-ui::panel.export') }}</button>
                                 @endif
                                 @if($canImport)
-                                    <button type="button" wire:click="openImportModal" data-sf-modal-target="sf-resource-import" aria-controls="sf-resource-import" aria-expanded="false" class="sf-toolbar-menu-item" data-sf-menu-close>Import</button>
+                                    <button type="button" wire:click="openImportModal" data-sf-modal-target="sf-resource-import" aria-controls="sf-resource-import" aria-expanded="false" class="sf-toolbar-menu-item" data-sf-menu-close>{{ __('seviaflow-ui::panel.import') }}</button>
                                 @endif
                             </div>
                         </details>
@@ -200,7 +200,7 @@
                     @if($hasForm && $canCreate)
                         <a href="{{ $createUrl }}" class="sf-button sf-button-primary">
                             <x-seviaflow-ui::icon name="plus-circle" class="sf-action-icon" />
-                            <span>Create</span>
+                            <span>{{ __('seviaflow-ui::panel.create') }}</span>
                         </a>
                     @endif
                 </div>
@@ -209,20 +209,20 @@
             @if($showSaveViewForm)
                 <div class="sf-toolbar-context grid gap-2 sm:grid-cols-[1fr_auto_auto] sm:items-end">
                     <div>
-                        <label for="saved-view-name" class="sf-label">View name</label>
+                        <label for="saved-view-name" class="sf-label">{{ __('seviaflow-ui::panel.view_name') }}</label>
                         <input
                             id="saved-view-name"
                             type="text"
                             wire:model.live="savedViewName"
-                            placeholder="e.g. Published this month"
+                            placeholder="{{ __('seviaflow-ui::panel.e_g_published_this_month') }}"
                             class="sf-input"
                         >
                     </div>
                     <button type="button" wire:click="saveCurrentView" class="sf-button sf-button-primary !px-3 !py-1.5">
-                        Save view
+                        {{ __('seviaflow-ui::panel.save_view') }}
                     </button>
                     <button type="button" wire:click="cancelSaveView" class="sf-button sf-button-secondary !px-3 !py-1.5">
-                        Cancel
+                        {{ __('seviaflow-ui::ui.actions.cancel') }}
                     </button>
                 </div>
             @endif
@@ -234,10 +234,10 @@
                                 @component('seviaflow-ui::livewire.partials.action-confirmation', [
                                     'id' => 'sf-bulk-action-confirmation-'.\Illuminate\Support\Str::slug($action->name()),
                                     'variant' => $action->isDanger() ? 'danger' : 'safe',
-                                    'title' => $action->isDanger() ? 'Confirm dangerous bulk action' : 'Confirm bulk action',
-                                    'message' => 'You are about to run this action on '.$selectedCount.' '.($selectedCount === 1 ? 'record' : 'records').'.',
+                                    'title' => $action->isDanger() ? __('seviaflow-ui::panel.confirm_dangerous_bulk_action') : __('seviaflow-ui::panel.confirm_bulk_action'),
+                                    'message' => trans_choice('seviaflow-ui::panel.bulk_confirmation', $selectedCount, ['count' => $selectedCount]),
                                     'consequences' => $action->isDanger()
-                                        ? ['Selected records may be changed immediately.', 'This action may be hard to undo.']
+                                        ? [__('seviaflow-ui::panel.selected_records_may_be_changed_immediately'), __('seviaflow-ui::panel.this_action_may_be_hard_to_undo')]
                                         : [],
                                 ])
                                     <button
@@ -245,14 +245,14 @@
                                         wire:click="executeBulkAction('{{ $action->name() }}', true)"
                                         class="sf-button {{ $action->isDanger() ? 'sf-button-danger' : 'sf-button-primary' }} !px-3 !py-1.5"
                                     >
-                                        {{ $action->getConfirmButton() ?? 'Confirm' }}
+                                        {{ $action->getConfirmButton() ?? __('seviaflow-ui::ui.actions.confirm') }}
                                     </button>
                                     <button
                                         type="button"
                                         wire:click="$set('pendingBulkActionName', null)"
                                         class="sf-button sf-button-secondary !px-3 !py-1.5"
                                     >
-                                        {{ $action->getCancelButton() ?? 'Cancel' }}
+                                        {{ $action->getCancelButton() ?? __('seviaflow-ui::ui.actions.cancel') }}
                                     </button>
                                 @endcomponent
                             </div>
@@ -266,17 +266,17 @@
             <section id="sf-resource-export" class="sf-modal" role="dialog" aria-modal="true" aria-hidden="false" aria-labelledby="sf-resource-export-title" data-sf-modal>
                 <div class="sf-modal-panel sf-card">
                     <div class="sf-modal-header">
-                        <h2 id="sf-resource-export-title" class="sf-card-title">Export records</h2>
-                        <button type="button" class="sf-icon-button" aria-label="Close export dialog" data-sf-modal-close wire:click="closeExportModal">
+                        <h2 id="sf-resource-export-title" class="sf-card-title">{{ __('seviaflow-ui::panel.export_records') }}</h2>
+                        <button type="button" class="sf-icon-button" aria-label="{{ __('seviaflow-ui::panel.close_export_dialog') }}" data-sf-modal-close wire:click="closeExportModal">
                             <x-seviaflow-ui::icon name="x-circle" />
                         </button>
                     </div>
                     <div class="sf-modal-body grid gap-4">
                     <div>
                         <div class="mb-2 flex items-center justify-between gap-2">
-                            <label class="sf-label mb-0">Fields</label>
+                            <label class="sf-label mb-0">{{ __('seviaflow-ui::panel.fields') }}</label>
                             <button type="button" wire:click="selectAllExportFields" class="sf-button sf-button-secondary !px-3 !py-1.5">
-                                Select all
+                                {{ __('seviaflow-ui::panel.select_all') }}
                             </button>
                         </div>
                         <div class="grid gap-2 sm:grid-cols-2">
@@ -296,7 +296,7 @@
 
                     <div class="grid gap-3 sm:grid-cols-2">
                         <div>
-                            <label for="export-format" class="sf-label">Format</label>
+                            <label for="export-format" class="sf-label">{{ __('seviaflow-ui::panel.format') }}</label>
                             <select id="export-format" wire:model.live="selectedExportFormat" class="sf-select">
                                 @foreach($exportFormats as $format)
                                     <option value="{{ $format }}">{{ strtoupper($format) }}</option>
@@ -304,20 +304,20 @@
                             </select>
                         </div>
                         <div>
-                            <label for="export-scope" class="sf-label">Scope</label>
+                            <label for="export-scope" class="sf-label">{{ __('seviaflow-ui::panel.scope') }}</label>
                             <select id="export-scope" wire:model.live="exportScope" class="sf-select">
-                                <option value="current_view">Current view</option>
-                                <option value="selected_rows">Selected rows</option>
+                                <option value="current_view">{{ __('seviaflow-ui::panel.current_view') }}</option>
+                                <option value="selected_rows">{{ __('seviaflow-ui::panel.selected_rows') }}</option>
                             </select>
                         </div>
                     </div>
 
                     <div class="sf-modal-footer">
                         <button type="button" wire:click="exportRecords" class="sf-button sf-button-primary !px-3 !py-1.5">
-                            Export
+                            {{ __('seviaflow-ui::panel.export') }}
                         </button>
                         <button type="button" wire:click="closeExportModal" class="sf-button sf-button-secondary !px-3 !py-1.5" data-sf-modal-close>
-                            Cancel
+                            {{ __('seviaflow-ui::ui.actions.cancel') }}
                         </button>
                     </div>
                     </div>
@@ -330,16 +330,16 @@
                 <div class="sf-modal-panel sf-card">
                     <div class="sf-modal-header">
                         <div>
-                            <h2 id="sf-resource-import-title" class="sf-card-title">Import CSV preview</h2>
-                            <p class="sf-card-description">Headers must match allowed fields exactly.</p>
+                            <h2 id="sf-resource-import-title" class="sf-card-title">{{ __('seviaflow-ui::panel.import_csv_preview') }}</h2>
+                            <p class="sf-card-description">{{ __('seviaflow-ui::panel.headers_must_match_allowed_fields_exactly') }}</p>
                         </div>
-                        <button type="button" class="sf-icon-button" aria-label="Close import dialog" data-sf-modal-close wire:click="closeImportModal">
+                        <button type="button" class="sf-icon-button" aria-label="{{ __('seviaflow-ui::panel.close_import_dialog') }}" data-sf-modal-close wire:click="closeImportModal">
                             <x-seviaflow-ui::icon name="x-circle" />
                         </button>
                     </div>
                     <div class="sf-modal-body grid gap-4">
                     <div>
-                        <label for="import-file" class="sf-label">CSV file</label>
+                        <label for="import-file" class="sf-label">{{ __('seviaflow-ui::panel.csv_file') }}</label>
                         <input id="import-file" type="file" wire:model="importFile" accept=".csv,text/csv" class="sf-input">
                         @error('importFile')
                             <p class="sf-error mt-1">{{ $message }}</p>
@@ -347,30 +347,30 @@
                     </div>
 
                     <div class="sf-inset-panel text-xs">
-                        Allowed fields: {{ implode(', ', $importAllowedFields) }}
+                        {{ __('seviaflow-ui::panel.allowed_fields', ['fields' => implode(', ', $importAllowedFields)]) }}
                         @if(count($importRequiredFields) > 0)
-                            <br>Required fields: {{ implode(', ', $importRequiredFields) }}
+                            <br>{{ __('seviaflow-ui::panel.required_fields', ['fields' => implode(', ', $importRequiredFields)]) }}
                         @endif
                         <button type="button" wire:click="downloadImportTemplate" class="sf-button sf-button-secondary mt-3 !px-3 !py-1.5">
-                            Download CSV template
+                            {{ __('seviaflow-ui::panel.download_csv_template') }}
                         </button>
                     </div>
 
                     <div class="sf-modal-footer">
                         <button type="button" wire:click="previewImport" class="sf-button sf-button-primary !px-3 !py-1.5">
-                            Preview
+                            {{ __('seviaflow-ui::panel.preview') }}
                         </button>
                         <button type="button" wire:click="executeImport" class="sf-button sf-button-primary !px-3 !py-1.5">
-                            Import now
+                            {{ __('seviaflow-ui::panel.import_now') }}
                         </button>
                         <button type="button" wire:click="closeImportModal" class="sf-button sf-button-secondary !px-3 !py-1.5" data-sf-modal-close>
-                            Cancel
+                            {{ __('seviaflow-ui::ui.actions.cancel') }}
                         </button>
                     </div>
 
                     @if(count($importPreviewErrors) > 0)
                         <div class="sf-alert sf-alert-warning">
-                            <p class="font-semibold">Preview errors</p>
+                            <p class="font-semibold">{{ __('seviaflow-ui::panel.preview_errors') }}</p>
                             <ul class="mt-1 list-disc space-y-1 pl-5 text-xs">
                                 @foreach($importPreviewErrors as $previewError)
                                     <li>{{ $previewError }}</li>
@@ -381,7 +381,7 @@
 
                     @if(count($importPreviewHeaders) > 0)
                         <div>
-                            <p class="sf-label">Detected headers</p>
+                            <p class="sf-label">{{ __('seviaflow-ui::panel.detected_headers') }}</p>
                             <p class="sf-help mt-1">{{ implode(', ', $importPreviewHeaders) }}</p>
                         </div>
                     @endif
@@ -391,11 +391,11 @@
                             <table class="sf-table">
                                 <thead>
                                     <tr>
-                                        <th class="sf-table-header">Row</th>
+                                        <th class="sf-table-header">{{ __('seviaflow-ui::panel.row') }}</th>
                                         @foreach($importPreviewHeaders as $header)
                                             <th class="sf-table-header">{{ $header }}</th>
                                         @endforeach
-                                        <th class="sf-table-header">Errors</th>
+                                        <th class="sf-table-header">{{ __('seviaflow-ui::panel.errors') }}</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -428,7 +428,7 @@
                 <thead>
                     <tr>
                         <th scope="col" class="sf-table-header px-4">
-                            <label for="select-all-visible" class="sr-only">Select all visible records</label>
+                            <label for="select-all-visible" class="sr-only">{{ __('seviaflow-ui::panel.select_all_visible_records') }}</label>
                             <input
                                 id="select-all-visible"
                                 type="checkbox"
@@ -449,7 +449,7 @@
                                         type="button"
                                         wire:click="sortBy('{{ $column->name() }}')"
                                         class="sf-table-sort"
-                                        aria-label="Sort by {{ $column->getLabel() }}"
+                                        aria-label="{{ __('seviaflow-ui::panel.sort_by', ['column' => $column->getLabel()]) }}"
                                     >
                                         <span>{{ $column->getLabel() }}</span>
                                         @if($sortColumn === $column->name())
@@ -461,14 +461,14 @@
                                 @endif
                             </th>
                         @endforeach
-                        <th scope="col" class="sf-table-header">Actions</th>
+                        <th scope="col" class="sf-table-header">{{ __('seviaflow-ui::panel.actions') }}</th>
                     </tr>
                 </thead>
                 <tbody>
                     @forelse($records as $record)
                         <tr>
                             <td class="sf-table-cell px-4">
-                                <label for="record-select-{{ $record->getKey() }}" class="sr-only">Select record {{ $record->getKey() }}</label>
+                                <label for="record-select-{{ $record->getKey() }}" class="sr-only">{{ __('seviaflow-ui::panel.select_record', ['id' => $record->getKey()]) }}</label>
                                 <input
                                     id="record-select-{{ $record->getKey() }}"
                                     type="checkbox"
@@ -484,22 +484,22 @@
                                 <div class="sf-row-actions">
                                     @if($canViewRecord($record))
                                         <a href="{{ $showUrl($record) }}" class="sf-button sf-button-secondary !px-3 !py-1.5">
-                                            View
+                                            {{ __('seviaflow-ui::panel.view') }}
                                         </a>
                                     @endif
                                     @if($hasForm && $canUpdateRecord($record))
                                         <a href="{{ $editUrl($record) }}" class="sf-button sf-button-secondary !px-3 !py-1.5">
-                                            Edit
+                                            {{ __('seviaflow-ui::panel.edit') }}
                                         </a>
                                     @endif
                                     @if($canDeleteRecord($record))
                                         <button
                                             type="button"
                                             wire:click="deleteRecord({{ $record->getKey() }})"
-                                            wire:confirm="{{ $supportsSoftDeletes ? 'Are you sure you want to move this record to trash?' : 'Are you sure you want to delete this record?' }}"
+                                            wire:confirm="{{ $supportsSoftDeletes ? __('seviaflow-ui::panel.are_you_sure_you_want_to_move_this_record_to_trash') : __('seviaflow-ui::panel.are_you_sure_you_want_to_delete_this_record') }}"
                                             class="sf-button sf-button-danger !px-3 !py-1.5"
                                         >
-                                            {{ $supportsSoftDeletes ? 'Move to trash' : 'Delete' }}
+                                            {{ $supportsSoftDeletes ? __('seviaflow-ui::panel.move_to_trash') : __('seviaflow-ui::panel.delete') }}
                                         </button>
                                     @endif
                                     @if($canRestoreRecord($record))
@@ -509,7 +509,7 @@
                                             wire:confirm="Are you sure you want to restore this record?"
                                             class="sf-button sf-button-secondary !px-3 !py-1.5"
                                         >
-                                            Restore
+                                            {{ __('seviaflow-ui::panel.restore') }}
                                         </button>
                                     @endif
                                     @foreach($rowActions as $action)
@@ -521,10 +521,10 @@
                                                 @component('seviaflow-ui::livewire.partials.action-confirmation', [
                                                     'id' => 'sf-row-action-confirmation-'.$record->getKey().'-'.\Illuminate\Support\Str::slug($action->name()),
                                                     'variant' => $action->isDanger() ? 'danger' : 'safe',
-                                                    'title' => $action->isDanger() ? 'Confirm dangerous action' : 'Confirm action',
-                                                    'message' => 'Please confirm before continuing.',
+                                                    'title' => $action->isDanger() ? __('seviaflow-ui::panel.confirm_dangerous_action') : __('seviaflow-ui::panel.confirm_action'),
+                                                    'message' => __('seviaflow-ui::panel.please_confirm_before_continuing'),
                                                     'consequences' => $action->isDanger()
-                                                        ? ['This action affects the selected record immediately.']
+                                                        ? [__('seviaflow-ui::panel.this_action_affects_the_selected_record_immediately')]
                                                         : [],
                                                 ])
                                                     <button
@@ -532,14 +532,14 @@
                                                         wire:click="executeAction('{{ $record->getKey() }}', '{{ $action->name() }}', true)"
                                                         class="sf-button {{ $action->isDanger() ? 'sf-button-danger' : 'sf-button-primary' }} !px-3 !py-1.5"
                                                     >
-                                                        {{ $action->getConfirmButton() ?? 'Confirm' }}
+                                                        {{ $action->getConfirmButton() ?? __('seviaflow-ui::ui.actions.confirm') }}
                                                     </button>
                                                     <button
                                                         type="button"
                                                         wire:click="$set('pendingActionName', null); $set('pendingActionRecordId', null);"
                                                         class="sf-button sf-button-secondary !px-3 !py-1.5"
                                                     >
-                                                        {{ $action->getCancelButton() ?? 'Cancel' }}
+                                                        {{ $action->getCancelButton() ?? __('seviaflow-ui::ui.actions.cancel') }}
                                                     </button>
                                                 @endcomponent
                                             </div>
@@ -566,7 +566,7 @@
                                 {{ $emptyMessage }}
                                 @if($hasActiveQuery)
                                     <button type="button" wire:click="resetTableState" class="sf-button sf-button-secondary mt-3 !px-3 !py-1.5">
-                                        Reset list view
+                                        {{ __('seviaflow-ui::panel.reset_list_view') }}
                                     </button>
                                 @endif
                             </td>
@@ -595,10 +595,10 @@
         >
             <div class="sf-drawer-header">
                 <div>
-                    <h2 id="sf-resource-columns-title" class="sf-drawer-title">Table settings</h2>
-                    <p class="sf-drawer-description">Choose visible columns and their order. API and export fields are unchanged.</p>
+                    <h2 id="sf-resource-columns-title" class="sf-drawer-title">{{ __('seviaflow-ui::panel.table_settings') }}</h2>
+                    <p class="sf-drawer-description">{{ __('seviaflow-ui::panel.choose_visible_columns_and_their_order_api_and_export_fields_are_unchanged') }}</p>
                 </div>
-                <button type="button" class="sf-drawer-close" aria-label="Close table settings" data-sf-drawer-close>
+                <button type="button" class="sf-drawer-close" aria-label="{{ __('seviaflow-ui::panel.close_table_settings') }}" data-sf-drawer-close>
                     <x-seviaflow-ui::icon name="x-circle" class="sf-drawer-close-icon" />
                 </button>
             </div>
@@ -622,18 +622,18 @@
                                     wire:click="moveColumnUp('{{ $columnSetting['name'] }}')"
                                     class="sf-button sf-button-secondary !px-2 !py-1"
                                     @disabled(! $columnSetting['can_move_up'])
-                                    aria-label="Move {{ $columnSetting['label'] }} up"
+                                    aria-label="{{ __('seviaflow-ui::panel.move_up', ['column' => $columnSetting['label']]) }}"
                                 >
-                                    Up
+                                    {{ __('seviaflow-ui::panel.up') }}
                                 </button>
                                 <button
                                     type="button"
                                     wire:click="moveColumnDown('{{ $columnSetting['name'] }}')"
                                     class="sf-button sf-button-secondary !px-2 !py-1"
                                     @disabled(! $columnSetting['can_move_down'])
-                                    aria-label="Move {{ $columnSetting['label'] }} down"
+                                    aria-label="{{ __('seviaflow-ui::panel.move_down', ['column' => $columnSetting['label']]) }}"
                                 >
-                                    Down
+                                    {{ __('seviaflow-ui::panel.down') }}
                                 </button>
                             </div>
                         @endif
@@ -642,7 +642,7 @@
             </div>
 
             <div class="sf-drawer-footer">
-                <button type="button" class="sf-button sf-button-primary" data-sf-drawer-close>Done</button>
+                <button type="button" class="sf-button sf-button-primary" data-sf-drawer-close>{{ __('seviaflow-ui::panel.done') }}</button>
             </div>
         </aside>
     @endif
@@ -661,32 +661,32 @@
         >
             <div class="sf-drawer-header">
                 <div>
-                    <h2 id="sf-resource-filters-title" class="sf-drawer-title">Filters</h2>
+                    <h2 id="sf-resource-filters-title" class="sf-drawer-title">{{ __('seviaflow-ui::panel.filters') }}</h2>
                     <p class="sf-drawer-description">
-                        {{ $activeFiltersCount }} {{ $activeFiltersCount === 1 ? 'filter active' : 'filters active' }}. Values apply as they change.
+                        {{ trans_choice('seviaflow-ui::panel.active_filters_count', $activeFiltersCount, ['count' => $activeFiltersCount]) }}. {{ __('seviaflow-ui::panel.filters_apply_live') }}
                     </p>
                 </div>
-                <button type="button" class="sf-drawer-close" aria-label="Close filters" data-sf-drawer-close>
+                <button type="button" class="sf-drawer-close" aria-label="{{ __('seviaflow-ui::panel.close_filters') }}" data-sf-drawer-close>
                     <x-seviaflow-ui::icon name="x-circle" class="sf-drawer-close-icon" />
                 </button>
             </div>
 
             <div class="sf-drawer-body">
                 @if(count($activeFilterEntries) > 0)
-                    <div class="sf-resource-summary mt-3" aria-label="Active filters">
-                        <span class="sf-help">Active filters:</span>
+                    <div class="sf-resource-summary mt-3" aria-label="{{ __('seviaflow-ui::panel.active_filters') }}">
+                        <span class="sf-help">{{ __('seviaflow-ui::panel.active_filters_label') }}</span>
                         @foreach($activeFilterEntries as $activeFilter)
                             <button
                                 type="button"
                                 wire:click="clearFilter('{{ $activeFilter['name'] }}')"
                                 class="sf-summary-pill sf-summary-pill-strong"
-                                aria-label="Remove {{ $activeFilter['label'] }} filter"
+                                aria-label="{{ __('seviaflow-ui::panel.remove_filter', ['filter' => $activeFilter['label']]) }}"
                             >
                                 {{ $activeFilter['label'] }}: {{ $activeFilter['value'] }} ×
                             </button>
                         @endforeach
                         <button type="button" wire:click="resetFilters" class="sf-button sf-button-secondary !px-2 !py-1">
-                            Reset filters
+                            {{ __('seviaflow-ui::panel.reset_filters') }}
                         </button>
                     </div>
                 @endif
@@ -700,9 +700,9 @@
                                     wire:model.live="filterValues.{{ $filter->name() }}"
                                     class="sf-select"
                                 >
-                                    <option value="">{{ $filter->getPlaceholder() ?? 'Any' }}</option>
-                                    <option value="1">Yes</option>
-                                    <option value="0">No</option>
+                                    <option value="">{{ $filter->getPlaceholder() ?? __('seviaflow-ui::panel.any') }}</option>
+                                    <option value="1">{{ __('seviaflow-ui::panel.yes') }}</option>
+                                    <option value="0">{{ __('seviaflow-ui::panel.no') }}</option>
                                 </select>
                             @elseif($filter instanceof \SeviaFlow\Core\Resources\Filters\BelongsToFilter)
                                 <select
@@ -710,7 +710,7 @@
                                     wire:model.live="filterValues.{{ $filter->name() }}"
                                     class="sf-select"
                                 >
-                                    <option value="">{{ $filter->getPlaceholder() ?? 'Any' }}</option>
+                                    <option value="">{{ $filter->getPlaceholder() ?? __('seviaflow-ui::panel.any') }}</option>
                                     @foreach($filter->getOptionsFor($resource::model()) as $value => $label)
                                         <option value="{{ $value }}">{{ $label }}</option>
                                     @endforeach
@@ -721,7 +721,7 @@
                                     wire:model.live="filterValues.{{ $filter->name() }}"
                                     class="sf-select"
                                 >
-                                    <option value="">{{ $filter->getPlaceholder() ?? 'Any' }}</option>
+                                    <option value="">{{ $filter->getPlaceholder() ?? __('seviaflow-ui::panel.any') }}</option>
                                     @foreach($filter->getOptions() as $value => $label)
                                         <option value="{{ $value }}">{{ $label }}</option>
                                     @endforeach
@@ -742,7 +742,7 @@
                                     id="filter-{{ $filter->name() }}"
                                     type="text"
                                     wire:model.live="filterValues.{{ $filter->name() }}"
-                                    placeholder="{{ $filter->getPlaceholder() ?? 'Type to filter' }}"
+                                    placeholder="{{ $filter->getPlaceholder() ?? __('seviaflow-ui::panel.type_to_filter') }}"
                                     class="sf-input"
                                 >
                             @elseif($filter instanceof \SeviaFlow\Core\Resources\Filters\DateFilter)
@@ -758,14 +758,14 @@
                                         id="filter-{{ $filter->name() }}-from"
                                         type="datetime-local"
                                         wire:model.live="filterValues.{{ $filter->name() }}.from"
-                                        placeholder="From"
+                                        placeholder="{{ __('seviaflow-ui::panel.from') }}"
                                         class="sf-input"
                                     >
                                     <input
                                         id="filter-{{ $filter->name() }}-to"
                                         type="datetime-local"
                                         wire:model.live="filterValues.{{ $filter->name() }}.to"
-                                        placeholder="To"
+                                        placeholder="{{ __('seviaflow-ui::panel.to') }}"
                                         class="sf-input"
                                     >
                                 </div>
@@ -775,14 +775,14 @@
                                         id="filter-{{ $filter->name() }}-from"
                                         type="date"
                                         wire:model.live="filterValues.{{ $filter->name() }}.from"
-                                        placeholder="From"
+                                        placeholder="{{ __('seviaflow-ui::panel.from') }}"
                                         class="sf-input"
                                     >
                                     <input
                                         id="filter-{{ $filter->name() }}-to"
                                         type="date"
                                         wire:model.live="filterValues.{{ $filter->name() }}.to"
-                                        placeholder="To"
+                                        placeholder="{{ __('seviaflow-ui::panel.to') }}"
                                         class="sf-input"
                                     >
                                 </div>
@@ -799,7 +799,7 @@
                                     type="number"
                                     step="any"
                                     wire:model.live="filterValues.{{ $filter->name() }}"
-                                    placeholder="{{ $filter->getPlaceholder() ?? 'Any value' }}"
+                                    placeholder="{{ $filter->getPlaceholder() ?? __('seviaflow-ui::panel.any_value') }}"
                                     class="sf-input"
                                 >
                             @elseif($filter instanceof \SeviaFlow\Core\Resources\Filters\NumberRangeFilter)
@@ -809,7 +809,7 @@
                                         type="number"
                                         step="any"
                                         wire:model.live="filterValues.{{ $filter->name() }}.min"
-                                        placeholder="Min"
+                                        placeholder="{{ __('seviaflow-ui::panel.min') }}"
                                         class="sf-input"
                                     >
                                     <input
@@ -817,7 +817,7 @@
                                         type="number"
                                         step="any"
                                         wire:model.live="filterValues.{{ $filter->name() }}.max"
-                                        placeholder="Max"
+                                        placeholder="{{ __('seviaflow-ui::panel.max') }}"
                                         class="sf-input"
                                     >
                                 </div>
@@ -833,10 +833,10 @@
                     wire:click="resetFilters"
                     class="sf-button sf-button-secondary"
                 >
-                    Reset filters
+                    {{ __('seviaflow-ui::panel.reset_filters') }}
                 </button>
                 <button type="button" class="sf-button sf-button-primary" data-sf-drawer-close>
-                    Close
+                    {{ __('seviaflow-ui::ui.actions.close') }}
                 </button>
             </div>
         </aside>

@@ -2,15 +2,15 @@
     <section class="sf-panel">
         <div class="sf-dashboard-toolbar">
             <div>
-                <p class="sf-card-kicker">Dashboard</p>
+                <p class="sf-card-kicker">{{ __('seviaflow-ui::panel.dashboard') }}</p>
                 <h2 class="sf-page-title">{{ $dashboardLabel }}</h2>
                 <p class="sf-card-description mt-2">
-                    {{ $dashboardDescription ?: 'Use this dashboard to navigate your admin resources and manage daily operations.' }}
+                    {{ $dashboardDescription ?: __('seviaflow-ui::panel.use_this_dashboard_to_navigate_your_admin_resources_and_manage_daily_operations') }}
                 </p>
                 @if($userName || $userEmail)
                     <p class="sf-muted mt-3">
-                        Signed in as
-                        <span class="sf-item-title">{{ $userName ?: 'Admin user' }}</span>
+                        {{ __('seviaflow-ui::panel.dashboard_signed_in_as') }}
+                        <span class="sf-item-title">{{ $userName ?: __('seviaflow-ui::panel.admin_user') }}</span>
                         @if($userEmail)
                             <span>({{ $userEmail }})</span>
                         @endif
@@ -21,7 +21,7 @@
             <div class="sf-resource-actions">
                 @if($showDashboardSwitcher)
                     <div class="sf-dashboard-switcher">
-                        <label class="sf-label" for="sf-dashboard-switcher">Dashboard</label>
+                        <label class="sf-label" for="sf-dashboard-switcher">{{ __('seviaflow-ui::panel.dashboard') }}</label>
                         <select id="sf-dashboard-switcher" class="sf-select sm:w-52" onchange="if (this.value) window.location.href=this.value;">
                             @foreach($dashboardOptions as $dashboardOption)
                                 <option
@@ -39,7 +39,7 @@
                     <div class="sf-resource-actions">
                         @if(!$layoutEditing)
                             <button type="button" wire:click="startLayoutEditing" class="sf-button sf-button-secondary">
-                                Customize
+                                {{ __('seviaflow-ui::panel.dashboard_customize') }}
                             </button>
                         @endif
                         <div
@@ -47,9 +47,9 @@
                             @if(!$layoutEditing) hidden aria-hidden="true" @endif
                         >
                             <div class="sf-resource-actions">
-                                <label class="sf-label" for="sf-saved-layout-select">Saved layouts</label>
+                                <label class="sf-label" for="sf-saved-layout-select">{{ __('seviaflow-ui::panel.saved_layouts') }}</label>
                                 <select id="sf-saved-layout-select" wire:model="selectedSavedLayoutId" class="sf-select sm:w-48">
-                                    <option value="">Current layout</option>
+                                    <option value="">{{ __('seviaflow-ui::panel.current_layout') }}</option>
                                     @foreach($savedLayouts as $savedLayout)
                                         <option value="{{ $savedLayout['id'] }}">
                                             {{ $savedLayout['name'] }}@if($savedLayout['is_default']) (Default) @endif
@@ -57,32 +57,32 @@
                                     @endforeach
                                 </select>
                                 <button type="button" wire:click="applySavedLayout" class="sf-button sf-button-secondary !px-3 !py-1.5">
-                                    Apply
+                                    {{ __('seviaflow-ui::panel.dashboard_apply') }}
                                 </button>
                                 <button type="button" wire:click="setDefaultSavedLayout" class="sf-button sf-button-secondary !px-3 !py-1.5">
-                                    Set default
+                                    {{ __('seviaflow-ui::panel.dashboard_set_default') }}
                                 </button>
                                 <button type="button" wire:click="deleteSavedLayout" class="sf-button sf-button-secondary !px-3 !py-1.5">
-                                    Delete
+                                    {{ __('seviaflow-ui::panel.delete') }}
                                 </button>
                             </div>
                             <div class="sf-resource-actions">
-                                <input type="text" wire:model.defer="savedLayoutName" placeholder="Layout name" class="sf-input sm:w-48">
+                                <input type="text" wire:model.defer="savedLayoutName" placeholder="{{ __('seviaflow-ui::panel.layout_name') }}" class="sf-input sm:w-48">
                                 <button type="button" wire:click="saveCurrentAsLayout" class="sf-button sf-button-secondary !px-3 !py-1.5">
-                                    Save as new
+                                    {{ __('seviaflow-ui::panel.dashboard_save_as_new') }}
                                 </button>
                                 <button type="button" wire:click="renameSavedLayout" class="sf-button sf-button-secondary !px-3 !py-1.5">
-                                    Rename
+                                    {{ __('seviaflow-ui::panel.dashboard_rename') }}
                                 </button>
                             </div>
                             <button type="button" wire:click="saveLayout" class="sf-button sf-button-primary">
-                                Save layout
+                                {{ __('seviaflow-ui::panel.dashboard_save_layout') }}
                             </button>
                             <button type="button" wire:click="cancelLayoutEditing" class="sf-button sf-button-secondary">
-                                Cancel
+                                {{ __('seviaflow-ui::ui.actions.cancel') }}
                             </button>
                             <button type="button" wire:click="resetLayout" class="sf-button sf-button-secondary">
-                                Reset to default
+                                {{ __('seviaflow-ui::panel.dashboard_reset_to_default') }}
                             </button>
                         </div>
                     </div>
@@ -95,7 +95,7 @@
         <article class="sf-card sf-dashboard-section">
             <div class="sf-card-body">
                 <div class="sf-dashboard-empty">
-                    No dashboards are currently visible for your account.
+                    {{ __('seviaflow-ui::panel.no_dashboards_are_currently_visible_for_your_account') }}
                 </div>
             </div>
         </article>
@@ -105,7 +105,7 @@
         <input type="hidden" wire:model="layoutPayload" data-sf-dashboard-layout-input>
         <section
             class="sf-dashboard-widget-grid {{ $layoutEditing ? 'sf-dashboard-widget-grid-editing' : '' }}"
-            aria-label="Dashboard widgets"
+            aria-label="{{ __('seviaflow-ui::panel.dashboard_widgets') }}"
             data-sf-dashboard-layout-editor="1"
             data-layout-editing="{{ $layoutEditing ? '1' : '0' }}"
         >
@@ -119,10 +119,10 @@
                     @if($layoutEditing)
                         <div class="px-4 pt-4">
                             <div class="sf-inset-panel flex flex-wrap items-center justify-between gap-2 !py-2 text-xs">
-                                <span class="sf-dashboard-drag-handle" data-sf-drag-handle="1" title="Drag to reorder widgets">Drag to reorder</span>
+                                <span class="sf-dashboard-drag-handle" data-sf-drag-handle="1" title="{{ __('seviaflow-ui::panel.drag_to_reorder_widgets') }}">{{ __('seviaflow-ui::panel.drag_to_reorder') }}</span>
                                 <div class="sf-resource-actions">
                                     <label class="sf-checkbox-label">
-                                        Width
+                                        {{ __('seviaflow-ui::panel.dashboard_width') }}
                                         <select class="sf-select !min-h-8 !w-16 !px-2 !py-1 text-xs" data-widget-width="1">
                                             @for($width = 1; $width <= 3; $width++)
                                                 <option value="{{ $width }}" @selected((is_int($widget['columnSpan']) ? $widget['columnSpan'] : 1) === $width)>{{ $width }}</option>
@@ -131,7 +131,7 @@
                                     </label>
                                     <label class="sf-checkbox-label">
                                         <input type="checkbox" data-widget-visible="1" checked class="sf-checkbox">
-                                        Visible
+                                        {{ __('seviaflow-ui::panel.dashboard_visible') }}
                                     </label>
                                 </div>
                             </div>
@@ -145,19 +145,18 @@
         <div class="sf-dashboard-grid-panels">
             <article class="sf-card sf-dashboard-card">
                 <div class="sf-card-body">
-                    <p class="sf-card-kicker">Available resources</p>
+                    <p class="sf-card-kicker">{{ __('seviaflow-ui::panel.available_resources') }}</p>
                     <p class="sf-dashboard-metric">{{ $resourceCount }}</p>
-                    <p class="sf-card-description mt-2">Resources you can access right now.</p>
+                    <p class="sf-card-description mt-2">{{ __('seviaflow-ui::panel.resources_you_can_access_right_now') }}</p>
                 </div>
             </article>
 
             <article class="sf-card sf-dashboard-section">
                 <div class="sf-card-body">
-                    <h3 class="sf-card-title">Resource overview</h3>
+                    <h3 class="sf-card-title">{{ __('seviaflow-ui::panel.resource_overview') }}</h3>
                     @if($resourceItems === [])
                         <div class="sf-dashboard-empty mt-3">
-                            No resources are available yet. Register resources in `config/seviaflow.php` and ensure
-                            your role can view them.
+                            {{ __('seviaflow-ui::panel.dashboard_no_resources_are_available_yet_register_resources_in_config_seviaflow_php_and_ensure_your_role_can_view_them') }}
                         </div>
                     @else
                         <ul class="sf-widget-list mt-3 sm:grid-cols-2">
@@ -172,7 +171,7 @@
                                             @endif
                                         </div>
                                         <a href="{{ $item['url'] }}" class="sf-button sf-button-secondary !px-3 !py-1.5">
-                                            View
+                                            {{ __('seviaflow-ui::panel.view') }}
                                         </a>
                                     </div>
                                 </li>
@@ -185,12 +184,12 @@
 
         <article class="sf-card sf-dashboard-section">
             <div class="sf-card-body">
-                <h3 class="sf-card-title">Workflow overview</h3>
-                <p class="sf-card-description mt-1">Workflow-enabled resources and current process configuration.</p>
+                <h3 class="sf-card-title">{{ __('seviaflow-ui::panel.workflow_overview') }}</h3>
+                <p class="sf-card-description mt-1">{{ __('seviaflow-ui::panel.workflow_enabled_resources_and_current_process_configuration') }}</p>
 
                 @if($workflowItems === [])
                     <div class="sf-dashboard-empty mt-3">
-                        No workflow-enabled resources are currently available.
+                        {{ __('seviaflow-ui::panel.dashboard_no_workflow_enabled_resources_are_currently_available') }}
                     </div>
                 @else
                     <ul class="sf-widget-list mt-3 lg:grid-cols-2">
@@ -206,7 +205,7 @@
                                         @endif
                                     </div>
                                     <a href="{{ $item['url'] }}" class="sf-button sf-button-secondary !px-3 !py-1.5">
-                                        View
+                                        {{ __('seviaflow-ui::panel.view') }}
                                     </a>
                                 </div>
                             </li>
@@ -218,12 +217,12 @@
 
         <article class="sf-card sf-dashboard-section">
             <div class="sf-card-body">
-                <h3 class="sf-card-title">Recent activity</h3>
-                <p class="sf-card-description mt-1">Latest workflow transitions across resources you can access.</p>
+                <h3 class="sf-card-title">{{ __('seviaflow-ui::panel.recent_activity') }}</h3>
+                <p class="sf-card-description mt-1">{{ __('seviaflow-ui::panel.latest_workflow_transitions_across_resources_you_can_access') }}</p>
 
                 @if($recentActivities === [])
                     <div class="sf-dashboard-empty mt-3">
-                        No recent workflow activity found.
+                        {{ __('seviaflow-ui::panel.dashboard_no_recent_workflow_activity_found') }}
                     </div>
                 @else
                     <ul class="sf-widget-list mt-3">
@@ -254,12 +253,12 @@
 
         <article class="sf-card sf-dashboard-section">
             <div class="sf-card-body">
-                <h3 class="sf-card-title">Quick actions</h3>
-                <p class="sf-card-description mt-1">Shortcuts to common admin tasks.</p>
+                <h3 class="sf-card-title">{{ __('seviaflow-ui::panel.quick_actions') }}</h3>
+                <p class="sf-card-description mt-1">{{ __('seviaflow-ui::panel.shortcuts_to_common_admin_tasks') }}</p>
 
                 @if($quickActions === [])
                     <div class="sf-dashboard-empty mt-3">
-                        No quick actions are currently available.
+                        {{ __('seviaflow-ui::panel.dashboard_no_quick_actions_are_currently_available') }}
                     </div>
                 @else
                     <div class="sf-resource-actions mt-3">

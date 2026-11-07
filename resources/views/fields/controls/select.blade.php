@@ -4,7 +4,7 @@
     $groups = $field->getOptionGroups($formState);
 @endphp
 @if($field->isSearchable())
-    <input type="search" id="{{ $fieldId }}-search" aria-label="Search {{ $field->getLabel() }}" aria-controls="{{ $fieldId }}" wire:model.live.debounce.200ms="selectSearch.{{ $fieldPath }}" class="sf-input" @disabled($isDisabled || $isReadonly)>
+    <input type="search" id="{{ $fieldId }}-search" aria-label="{{ __('seviaflow-ui::panel.search_field', ['field' => $field->getLabel()]) }}" aria-controls="{{ $fieldId }}" wire:model.live.debounce.200ms="selectSearch.{{ $fieldPath }}" class="sf-input" @disabled($isDisabled || $isReadonly)>
 @endif
 <select
     id="{{ $fieldId }}"
@@ -15,7 +15,7 @@
     @if($describedBy !== '') aria-describedby="{{ $describedBy }}" @endif
     @class($selectClasses)
 >
-    <option value="">{{ $field->getPlaceholder() ?: 'Select an option' }}</option>
+    <option value="">{{ $field->getPlaceholder() ?: __('seviaflow-ui::panel.select_an_option') }}</option>
     @foreach($groups as $group => $options)
         @php
             $visibleOptions = array_filter($options, static fn (string $label, int|string $value): bool =>

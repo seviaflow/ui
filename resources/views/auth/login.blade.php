@@ -1,14 +1,14 @@
-<x-seviaflow-ui::auth.layout title="Sign in — SeviaFlow">
+<x-seviaflow-ui::auth.layout title="{{ __('seviaflow-ui::panel.sign_in_seviaflow') }}">
     <div class="sf-auth-header">
-        <h1 class="sf-auth-title">Sign in to your account</h1>
+        <h1 class="sf-auth-title">{{ __('seviaflow-ui::panel.sign_in_to_your_account') }}</h1>
         <p class="sf-auth-description">
-            Welcome back! Please enter your details.
+            {{ __('seviaflow-ui::panel.welcome_back_please_enter_your_details') }}
         </p>
     </div>
 
     @if ($errors->any())
         <div class="sf-alert sf-alert-danger">
-            <p>Please check the form and try again.</p>
+            <p>{{ __('seviaflow-ui::panel.please_check_the_form_and_try_again') }}</p>
         </div>
     @endif
 
@@ -16,7 +16,7 @@
         @csrf
 
         <div class="sf-field">
-            <label class="sf-label" for="email">Email address</label>
+            <label class="sf-label" for="email">{{ __('seviaflow-ui::panel.email_address') }}</label>
 
             <input
                     id="email"
@@ -36,7 +36,7 @@
         </div>
 
         <div class="sf-field">
-            <label class="sf-label" for="password">Password</label>
+            <label class="sf-label" for="password">{{ __('seviaflow-ui::panel.password') }}</label>
 
             <input
                     id="password"
@@ -63,16 +63,16 @@
                         class="sf-checkbox"
                 >
 
-                <span>Remember me</span>
+                <span>{{ __('seviaflow-ui::panel.remember_me') }}</span>
             </label>
 
             <a href="{{ route(config('seviaflow-ui.route_name_prefix', 'seviaflow.').'password.request') }}" class="sf-link">
-                Forgot password?
+                {{ __('seviaflow-ui::panel.forgot_password') }}
             </a>
         </div>
 
         <button type="submit" class="sf-button sf-button-primary">
-            Sign in
+            {{ __('seviaflow-ui::panel.sign_in') }}
         </button>
     </form>
 </x-seviaflow-ui::auth.layout>

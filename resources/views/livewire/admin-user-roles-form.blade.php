@@ -4,9 +4,9 @@
     @endif
 
     <div class="sf-panel">
-        <p class="sf-card-kicker">Settings</p>
-        <h1 class="sf-card-title">Assign roles</h1>
-        <p class="sf-card-description mt-1">User: {{ $userRecord?->name ?? 'User #'.$userRecord?->getKey() }}</p>
+        <p class="sf-card-kicker">{{ __('seviaflow-ui::panel.settings') }}</p>
+        <h1 class="sf-card-title">{{ __('seviaflow-ui::panel.assign_roles') }}</h1>
+        <p class="sf-card-description mt-1">{{ __('seviaflow-ui::panel.user_context', ['name' => $userRecord?->name ?? __('seviaflow-ui::panel.user_number', ['id' => $userRecord?->getKey()])]) }}</p>
     </div>
 
     <form wire:submit="save" class="space-y-4">
@@ -28,7 +28,7 @@
                             </span>
                         </label>
                     @empty
-                        <p class="sf-table-empty">No roles available. Create a role first.</p>
+                        <p class="sf-table-empty">{{ __('seviaflow-ui::panel.no_roles_available_create_a_role_first') }}</p>
                     @endforelse
                 </div>
             </div>
@@ -36,8 +36,8 @@
 
         <div class="sf-form-actions">
             <div class="sf-resource-actions">
-                <button type="submit" class="sf-button sf-button-primary">Save roles</button>
-                <a href="{{ $backUrl }}" class="sf-button sf-button-secondary">Back</a>
+                <button type="submit" class="sf-button sf-button-primary">{{ __('seviaflow-ui::panel.save_roles') }}</button>
+                <a href="{{ $backUrl }}" class="sf-button sf-button-secondary">{{ __('seviaflow-ui::panel.back') }}</a>
             </div>
         </div>
     </form>

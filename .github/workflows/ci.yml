@@ -154,6 +154,7 @@ jobs:
         working-directory: ui
         run: |
           npm ci
+          npm test
           npm run build
           git diff --exit-code -- public/dist
           test "$(find public/dist -type f -print | sort)" = "$(git ls-files -- public/dist | sort)"

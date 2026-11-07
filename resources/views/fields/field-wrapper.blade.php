@@ -15,8 +15,8 @@
     $help = $field->getHelp();
     if ($help === null && $field instanceof \SeviaFlow\Core\Resources\Fields\PasswordField) {
         $help = $context === \SeviaFlow\Core\Resources\ResourceContext::Edit
-            ? 'Leave blank to keep the current password.'
-            : 'Use a strong password.';
+            ? __('seviaflow-ui::panel.leave_blank_to_keep_the_current_password')
+            : __('seviaflow-ui::panel.use_a_strong_password');
     }
     $describedBy = trim(($help ? $helpId : '').($hasError ? ' '.$errorId : ''));
 @endphp

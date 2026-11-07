@@ -349,7 +349,7 @@ final class ResourceIndex extends Component
 
         if (in_array($name, $this->visibleColumnNames, true)) {
             if (count($this->visibleColumnNames) <= 1) {
-                $this->errorMessage = 'Keep at least one table column visible.';
+                $this->errorMessage = __('seviaflow-ui::panel.keep_at_least_one_table_column_visible');
 
                 return;
             }
@@ -415,7 +415,7 @@ final class ResourceIndex extends Component
         $savedView = $this->findOwnedSavedView($savedViewId);
 
         if (! $savedView instanceof SavedView) {
-            $this->errorMessage = 'Saved view not found.';
+            $this->errorMessage = __('seviaflow-ui::panel.saved_view_not_found');
 
             return;
         }
@@ -446,7 +446,7 @@ final class ResourceIndex extends Component
         $this->clearSelection();
         $this->resetPage();
         $this->selectedSavedViewId = (string) $savedView->id;
-        $this->statusMessage = 'Saved view applied.';
+        $this->statusMessage = __('seviaflow-ui::panel.saved_view_applied');
     }
 
     public function deleteSavedView(string $savedViewId): void
@@ -495,7 +495,7 @@ final class ResourceIndex extends Component
         $this->clearMessages();
 
         if (! $this->canExport()) {
-            $this->errorMessage = 'Export is not available for this resource.';
+            $this->errorMessage = __('seviaflow-ui::panel.export_is_not_available_for_this_resource');
 
             return null;
         }
@@ -565,7 +565,7 @@ final class ResourceIndex extends Component
         $this->clearMessages();
 
         if (! $this->canImport()) {
-            $this->errorMessage = 'Import is not available for this resource.';
+            $this->errorMessage = __('seviaflow-ui::panel.import_is_not_available_for_this_resource');
 
             return null;
         }
@@ -573,7 +573,7 @@ final class ResourceIndex extends Component
         $headings = $this->importFields();
 
         if ($headings === []) {
-            $this->errorMessage = 'This resource does not define import fields.';
+            $this->errorMessage = __('seviaflow-ui::panel.this_resource_does_not_define_import_fields');
 
             return null;
         }
@@ -592,7 +592,7 @@ final class ResourceIndex extends Component
         $this->clearImportPreview();
 
         if (! $this->canImport()) {
-            $this->errorMessage = 'Import is not available for this resource.';
+            $this->errorMessage = __('seviaflow-ui::panel.import_is_not_available_for_this_resource');
 
             return;
         }
@@ -623,7 +623,7 @@ final class ResourceIndex extends Component
         $this->clearMessages();
 
         if (! $this->canImport()) {
-            $this->errorMessage = 'Import is not available for this resource.';
+            $this->errorMessage = __('seviaflow-ui::panel.import_is_not_available_for_this_resource');
 
             return;
         }
@@ -665,7 +665,7 @@ final class ResourceIndex extends Component
         $record = $this->tableQuery()->find($recordId);
 
         if (! $record instanceof Model) {
-            $this->statusMessage = 'The selected record could not be found.';
+            $this->statusMessage = __('seviaflow-ui::panel.the_selected_record_could_not_be_found');
 
             return;
         }
@@ -682,15 +682,15 @@ final class ResourceIndex extends Component
             });
 
             $this->statusMessage = $this->supportsSoftDeletes()
-                ? 'Record moved to trash successfully.'
-                : 'Record deleted successfully.';
+                ? __('seviaflow-ui::panel.record_moved_to_trash_successfully')
+                : __('seviaflow-ui::panel.record_deleted_successfully');
             $this->removeSelectionForRecord($record);
             $this->resetPage();
         } catch (\InvalidArgumentException|\LogicException $exception) {
             $this->errorMessage = $exception->getMessage();
         } catch (\Throwable $exception) {
             report($exception);
-            $this->errorMessage = 'Delete failed. Please try again.';
+            $this->errorMessage = __('seviaflow-ui::panel.delete_failed_please_try_again');
         }
     }
 
@@ -699,7 +699,7 @@ final class ResourceIndex extends Component
         $this->clearMessages();
 
         if (! $this->supportsSoftDeletes()) {
-            $this->errorMessage = 'Restore is not available for this resource.';
+            $this->errorMessage = __('seviaflow-ui::panel.restore_is_not_available_for_this_resource');
 
             return;
         }
@@ -707,13 +707,13 @@ final class ResourceIndex extends Component
         $record = $this->tableQuery()->find($recordId);
 
         if (! $record instanceof Model) {
-            $this->errorMessage = 'The selected record could not be found.';
+            $this->errorMessage = __('seviaflow-ui::panel.the_selected_record_could_not_be_found');
 
             return;
         }
 
         if (! method_exists($record, 'trashed') || ! $record->trashed()) {
-            $this->errorMessage = 'Only trashed records can be restored.';
+            $this->errorMessage = __('seviaflow-ui::panel.only_trashed_records_can_be_restored');
 
             return;
         }
@@ -726,21 +726,21 @@ final class ResourceIndex extends Component
             DB::transaction(function () use ($record): void {
                 $this->dispatchResourceEvent(ResourceEventContext::OPERATION_RESTORING, $record, ResourceEventContext::SOURCE_INDEX);
                 if (! method_exists($record, 'restore')) {
-                    throw new \LogicException('Restore is not available for this resource.');
+                    throw new \LogicException(__('seviaflow-ui::panel.restore_is_not_available_for_this_resource'));
                 }
 
                 $record->restore();
                 $this->dispatchResourceEvent(ResourceEventContext::OPERATION_RESTORED, $record, ResourceEventContext::SOURCE_INDEX);
             });
 
-            $this->statusMessage = 'Record restored successfully.';
+            $this->statusMessage = __('seviaflow-ui::panel.record_restored_successfully');
             $this->removeSelectionForRecord($record);
             $this->resetPage();
         } catch (\InvalidArgumentException|\LogicException $exception) {
             $this->errorMessage = $exception->getMessage();
         } catch (\Throwable $exception) {
             report($exception);
-            $this->errorMessage = 'Restore failed. Please try again.';
+            $this->errorMessage = __('seviaflow-ui::panel.restore_failed_please_try_again');
         }
     }
 
@@ -1180,7 +1180,7 @@ final class ResourceIndex extends Component
 
     private function emptyMessage(): string
     {
-        return $this->hasActiveQuery() ? 'No matching records found.' : 'No records to display.';
+        return $this->hasActiveQuery() ? __('seviaflow-ui::panel.no_matching_records_found') : __('seviaflow-ui::panel.no_records_to_display');
     }
 
     private function hasActiveQuery(): bool
@@ -1223,33 +1223,33 @@ final class ResourceIndex extends Component
 
         if ($this->supportsSoftDeletes()) {
             $actions[] = BulkAction::make(self::BUILT_IN_BULK_DELETE)
-                ->label('Move selected to trash')
+                ->label(__('seviaflow-ui::panel.move_selected_to_trash'))
                 ->mutating()
                 ->danger()
-                ->confirmButton('Move selected to trash')
-                ->cancelButton('Cancel')
-                ->successMessage('Selected records were moved to trash.');
+                ->confirmButton(__('seviaflow-ui::panel.move_selected_to_trash'))
+                ->cancelButton(__('seviaflow-ui::ui.actions.cancel'))
+                ->successMessage(__('seviaflow-ui::panel.selected_records_were_moved_to_trash'));
 
             if ($this->trashedScope !== 'active') {
                 $actions[] = BulkAction::make(self::BUILT_IN_BULK_RESTORE)
-                    ->label('Restore selected')
+                    ->label(__('seviaflow-ui::panel.restore_selected'))
                     ->mutating()
                     ->requiresConfirmation()
-                    ->confirmButton('Restore selected records')
-                    ->cancelButton('Cancel')
-                    ->successMessage('Selected records were restored.');
+                    ->confirmButton(__('seviaflow-ui::panel.restore_selected_records'))
+                    ->cancelButton(__('seviaflow-ui::ui.actions.cancel'))
+                    ->successMessage(__('seviaflow-ui::panel.selected_records_were_restored'));
             }
 
             return $actions;
         }
 
         $actions[] = BulkAction::make(self::BUILT_IN_BULK_DELETE)
-            ->label('Delete selected')
+            ->label(__('seviaflow-ui::panel.delete_selected'))
             ->mutating()
             ->danger()
-            ->confirmButton('Delete selected records')
-            ->cancelButton('Cancel')
-            ->successMessage('Selected records were deleted.');
+            ->confirmButton(__('seviaflow-ui::panel.delete_selected_records'))
+            ->cancelButton(__('seviaflow-ui::ui.actions.cancel'))
+            ->successMessage(__('seviaflow-ui::panel.selected_records_were_deleted'));
 
         return $actions;
     }
@@ -1470,7 +1470,7 @@ final class ResourceIndex extends Component
     {
         foreach ($records as $record) {
             if (! $this->canDeleteRecord($record)) {
-                $this->errorMessage = 'You are not authorized to delete one or more selected records.';
+                $this->errorMessage = __('seviaflow-ui::panel.you_are_not_authorized_to_delete_one_or_more_selected_records');
 
                 return;
             }
@@ -1488,7 +1488,7 @@ final class ResourceIndex extends Component
             $this->errorMessage = $exception->getMessage();
         } catch (\Throwable $exception) {
             report($exception);
-            $this->errorMessage = 'Delete failed. Please try again.';
+            $this->errorMessage = __('seviaflow-ui::panel.delete_failed_please_try_again');
         }
     }
 
@@ -1498,20 +1498,20 @@ final class ResourceIndex extends Component
     private function runBuiltInBulkRestore(Collection $records): void
     {
         if (! $this->supportsSoftDeletes()) {
-            $this->errorMessage = 'Restore is not available for this resource.';
+            $this->errorMessage = __('seviaflow-ui::panel.restore_is_not_available_for_this_resource');
 
             return;
         }
 
         foreach ($records as $record) {
             if (! method_exists($record, 'trashed') || ! $record->trashed()) {
-                $this->errorMessage = 'Only trashed records can be restored.';
+                $this->errorMessage = __('seviaflow-ui::panel.only_trashed_records_can_be_restored');
 
                 return;
             }
 
             if (! $this->canRestoreRecord($record)) {
-                $this->errorMessage = 'You are not authorized to restore one or more selected records.';
+                $this->errorMessage = __('seviaflow-ui::panel.you_are_not_authorized_to_restore_one_or_more_selected_records');
 
                 return;
             }
@@ -1522,7 +1522,7 @@ final class ResourceIndex extends Component
                 foreach ($records as $record) {
                     $this->dispatchResourceEvent(ResourceEventContext::OPERATION_RESTORING, $record, ResourceEventContext::SOURCE_BULK_ACTION);
                     if (! method_exists($record, 'restore')) {
-                        throw new \LogicException('Restore is not available for this resource.');
+                        throw new \LogicException(__('seviaflow-ui::panel.restore_is_not_available_for_this_resource'));
                     }
 
                     $record->restore();
@@ -1533,7 +1533,7 @@ final class ResourceIndex extends Component
             $this->errorMessage = $exception->getMessage();
         } catch (\Throwable $exception) {
             report($exception);
-            $this->errorMessage = 'Restore failed. Please try again.';
+            $this->errorMessage = __('seviaflow-ui::panel.restore_failed_please_try_again');
         }
     }
 

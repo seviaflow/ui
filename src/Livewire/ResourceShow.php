@@ -277,7 +277,7 @@ final class ResourceShow extends Component
         $this->clearMessages();
 
         if (! $this->record instanceof Model) {
-            $this->errorMessage = 'The selected record could not be found.';
+            $this->errorMessage = __('seviaflow-ui::panel.the_selected_record_could_not_be_found');
 
             return;
         }
@@ -338,7 +338,7 @@ final class ResourceShow extends Component
         $this->clearMessages();
 
         if (! $this->record instanceof Model) {
-            $this->errorMessage = 'The selected record could not be found.';
+            $this->errorMessage = __('seviaflow-ui::panel.the_selected_record_could_not_be_found');
 
             return;
         }
@@ -349,13 +349,13 @@ final class ResourceShow extends Component
 
         $relation = $this->findBelongsToManyRelation($relationshipName);
         if (! $relation instanceof BelongsToManyRelation && ! $relation instanceof MorphToManyRelation) {
-            $this->errorMessage = 'The selected relation is not available.';
+            $this->errorMessage = __('seviaflow-ui::panel.the_selected_relation_is_not_available');
 
             return;
         }
 
         if (! $relation->canAttach()) {
-            $this->errorMessage = 'Attaching related records is not allowed for this relation.';
+            $this->errorMessage = __('seviaflow-ui::panel.attaching_related_records_is_not_allowed_for_this_relation');
 
             return;
         }
@@ -368,7 +368,7 @@ final class ResourceShow extends Component
 
         $selectedId = (string) ($this->attachSelection[$relationshipName] ?? '');
         if ($selectedId === '') {
-            $this->errorMessage = 'Select a record to attach.';
+            $this->errorMessage = __('seviaflow-ui::panel.select_a_record_to_attach');
 
             return;
         }
@@ -380,7 +380,7 @@ final class ResourceShow extends Component
             : $this->belongsToManyRelationManager()->resolveRelatedRecord($this->record, $relation, $selectedId);
 
         if (! $relatedRecord instanceof Model) {
-            $this->errorMessage = 'The selected record is not available for attachment.';
+            $this->errorMessage = __('seviaflow-ui::panel.the_selected_record_is_not_available_for_attachment');
 
             return;
         }
@@ -394,7 +394,7 @@ final class ResourceShow extends Component
             : $this->belongsToManyRelationManager()->isAttached($this->record, $relation, $selectedId);
 
         if ($isAttached) {
-            $this->errorMessage = 'The selected record is already attached.';
+            $this->errorMessage = __('seviaflow-ui::panel.the_selected_record_is_already_attached');
 
             return;
         }
@@ -404,7 +404,7 @@ final class ResourceShow extends Component
             array_keys($this->belongsToManyAttachOptions($relation))
         );
         if (! in_array((string) $selectedId, $availableIds, true)) {
-            $this->errorMessage = 'The selected record is not available for attachment.';
+            $this->errorMessage = __('seviaflow-ui::panel.the_selected_record_is_not_available_for_attachment');
 
             return;
         }
@@ -415,7 +415,7 @@ final class ResourceShow extends Component
             $this->belongsToManyRelationManager()->attach($this->record, $relation, $selectedId);
         }
         $this->attachSelection[$relationshipName] = '';
-        $this->statusMessage = 'Related record attached successfully.';
+        $this->statusMessage = __('seviaflow-ui::panel.related_record_attached_successfully');
     }
 
     public function openBelongsToManyAttachModal(string $relationshipName): void
@@ -453,7 +453,7 @@ final class ResourceShow extends Component
 
         $relatedRecord = $this->resolveBelongsToManyAttachedRecord($relation, $relatedRecordId);
         if (! $relatedRecord instanceof Model) {
-            $this->errorMessage = 'The selected related record is not attached.';
+            $this->errorMessage = __('seviaflow-ui::panel.the_selected_related_record_is_not_attached');
 
             return;
         }
@@ -494,7 +494,7 @@ final class ResourceShow extends Component
         }
 
         if (! $this->record instanceof Model) {
-            $this->errorMessage = 'The selected record could not be found.';
+            $this->errorMessage = __('seviaflow-ui::panel.the_selected_record_could_not_be_found');
 
             return;
         }
@@ -513,21 +513,21 @@ final class ResourceShow extends Component
 
         if ($this->pivotModalMode === 'attach') {
             if (! $relation->canAttach()) {
-                $this->errorMessage = 'Attaching related records is not allowed for this relation.';
+                $this->errorMessage = __('seviaflow-ui::panel.attaching_related_records_is_not_allowed_for_this_relation');
 
                 return;
             }
 
             $selectedId = (string) ($this->attachSelection[$relation->getRelationshipName()] ?? '');
             if ($selectedId === '') {
-                $this->errorMessage = 'Select a record to attach.';
+                $this->errorMessage = __('seviaflow-ui::panel.select_a_record_to_attach');
 
                 return;
             }
 
             $relatedRecord = $this->resolveBelongsToManyAttachableRecord($relation, $selectedId);
             if (! $relatedRecord instanceof Model) {
-                $this->errorMessage = 'The selected record is not available for attachment.';
+                $this->errorMessage = __('seviaflow-ui::panel.the_selected_record_is_not_available_for_attachment');
 
                 return;
             }
@@ -538,7 +538,7 @@ final class ResourceShow extends Component
 
             $relationship->attach($selectedId, $safePivotValues);
             $this->attachSelection[$relation->getRelationshipName()] = '';
-            $this->statusMessage = 'Related record attached successfully.';
+            $this->statusMessage = __('seviaflow-ui::panel.related_record_attached_successfully');
             $this->cancelPivotModal();
 
             return;
@@ -546,7 +546,7 @@ final class ResourceShow extends Component
 
         $relatedRecord = $this->resolveBelongsToManyAttachedRecord($relation, (string) $this->pivotModalRelatedRecordId);
         if (! $relatedRecord instanceof Model) {
-            $this->errorMessage = 'The selected related record is not attached.';
+            $this->errorMessage = __('seviaflow-ui::panel.the_selected_related_record_is_not_attached');
 
             return;
         }
@@ -556,7 +556,7 @@ final class ResourceShow extends Component
         }
 
         $relationship->updateExistingPivot($relatedRecord->getKey(), $safePivotValues);
-        $this->statusMessage = 'Pivot values updated successfully.';
+        $this->statusMessage = __('seviaflow-ui::panel.pivot_values_updated_successfully');
         $this->cancelPivotModal();
     }
 
@@ -565,7 +565,7 @@ final class ResourceShow extends Component
         $this->clearMessages();
 
         if (! $this->record instanceof Model) {
-            $this->errorMessage = 'The selected record could not be found.';
+            $this->errorMessage = __('seviaflow-ui::panel.the_selected_record_could_not_be_found');
 
             return;
         }
@@ -576,13 +576,13 @@ final class ResourceShow extends Component
 
         $relation = $this->findBelongsToManyRelation($relationshipName);
         if (! $relation instanceof BelongsToManyRelation && ! $relation instanceof MorphToManyRelation) {
-            $this->errorMessage = 'The selected relation is not available.';
+            $this->errorMessage = __('seviaflow-ui::panel.the_selected_relation_is_not_available');
 
             return;
         }
 
         if (! $relation->canDetach()) {
-            $this->errorMessage = 'Detaching related records is not allowed for this relation.';
+            $this->errorMessage = __('seviaflow-ui::panel.detaching_related_records_is_not_allowed_for_this_relation');
 
             return;
         }
@@ -590,7 +590,7 @@ final class ResourceShow extends Component
         if (! $confirmed) {
             $this->pendingDetachRelation = $relationshipName;
             $this->pendingDetachRecordId = (string) $relatedRecordId;
-            $this->errorMessage = 'Please confirm detaching this related record before continuing.';
+            $this->errorMessage = __('seviaflow-ui::panel.please_confirm_detaching_this_related_record_before_continuing');
 
             return;
         }
@@ -602,7 +602,7 @@ final class ResourceShow extends Component
             : $this->belongsToManyRelationManager()->resolveRelatedRecord($this->record, $relation, $relatedRecordId);
 
         if (! $relatedRecord instanceof Model) {
-            $this->errorMessage = 'The selected related record could not be found.';
+            $this->errorMessage = __('seviaflow-ui::panel.the_selected_related_record_could_not_be_found');
 
             return;
         }
@@ -616,7 +616,7 @@ final class ResourceShow extends Component
             : $this->belongsToManyRelationManager()->isAttached($this->record, $relation, (string) $relatedRecord->getKey());
 
         if (! $isAttached) {
-            $this->errorMessage = 'The selected related record is not attached.';
+            $this->errorMessage = __('seviaflow-ui::panel.the_selected_related_record_is_not_attached');
 
             return;
         }
@@ -628,7 +628,7 @@ final class ResourceShow extends Component
         }
         $this->pendingDetachRelation = null;
         $this->pendingDetachRecordId = null;
-        $this->statusMessage = 'Related record detached successfully.';
+        $this->statusMessage = __('seviaflow-ui::panel.related_record_detached_successfully');
     }
 
     public function openHasManyCreateModal(string $relationshipName): void
@@ -663,7 +663,7 @@ final class ResourceShow extends Component
         }
 
         if ($this->resolveHasOneRecord($relation) instanceof Model) {
-            $this->errorMessage = 'A related record already exists for this relation.';
+            $this->errorMessage = __('seviaflow-ui::panel.a_related_record_already_exists_for_this_relation');
 
             return;
         }
@@ -686,7 +686,7 @@ final class ResourceShow extends Component
 
         $record = $this->resolveHasManyRecord($relation, $recordId);
         if (! $record instanceof Model) {
-            $this->errorMessage = 'The selected related record is not available.';
+            $this->errorMessage = __('seviaflow-ui::panel.the_selected_related_record_is_not_available');
 
             return;
         }
@@ -713,7 +713,7 @@ final class ResourceShow extends Component
 
         $record = $this->resolveHasOneRecordById($relation, $recordId);
         if (! $record instanceof Model) {
-            $this->errorMessage = 'The selected related record is not available.';
+            $this->errorMessage = __('seviaflow-ui::panel.the_selected_related_record_is_not_available');
 
             return;
         }
@@ -1040,7 +1040,7 @@ final class ResourceShow extends Component
 
         $this->relationModalValues[$field->name()] = (string) $created->getKey();
         $this->cancelRelationInlineCreate();
-        $this->statusMessage = 'Related record created successfully.';
+        $this->statusMessage = __('seviaflow-ui::panel.related_record_created_successfully');
         $this->dispatch('seviaflow:focus-field', fieldId: $this->fieldDomId('relationModalValues', $field->name()));
     }
 
@@ -1057,7 +1057,7 @@ final class ResourceShow extends Component
         }
 
         if (! $this->record instanceof Model) {
-            $this->errorMessage = 'The selected record could not be found.';
+            $this->errorMessage = __('seviaflow-ui::panel.the_selected_record_could_not_be_found');
 
             return;
         }
@@ -1074,7 +1074,7 @@ final class ResourceShow extends Component
                 : $this->resolveHasOneRecordById($relation, (string) $this->relationModalRecordId);
 
             if (! $existingRecord instanceof Model) {
-                $this->errorMessage = 'The selected related record is not available.';
+                $this->errorMessage = __('seviaflow-ui::panel.the_selected_related_record_is_not_available');
 
                 return;
             }
@@ -1107,13 +1107,13 @@ final class ResourceShow extends Component
 
         if ($this->relationModalMode === 'edit') {
             if (! $relation->canEdit()) {
-                $this->errorMessage = 'Editing related records is not allowed for this relation.';
+                $this->errorMessage = __('seviaflow-ui::panel.editing_related_records_is_not_allowed_for_this_relation');
 
                 return;
             }
 
             if (! $existingRecord instanceof Model) {
-                $this->errorMessage = 'The selected related record is not available.';
+                $this->errorMessage = __('seviaflow-ui::panel.the_selected_related_record_is_not_available');
 
                 return;
             }
@@ -1130,14 +1130,14 @@ final class ResourceShow extends Component
                     request: request(),
                 ),
             );
-            $this->statusMessage = 'Related record updated successfully.';
+            $this->statusMessage = __('seviaflow-ui::panel.related_record_updated_successfully');
             $this->cancelRelationModal();
 
             return;
         }
 
         if (! $relation->canCreate()) {
-            $this->errorMessage = 'Creating related records is not allowed for this relation.';
+            $this->errorMessage = __('seviaflow-ui::panel.creating_related_records_is_not_allowed_for_this_relation');
 
             return;
         }
@@ -1148,7 +1148,7 @@ final class ResourceShow extends Component
 
         if ($relation instanceof HasOneRelation || $relation instanceof MorphOneRelation) {
             if ($this->resolveHasOneRecord($relation) instanceof Model) {
-                $this->errorMessage = 'A related record already exists for this relation.';
+                $this->errorMessage = __('seviaflow-ui::panel.a_related_record_already_exists_for_this_relation');
 
                 return;
             }
@@ -1171,7 +1171,7 @@ final class ResourceShow extends Component
                 request: request(),
             ),
         );
-        $this->statusMessage = 'Related record created successfully.';
+        $this->statusMessage = __('seviaflow-ui::panel.related_record_created_successfully');
         $this->cancelRelationModal();
     }
 
@@ -1186,7 +1186,7 @@ final class ResourceShow extends Component
 
         $record = $this->resolveHasManyRecordWithTrashed($relation, $recordId);
         if (! $record instanceof Model) {
-            $this->errorMessage = 'The selected related record is not available.';
+            $this->errorMessage = __('seviaflow-ui::panel.the_selected_related_record_is_not_available');
 
             return;
         }
@@ -1198,7 +1198,7 @@ final class ResourceShow extends Component
         if (! $confirmed) {
             $this->pendingHasManyDeleteRelation = $relationshipName;
             $this->pendingHasManyDeleteRecordId = (string) $recordId;
-            $this->errorMessage = 'You are about to move this related record to trash.';
+            $this->errorMessage = __('seviaflow-ui::panel.you_are_about_to_move_this_related_record_to_trash');
 
             return;
         }
@@ -1207,8 +1207,8 @@ final class ResourceShow extends Component
         $this->pendingHasManyDeleteRelation = null;
         $this->pendingHasManyDeleteRecordId = null;
         $this->statusMessage = $relation->supportsSoftDeletes()
-            ? 'Related record moved to trash successfully.'
-            : 'Related record deleted successfully.';
+            ? __('seviaflow-ui::panel.related_record_moved_to_trash_successfully')
+            : __('seviaflow-ui::panel.related_record_deleted_successfully');
     }
 
     public function restoreHasManyRecord(string $relationshipName, int|string $recordId, bool $confirmed = false): void
@@ -1222,19 +1222,19 @@ final class ResourceShow extends Component
 
         $record = $this->resolveHasManyRecordWithTrashed($relation, $recordId);
         if (! $record instanceof Model) {
-            $this->errorMessage = 'The selected related record is not available.';
+            $this->errorMessage = __('seviaflow-ui::panel.the_selected_related_record_is_not_available');
 
             return;
         }
 
         if (! method_exists($record, 'trashed') || ! $record->trashed()) {
-            $this->errorMessage = 'Only trashed related records can be restored.';
+            $this->errorMessage = __('seviaflow-ui::panel.only_trashed_related_records_can_be_restored');
 
             return;
         }
 
         if (! method_exists($record, 'restore')) {
-            $this->errorMessage = 'Restore is not available for this related record.';
+            $this->errorMessage = __('seviaflow-ui::panel.restore_is_not_available_for_this_related_record');
 
             return;
         }
@@ -1246,7 +1246,7 @@ final class ResourceShow extends Component
         if (! $confirmed) {
             $this->pendingHasManyDeleteRelation = $relationshipName;
             $this->pendingHasManyDeleteRecordId = (string) $recordId;
-            $this->errorMessage = 'Please confirm restoring this related record before continuing.';
+            $this->errorMessage = __('seviaflow-ui::panel.please_confirm_restoring_this_related_record_before_continuing');
 
             return;
         }
@@ -1254,7 +1254,7 @@ final class ResourceShow extends Component
         $record->restore();
         $this->pendingHasManyDeleteRelation = null;
         $this->pendingHasManyDeleteRecordId = null;
-        $this->statusMessage = 'Related record restored successfully.';
+        $this->statusMessage = __('seviaflow-ui::panel.related_record_restored_successfully');
     }
 
     public function deleteHasOneRecord(string $relationshipName, int|string $recordId, bool $confirmed = false): void
@@ -1268,7 +1268,7 @@ final class ResourceShow extends Component
 
         $record = $this->resolveHasOneRecordById($relation, $recordId);
         if (! $record instanceof Model) {
-            $this->errorMessage = 'The selected related record is not available.';
+            $this->errorMessage = __('seviaflow-ui::panel.the_selected_related_record_is_not_available');
 
             return;
         }
@@ -1279,14 +1279,14 @@ final class ResourceShow extends Component
 
         if (! $confirmed) {
             $this->pendingHasOneDeleteRelation = $relationshipName;
-            $this->errorMessage = 'You are about to delete this related record.';
+            $this->errorMessage = __('seviaflow-ui::panel.you_are_about_to_delete_this_related_record');
 
             return;
         }
 
         $record->delete();
         $this->pendingHasOneDeleteRelation = null;
-        $this->statusMessage = 'Related record deleted successfully.';
+        $this->statusMessage = __('seviaflow-ui::panel.related_record_deleted_successfully');
     }
 
     /**
@@ -1349,7 +1349,7 @@ final class ResourceShow extends Component
     private function resourceLabel(): string
     {
         if (! $this->record instanceof Model) {
-            return 'Record details';
+            return __('seviaflow-ui::panel.record_details');
         }
 
         $title = $this->resource::recordTitle($this->record);
@@ -1613,7 +1613,7 @@ final class ResourceShow extends Component
                 'canAttach' => $relation instanceof BelongsToManyRelation || $relation instanceof MorphToManyRelation ? $relation->canAttach() : false,
                 'canDetach' => $relation instanceof BelongsToManyRelation || $relation instanceof MorphToManyRelation ? $relation->canDetach() : false,
                 'createLabel' => $relation instanceof HasManyRelation || $relation instanceof HasOneRelation || $relation instanceof MorphManyRelation || $relation instanceof MorphOneRelation ? $relation->getCreateLabel() : 'Add',
-                'editLabel' => $relation instanceof HasManyRelation || $relation instanceof HasOneRelation || $relation instanceof MorphManyRelation || $relation instanceof MorphOneRelation ? $relation->getEditLabel() : 'Edit',
+                'editLabel' => $relation instanceof HasManyRelation || $relation instanceof HasOneRelation || $relation instanceof MorphManyRelation || $relation instanceof MorphOneRelation ? $relation->getEditLabel() : __('seviaflow-ui::panel.edit'),
                 'canEditRecord' => fn (Model $relatedRecord): bool => $relation instanceof HasManyRelation || $relation instanceof HasOneRelation || $relation instanceof MorphManyRelation || $relation instanceof MorphOneRelation
                     ? $relation->canEdit() && $relatedAuthorization->canUpdate(null, $relatedRecord)
                     : false,
@@ -1639,7 +1639,7 @@ final class ResourceShow extends Component
                 'expanded' => $expanded,
                 'lazy' => $isLazy,
                 'recordCount' => $recordCount,
-                'loadLabel' => 'Open to load related records',
+                'loadLabel' => __('seviaflow-ui::panel.open_to_load_related_records'),
                 'attachOptions' => ($relation instanceof BelongsToManyRelation || $relation instanceof MorphToManyRelation) && $relation->canAttach()
                     ? $this->belongsToManyAttachOptions($relation)
                     : [],
@@ -2157,7 +2157,7 @@ final class ResourceShow extends Component
             'fields' => $fields,
             'belongsToOptions' => $belongsToOptions,
             'visible' => $visible,
-            'title' => $field instanceof BelongsToField ? ($field->getInlineCreateLabel() ?? ('Create '.$field->getLabel())) : null,
+            'title' => $field instanceof BelongsToField ? ($field->getInlineCreateLabel() ?? (__('seviaflow-ui::panel.create_related', ['label' => $field->getLabel()]))) : null,
         ];
     }
 
@@ -2390,7 +2390,7 @@ final class ResourceShow extends Component
         }
 
         if ($column instanceof BooleanColumn) {
-            return (bool) $value ? 'Yes' : 'No';
+            return (bool) $value ? __('seviaflow-ui::panel.yes') : __('seviaflow-ui::panel.no');
         }
 
         if ($column instanceof MoneyColumn) {
@@ -2419,7 +2419,7 @@ final class ResourceShow extends Component
         }
 
         if ($column instanceof BooleanColumn) {
-            return (bool) $value ? 'Yes' : 'No';
+            return (bool) $value ? __('seviaflow-ui::panel.yes') : __('seviaflow-ui::panel.no');
         }
 
         if ($column instanceof MoneyColumn) {

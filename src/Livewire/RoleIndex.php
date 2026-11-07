@@ -44,13 +44,13 @@ final class RoleIndex extends Component
         $role = Role::query()->withCount('assignments')->find($roleId);
 
         if (! $role instanceof Role) {
-            $this->errorMessage = 'The selected role could not be found.';
+            $this->errorMessage = __('seviaflow-ui::panel.the_selected_role_could_not_be_found');
 
             return;
         }
 
         if ($role->assignments_count > 0) {
-            $this->errorMessage = 'This role is assigned to users and cannot be deleted.';
+            $this->errorMessage = __('seviaflow-ui::panel.this_role_is_assigned_to_users_and_cannot_be_deleted');
 
             return;
         }
@@ -62,6 +62,6 @@ final class RoleIndex extends Component
             $role->delete();
         });
         app(CacheInvalidator::class)->permissionsChanged(connection: $connection);
-        $this->statusMessage = 'Role deleted successfully.';
+        $this->statusMessage = __('seviaflow-ui::panel.role_deleted_successfully');
     }
 }

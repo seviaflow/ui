@@ -1,6 +1,6 @@
 @props([
     'eyebrow' => null,
-    'title' => 'Admin',
+    'title' => __('seviaflow-ui::panel.admin'),
     'description' => null,
     'breadcrumbs' => null,
 ])
@@ -8,7 +8,7 @@
 <header class="sf-page-heading">
     <div class="sf-page-heading-main">
         @if($breadcrumbs)
-            <nav class="sf-breadcrumbs" aria-label="Breadcrumb">
+            <nav class="sf-breadcrumbs" aria-label="{{ __('seviaflow-ui::panel.breadcrumb') }}">
                 {{ $breadcrumbs }}
             </nav>
         @endif

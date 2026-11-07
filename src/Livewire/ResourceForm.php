@@ -270,7 +270,7 @@ final class ResourceForm extends Component
         $this->record = null;
         $this->isEditMode = false;
         $this->initializeFieldValues();
-        $this->statusMessage = 'Record saved. Ready for another record.';
+        $this->statusMessage = __('seviaflow-ui::panel.record_saved_ready_for_another_record');
     }
 
     public function setActiveTab(string $tab): void
@@ -326,7 +326,7 @@ final class ResourceForm extends Component
             );
             $this->isEditMode = true;
             $this->initializeFieldValues();
-            $this->statusMessage = 'Record saved successfully.';
+            $this->statusMessage = __('seviaflow-ui::panel.record_saved_successfully');
             $this->refreshDirtyState();
 
             return true;
@@ -339,7 +339,7 @@ final class ResourceForm extends Component
             $this->errorMessage = $exception->getMessage();
         } catch (\Throwable $exception) {
             report($exception);
-            $this->errorMessage = 'Saving failed. Please try again.';
+            $this->errorMessage = __('seviaflow-ui::panel.saving_failed_please_try_again');
         }
 
         $this->refreshDirtyState();
@@ -366,7 +366,7 @@ final class ResourceForm extends Component
         $this->initializeFieldValues();
         $this->hasConflict = false;
         $this->errorMessage = null;
-        $this->statusMessage = 'Record refreshed. Local changes were discarded.';
+        $this->statusMessage = __('seviaflow-ui::panel.record_refreshed_local_changes_were_discarded');
     }
 
     public function updatedFieldValues(mixed $value, string $fieldPath): void
@@ -814,7 +814,7 @@ final class ResourceForm extends Component
         );
 
         $this->fieldValues[$field->name()] = (string) $created->getKey();
-        $this->statusMessage = 'Related record created successfully.';
+        $this->statusMessage = __('seviaflow-ui::panel.related_record_created_successfully');
         $this->cancelInlineCreate();
         $this->refreshDirtyState();
         $this->dispatch('seviaflow:focus-field', fieldId: 'field-'.$field->name());
@@ -1499,8 +1499,8 @@ final class ResourceForm extends Component
         $visible = false;
 
         if ($field instanceof BelongsToField && $resourceClass !== null) {
-            $label = $field->getInlineCreateLabel() ?? ('Create '.$field->getLabel());
-            $title = 'Create '.$field->getLabel();
+            $label = $field->getInlineCreateLabel() ?? (__('seviaflow-ui::panel.create_related', ['label' => $field->getLabel()]));
+            $title = __('seviaflow-ui::panel.create_related', ['label' => $field->getLabel()]);
             $visible = ResourceAuthorization::for($resourceClass)->canCreate();
 
             if ($visible) {
@@ -1584,7 +1584,7 @@ final class ResourceForm extends Component
             $parentValue = $this->fieldValues[$parentField] ?? null;
 
             if ($parentValue === null || $parentValue === '') {
-                $placeholders[$field->name()] = 'Select '.$this->humanizeFieldName($parentField).' first';
+                $placeholders[$field->name()] = __('seviaflow-ui::panel.select_parent_first', ['field' => $this->humanizeFieldName($parentField)]);
             }
         }
 

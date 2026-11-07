@@ -65,7 +65,7 @@ final class AdminUserRolesForm extends Component
         $roleIds = array_values(array_map(static fn (int|string $value): int => (int) $value, $this->selectedRoleIds));
         $this->assignmentService()->syncRoles($this->userRecord, $roleIds);
         $this->selectedRoleIds = $this->assignmentService()->roleIdsFor($this->userRecord);
-        $this->statusMessage = 'Roles updated successfully.';
+        $this->statusMessage = __('seviaflow-ui::panel.roles_updated_successfully');
     }
 
     private function assignmentService(): RoleAssignmentService

@@ -1,3 +1,4 @@
+import { uiMessage, confirmFormExit } from './messages.js';
 import 'flowbite';
 import '../css/seviaflow.css';
 import { Chart, registerables } from 'chart.js';
@@ -263,14 +264,14 @@ const initRichTextEditor = async (root, { forceReload = false } = {}) => {
 
   bindRichTextRetry(root);
   root.dataset.sfRichtextLoading = '1';
-  setRichTextStatus(root, 'loading', 'Loading rich text editor…');
+  setRichTextStatus(root, 'loading', uiMessage(root, 'richTextLoading'));
   updateRichTextInteractivity(root);
   let modules;
   try {
     modules = await loadRichTextModules();
   } catch {
     delete root.dataset.sfRichtextLoading;
-    setRichTextStatus(root, 'error', 'The rich text editor could not be loaded. You can use the text area or retry.');
+    setRichTextStatus(root, 'error', uiMessage(root, 'richTextLoadError'));
     updateRichTextInteractivity(root);
     return;
   }
@@ -304,7 +305,7 @@ const initRichTextEditor = async (root, { forceReload = false } = {}) => {
       editable: root.dataset.sfRichtextDisabled !== 'true',
     });
   } catch {
-    setRichTextStatus(root, 'error', 'The rich text editor could not be started. You can use the text area or retry.');
+    setRichTextStatus(root, 'error', uiMessage(root, 'richTextStartError'));
     updateRichTextInteractivity(root);
     return;
   }
@@ -373,7 +374,7 @@ const initRichTextEditor = async (root, { forceReload = false } = {}) => {
             break;
           }
 
-          const url = window.prompt('Enter a safe link URL');
+          const url = window.prompt(uiMessage(root, 'richTextLinkPrompt'));
           if (url && isSafeRichTextUrl(url)) {
             chain.setLink({ href: url.trim() }).run();
           }
@@ -1413,13 +1414,7 @@ const registerFormUi = () => {
         return;
       }
 
-      if (!window.confirm('Leave this form? Unsaved changes will be lost.')) {
-        event.preventDefault();
-
-        return;
-      }
-
-      formRoot.dataset.sfFormExiting = 'true';
+      confirmFormExit(formRoot, event);
     });
 
     document.addEventListener('click', (event) => {
@@ -1444,13 +1439,7 @@ const registerFormUi = () => {
         return;
       }
 
-      if (!window.confirm('Leave this form? Unsaved changes will be lost.')) {
-        event.preventDefault();
-
-        return;
-      }
-
-      formRoot.dataset.sfFormExiting = 'true';
+      confirmFormExit(formRoot, event);
     });
 
     document.addEventListener('livewire:navigating', (event) => {
@@ -1459,13 +1448,7 @@ const registerFormUi = () => {
         return;
       }
 
-      if (!window.confirm('Leave this form? Unsaved changes will be lost.')) {
-        event.preventDefault();
-
-        return;
-      }
-
-      formRoot.dataset.sfFormExiting = 'true';
+      confirmFormExit(formRoot, event);
     });
 
     document.addEventListener('click', (event) => {

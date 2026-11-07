@@ -31,11 +31,11 @@ final class RowActionRunner
         $action = $this->resolveAction($actions, $actionName);
 
         if (! $action instanceof Action) {
-            return $this->result(errorMessage: 'The selected action is not available.');
+            return $this->result(errorMessage: __('seviaflow-ui::panel.the_selected_action_is_not_available'));
         }
 
         if (! $record instanceof Model) {
-            return $this->result(errorMessage: 'The selected record could not be found.');
+            return $this->result(errorMessage: __('seviaflow-ui::panel.the_selected_record_could_not_be_found'));
         }
 
         if (! $canExecute) {
@@ -44,7 +44,7 @@ final class RowActionRunner
 
         if ($action->shouldRequireConfirmation() && ! $confirmed) {
             return $this->result(
-                errorMessage: 'Please confirm this action before continuing.',
+                errorMessage: __('seviaflow-ui::panel.please_confirm_this_action_before_continuing'),
                 pendingActionName: $action->name(),
                 pendingActionRecordId: $recordId
             );
@@ -54,12 +54,12 @@ final class RowActionRunner
             $action->execute($record);
 
             return $this->result(
-                statusMessage: $action->getSuccessMessage() ?? 'Action completed successfully.'
+                statusMessage: $action->getSuccessMessage() ?? __('seviaflow-ui::panel.action_completed_successfully')
             );
         } catch (Throwable $exception) {
             report($exception);
 
-            return $this->result(errorMessage: $action->getErrorMessage() ?? 'The action could not be completed.');
+            return $this->result(errorMessage: $action->getErrorMessage() ?? __('seviaflow-ui::panel.the_action_could_not_be_completed'));
         }
     }
 

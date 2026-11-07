@@ -11,19 +11,19 @@
 
 <div id="{{ $fieldId }}" tabindex="-1" class="sf-repeater" data-sf-repeater data-repeater-field="{{ $field->name() }}" @if($hasError) aria-invalid="true" @endif>
     <div class="sf-repeater-header">
-        <p class="sf-help">Add and arrange items.</p>
+        <p class="sf-help">{{ __('seviaflow-ui::panel.add_and_arrange_items') }}</p>
         <button
             type="button"
             wire:click="addRepeaterItem('{{ addslashes($field->name()) }}', '{{ addslashes($modelPath) }}')"
             class="sf-button sf-button-secondary !px-3 !py-1.5"
             @disabled($isDisabled || $isReadonly || ($field->getMaxItems() !== null && count($items) >= $field->getMaxItems()))
         >
-            Add item
+            {{ __('seviaflow-ui::panel.add_item') }}
         </button>
     </div>
 
     @if($items === [])
-        <p class="sf-repeater-empty">No items yet.</p>
+        <p class="sf-repeater-empty">{{ __('seviaflow-ui::panel.no_items_yet') }}</p>
     @else
         <div class="sf-repeater-items">
             @foreach($items as $index => $item)
@@ -32,14 +32,14 @@
                     $item = is_array($item) ? $item : [];
                     $labelField = $field->getItemLabelField();
                     $itemLabel = $labelField !== null ? ($item[$labelField] ?? null) : null;
-                    $itemLabel = is_scalar($itemLabel) && (string) $itemLabel !== '' ? (string) $itemLabel : 'Item '.($index + 1);
+                    $itemLabel = is_scalar($itemLabel) && (string) $itemLabel !== '' ? (string) $itemLabel : __('seviaflow-ui::panel.item_number', ['number' => $index + 1]);
                 @endphp
                 <div id="{{ $fieldId.'-'.$uiKey }}" tabindex="-1" class="sf-repeater-item" wire:key="{{ $uiKey }}" data-repeater-ui-key="{{ $uiKey }}" data-repeater-row-index="{{ $index }}">
                     <div class="sf-repeater-item-header">
                         @if($field->isCollapsible())
                             <span class="sf-repeater-item-title">{{ $itemLabel }}</span>
                         @else
-                            <span class="sf-repeater-item-title">Item {{ $index + 1 }}{{ $itemLabel !== 'Item '.($index + 1) ? ': '.$itemLabel : '' }}</span>
+                            <span class="sf-repeater-item-title">{{ __('seviaflow-ui::panel.item_number', ['number' => $index + 1]) }}{{ $itemLabel !== __('seviaflow-ui::panel.item_number', ['number' => $index + 1]) ? ': '.$itemLabel : '' }}</span>
                         @endif
                         <div class="sf-repeater-actions">
                             @if($field->isReorderable())
@@ -47,14 +47,14 @@
                                     type="button"
                                     wire:click="moveRepeaterItemUp('{{ addslashes($field->name()) }}', '{{ addslashes($uiKey) }}', '{{ addslashes($modelPath) }}')"
                                     class="sf-button sf-button-secondary !px-2 !py-1"
-                                    aria-label="Move item {{ $index + 1 }} up"
+                                    aria-label="{{ __('seviaflow-ui::panel.move_item_up', ['number' => $index + 1]) }}"
                                     @disabled($isDisabled || $isReadonly || $index === 0)
                                 >↑</button>
                                 <button
                                     type="button"
                                     wire:click="moveRepeaterItemDown('{{ addslashes($field->name()) }}', '{{ addslashes($uiKey) }}', '{{ addslashes($modelPath) }}')"
                                     class="sf-button sf-button-secondary !px-2 !py-1"
-                                    aria-label="Move item {{ $index + 1 }} down"
+                                    aria-label="{{ __('seviaflow-ui::panel.move_item_down', ['number' => $index + 1]) }}"
                                     @disabled($isDisabled || $isReadonly || $index === count($items) - 1)
                                 >↓</button>
                             @endif
@@ -63,9 +63,9 @@
                                     type="button"
                                     wire:click="removeRepeaterItem('{{ addslashes($field->name()) }}', '{{ addslashes($uiKey) }}', '{{ addslashes($modelPath) }}')"
                                     class="sf-button sf-button-secondary !px-2 !py-1"
-                                    aria-label="Remove item {{ $index + 1 }}"
+                                    aria-label="{{ __('seviaflow-ui::panel.remove_item', ['number' => $index + 1]) }}"
                                     @disabled($isDisabled || $isReadonly || ($field->getMinItems() !== null && count($items) <= $field->getMinItems()))
-                                >Remove</button>
+                                >{{ __('seviaflow-ui::panel.remove') }}</button>
                             @endif
                         </div>
                     </div>

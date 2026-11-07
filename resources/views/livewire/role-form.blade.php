@@ -6,19 +6,19 @@
     <form wire:submit="save" class="space-y-4">
         <div class="sf-card">
             <div class="sf-card-header">
-                <h2 class="sf-card-title">Role details</h2>
-                <p class="sf-card-description mt-1">Define role identity and access boundaries for operators.</p>
+                <h2 class="sf-card-title">{{ __('seviaflow-ui::panel.role_details') }}</h2>
+                <p class="sf-card-description mt-1">{{ __('seviaflow-ui::panel.define_role_identity_and_access_boundaries_for_operators') }}</p>
             </div>
             <div class="sf-card-body">
                 <div class="grid gap-4 sm:grid-cols-2">
                     <div class="sf-field">
-                        <label for="role-name" class="sf-label">Role name</label>
+                        <label for="role-name" class="sf-label">{{ __('seviaflow-ui::panel.role_name') }}</label>
                         <input
                             id="role-name"
                             type="text"
                             wire:model.live.debounce.300ms="name"
                             class="sf-input"
-                            placeholder="Support"
+                            placeholder="{{ __('seviaflow-ui::panel.support') }}"
                         >
                         @error('name')
                             <p class="sf-error">{{ $message }}</p>
@@ -26,7 +26,7 @@
                     </div>
 
                     <div class="sf-field">
-                        <label for="role-slug" class="sf-label">Role key</label>
+                        <label for="role-slug" class="sf-label">{{ __('seviaflow-ui::panel.role_key') }}</label>
                         <input
                             id="role-slug"
                             type="text"
@@ -44,9 +44,9 @@
 
         <section class="sf-card">
             <div class="sf-card-header">
-                <h2 class="sf-card-title">Resource permissions</h2>
-                <p class="sf-card-description mt-1">Select what operators with this role are allowed to do.</p>
-                <p class="sf-help mt-2 text-amber-700">Role permissions are combined with Laravel policies. Both must allow an operation.</p>
+                <h2 class="sf-card-title">{{ __('seviaflow-ui::panel.resource_permissions') }}</h2>
+                <p class="sf-card-description mt-1">{{ __('seviaflow-ui::panel.select_what_operators_with_this_role_are_allowed_to_do') }}</p>
+                <p class="sf-help mt-2 text-amber-700">{{ __('seviaflow-ui::panel.role_permissions_are_combined_with_laravel_policies_both_must_allow_an_operation') }}</p>
             </div>
 
             <div class="sf-card-body space-y-3">
@@ -54,7 +54,7 @@
                     <table class="sf-table">
                         <thead>
                             <tr>
-                                <th class="sf-table-header">Resource</th>
+                                <th class="sf-table-header">{{ __('seviaflow-ui::panel.resource') }}</th>
                                 @foreach($abilityLabels as $ability => $label)
                                     <th class="sf-table-header">{{ $label }}</th>
                                 @endforeach
@@ -93,11 +93,11 @@
         <div class="sf-form-actions">
             <div class="sf-resource-actions">
                 <button type="submit" class="sf-button sf-button-primary">
-                    {{ $isEditMode ? 'Save changes' : 'Create role' }}
+                    {{ $isEditMode ? __('seviaflow-ui::panel.save_changes') : __('seviaflow-ui::panel.create_role') }}
                 </button>
 
                 <a href="{{ $cancelUrl }}" class="sf-button sf-button-secondary">
-                    Cancel
+                    {{ __('seviaflow-ui::ui.actions.cancel') }}
                 </a>
             </div>
         </div>

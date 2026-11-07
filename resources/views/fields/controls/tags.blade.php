@@ -11,4 +11,4 @@
     @if($describedBy !== '') aria-describedby="{{ $describedBy }}" @endif
     class="sf-input sf-tags-input {{ $hasError ? 'sf-input-error' : '' }} {{ $isReadonly ? 'sf-control-readonly' : '' }}"
 >
-<p class="sf-help">Separate tags with commas. Duplicate and blank tags are removed on save.</p>
+<p class="sf-help">{{ __('seviaflow-ui::panel.separate_tags_with_commas_duplicate_and_blank_tags_are_removed_on_save') }}</p>

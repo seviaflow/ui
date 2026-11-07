@@ -9,11 +9,11 @@
     </div>
 
     @if($state === 'loading')
-        <div class="sf-dashboard-empty mt-4">Loading analytics...</div>
+        <div class="sf-dashboard-empty mt-4">{{ __('seviaflow-ui::panel.loading_analytics') }}</div>
     @elseif($state === 'error')
-        <div class="sf-dashboard-empty mt-4">{{ $message ?: 'Unable to load analytics.' }}</div>
+        <div class="sf-dashboard-empty mt-4">{{ $message ?: __('seviaflow-ui::panel.unable_to_load_analytics') }}</div>
     @elseif($state === 'empty')
-        <div class="sf-dashboard-empty mt-4">No analytics data found.</div>
+        <div class="sf-dashboard-empty mt-4">{{ __('seviaflow-ui::panel.no_analytics_data_found') }}</div>
     @else
         <div class="sf-dashboard-chart-frame mt-4">
             <canvas
